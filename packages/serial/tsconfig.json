@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "outDir": "dts",
+    "rootDir": "src",
+    "declaration": true, // enabling declaration (.d.ts) emit
+    //
+    "allowSyntheticDefaultImports": true,
+    "experimentalDecorators": true,
+    //
+    "isolatedModules": true,
+    "module": "esnext",
+    //
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": true,
+    "removeComments": false,
+    "preserveConstEnums": true,
+    //
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
+    "emitDecoratorMetadata": true,
+    "esModuleInterop": true,
+    "sourceMap": true,
+    "target": "es2020",
+    "strictNullChecks": true,
+    "types": ["bun", "dom-serial"],
+    "lib": ["es2020", "dom"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "examples", "**/*.spec.ts"]
+}

@@ -1,0 +1,86 @@
+{
+  "name": "@v5x/serial",
+  "version": "0.6.0",
+  "description": "VEX V5 serial protocol implementation",
+  "module": "./dist/index.js",
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "sideEffects": true,
+  "scripts": {
+    "build": "bun run build:js && bun run build:cjs && bun run build:dts",
+    "build:js": "bun build ./src/index.ts ./src/packet-core.ts --target browser --format esm --sourcemap=linked --outdir ./dist && bun build ./src/adapters/browser.ts --target browser --format esm --sourcemap=linked --outdir ./dist && bun build ./src/adapters/node.ts --target node --format esm --sourcemap=linked --external serialport --outdir ./dist && bun build ./src/adapters/bun.ts --target bun --format esm --sourcemap=linked --external bun-serialport --outdir ./dist",
+    "build:cjs": "bun build ./src/index.ts --target node --format cjs --sourcemap=linked --outdir ./dist --entry-naming=index.cjs && bun build ./src/packet-core.ts --target node --format cjs --sourcemap=linked --outdir ./dist --entry-naming=packet-core.cjs",
+    "build:dts": "tsc -p tsconfig.build.json",
+    "check": "tsc --noEmit",
+    "test": "bun test",
+    "typecheck": "bun run check"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
+    },
+    "./packet-core": {
+      "types": "./dist/packet-core.d.ts",
+      "import": "./dist/packet-core.js",
+      "require": "./dist/packet-core.cjs",
+      "default": "./dist/packet-core.js"
+    },
+    "./browser": {
+      "types": "./dist/adapters/browser.d.ts",
+      "import": "./dist/browser.js",
+      "default": "./dist/browser.js"
+    },
+    "./node": {
+      "types": "./dist/adapters/node.d.ts",
+      "import": "./dist/node.js",
+      "default": "./dist/node.js"
+    },
+    "./bun": {
+      "types": "./dist/adapters/bun.d.ts",
+      "import": "./dist/bun.js",
+      "default": "./dist/bun.js"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/v5x-dev/v5x.git",
+    "directory": "packages/serial"
+  },
+  "license": "MIT",
+  "keywords": [
+    "vex",
+    "vex-v5",
+    "serial",
+    "web-serial",
+    "robotics",
+    "pros"
+  ],
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^7",
+    "bun-serialport": "latest",
+    "serialport": "^13"
+  },
+  "peerDependencies": {
+    "bun-serialport": "*",
+    "serialport": "^13",
+    "typescript": "^7"
+  },
+  "peerDependenciesMeta": {
+    "bun-serialport": {
+      "optional": true
+    },
+    "serialport": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@types/dom-serial": "^1.0.6",
+    "unzipit": "^2.0.3"
+  }
+}

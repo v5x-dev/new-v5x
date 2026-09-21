@@ -1,0 +1,17 @@
+{
+  "name": "v5x",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  },
+  "scripts": {
+    "dev:web": "bun --cwd=apps/code --bun run dev"
+  }
+}

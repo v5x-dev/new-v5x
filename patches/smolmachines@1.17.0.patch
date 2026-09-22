@@ -1,0 +1,233 @@
+diff --git a/dist/binding.js b/dist/binding.js
+index a9bde6c805c8ebc57f542454a366aa3d11e763f8..57c8b11a694838ca5767c40b1a932a58be4360c5 100644
+--- a/dist/binding.js
++++ b/dist/binding.js
+@@ -7,6 +7,12 @@
+ const { existsSync, readFileSync } = require('fs')
+ const { join } = require('path')
+ 
++// Indirect so bundlers (Convex/esbuild) keep the native addon out of the
++// cloud bundle. Local loads still resolve the same files at runtime.
++function loadBinding(id) {
++  return require(id)
++}
++
+ const { platform, arch } = process
+ 
+ let nativeBinding = null
+@@ -35,9 +41,9 @@ switch (platform) {
+         localFileExisted = existsSync(join(__dirname, 'smol.android-arm64.node'))
+         try {
+           if (localFileExisted) {
+-            nativeBinding = require('./smol.android-arm64.node')
++            nativeBinding = loadBinding('./smol.android-arm64.node')
+           } else {
+-            nativeBinding = require('smolmachines-android-arm64')
++            nativeBinding = loadBinding('smolmachines-android-arm64')
+           }
+         } catch (e) {
+           loadError = e
+@@ -47,9 +53,9 @@ switch (platform) {
+         localFileExisted = existsSync(join(__dirname, 'smol.android-arm-eabi.node'))
+         try {
+           if (localFileExisted) {
+-            nativeBinding = require('./smol.android-arm-eabi.node')
++            nativeBinding = loadBinding('./smol.android-arm-eabi.node')
+           } else {
+-            nativeBinding = require('smolmachines-android-arm-eabi')
++            nativeBinding = loadBinding('smolmachines-android-arm-eabi')
+           }
+         } catch (e) {
+           loadError = e
+@@ -67,9 +73,9 @@ switch (platform) {
+         )
+         try {
+           if (localFileExisted) {
+-            nativeBinding = require('./smol.win32-x64-msvc.node')
++            nativeBinding = loadBinding('./smol.win32-x64-msvc.node')
+           } else {
+-            nativeBinding = require('smolmachines-win32-x64-msvc')
++            nativeBinding = loadBinding('smolmachines-win32-x64-msvc')
+           }
+         } catch (e) {
+           loadError = e
+@@ -81,9 +87,9 @@ switch (platform) {
+         )
+         try {
+           if (localFileExisted) {
+-            nativeBinding = require('./smol.win32-ia32-msvc.node')
++            nativeBinding = loadBinding('./smol.win32-ia32-msvc.node')
+           } else {
+-            nativeBinding = require('smolmachines-win32-ia32-msvc')
++            nativeBinding = loadBinding('smolmachines-win32-ia32-msvc')
+           }
+         } catch (e) {
+           loadError = e
+@@ -95,9 +101,9 @@ switch (platform) {
+         )
+         try {
+           if (localFileExisted) {
+-            nativeBinding = require('./smol.win32-arm64-msvc.node')
++            nativeBinding = loadBinding('./smol.win32-arm64-msvc.node')
+           } else {
+-            nativeBinding = require('smolmachines-win32-arm64-msvc')
++            nativeBinding = loadBinding('smolmachines-win32-arm64-msvc')
+           }
+         } catch (e) {
+           loadError = e
+@@ -111,9 +117,9 @@ switch (platform) {
+     localFileExisted = existsSync(join(__dirname, 'smol.darwin-universal.node'))
+     try {
+       if (localFileExisted) {
+-        nativeBinding = require('./smol.darwin-universal.node')
++        nativeBinding = loadBinding('./smol.darwin-universal.node')
+       } else {
+-        nativeBinding = require('smolmachines-darwin-universal')
++        nativeBinding = loadBinding('smolmachines-darwin-universal')
+       }
+       break
+     } catch {}
+@@ -122,9 +128,9 @@ switch (platform) {
+         localFileExisted = existsSync(join(__dirname, 'smol.darwin-x64.node'))
+         try {
+           if (localFileExisted) {
+-            nativeBinding = require('./smol.darwin-x64.node')
++            nativeBinding = loadBinding('./smol.darwin-x64.node')
+           } else {
+-            nativeBinding = require('smolmachines-darwin-x64')
++            nativeBinding = loadBinding('smolmachines-darwin-x64')
+           }
+         } catch (e) {
+           loadError = e
+@@ -136,9 +142,9 @@ switch (platform) {
+         )
+         try {
+           if (localFileExisted) {
+-            nativeBinding = require('./smol.darwin-arm64.node')
++            nativeBinding = loadBinding('./smol.darwin-arm64.node')
+           } else {
+-            nativeBinding = require('smolmachines-darwin-arm64')
++            nativeBinding = loadBinding('smolmachines-darwin-arm64')
+           }
+         } catch (e) {
+           loadError = e
+@@ -155,9 +161,9 @@ switch (platform) {
+     localFileExisted = existsSync(join(__dirname, 'smol.freebsd-x64.node'))
+     try {
+       if (localFileExisted) {
+-        nativeBinding = require('./smol.freebsd-x64.node')
++        nativeBinding = loadBinding('./smol.freebsd-x64.node')
+       } else {
+-        nativeBinding = require('smolmachines-freebsd-x64')
++        nativeBinding = loadBinding('smolmachines-freebsd-x64')
+       }
+     } catch (e) {
+       loadError = e
+@@ -172,9 +178,9 @@ switch (platform) {
+           )
+           try {
+             if (localFileExisted) {
+-              nativeBinding = require('./smol.linux-x64-musl.node')
++              nativeBinding = loadBinding('./smol.linux-x64-musl.node')
+             } else {
+-              nativeBinding = require('smolmachines-linux-x64-musl')
++              nativeBinding = loadBinding('smolmachines-linux-x64-musl')
+             }
+           } catch (e) {
+             loadError = e
+@@ -185,9 +191,9 @@ switch (platform) {
+           )
+           try {
+             if (localFileExisted) {
+-              nativeBinding = require('./smol.linux-x64-gnu.node')
++              nativeBinding = loadBinding('./smol.linux-x64-gnu.node')
+             } else {
+-              nativeBinding = require('smolmachines-linux-x64-gnu')
++              nativeBinding = loadBinding('smolmachines-linux-x64-gnu')
+             }
+           } catch (e) {
+             loadError = e
+@@ -201,9 +207,9 @@ switch (platform) {
+           )
+           try {
+             if (localFileExisted) {
+-              nativeBinding = require('./smol.linux-arm64-musl.node')
++              nativeBinding = loadBinding('./smol.linux-arm64-musl.node')
+             } else {
+-              nativeBinding = require('smolmachines-linux-arm64-musl')
++              nativeBinding = loadBinding('smolmachines-linux-arm64-musl')
+             }
+           } catch (e) {
+             loadError = e
+@@ -214,9 +220,9 @@ switch (platform) {
+           )
+           try {
+             if (localFileExisted) {
+-              nativeBinding = require('./smol.linux-arm64-gnu.node')
++              nativeBinding = loadBinding('./smol.linux-arm64-gnu.node')
+             } else {
+-              nativeBinding = require('smolmachines-linux-arm64-gnu')
++              nativeBinding = loadBinding('smolmachines-linux-arm64-gnu')
+             }
+           } catch (e) {
+             loadError = e
+@@ -230,9 +236,9 @@ switch (platform) {
+           )
+           try {
+             if (localFileExisted) {
+-              nativeBinding = require('./smol.linux-arm-musleabihf.node')
++              nativeBinding = loadBinding('./smol.linux-arm-musleabihf.node')
+             } else {
+-              nativeBinding = require('smolmachines-linux-arm-musleabihf')
++              nativeBinding = loadBinding('smolmachines-linux-arm-musleabihf')
+             }
+           } catch (e) {
+             loadError = e
+@@ -243,9 +249,9 @@ switch (platform) {
+           )
+           try {
+             if (localFileExisted) {
+-              nativeBinding = require('./smol.linux-arm-gnueabihf.node')
++              nativeBinding = loadBinding('./smol.linux-arm-gnueabihf.node')
+             } else {
+-              nativeBinding = require('smolmachines-linux-arm-gnueabihf')
++              nativeBinding = loadBinding('smolmachines-linux-arm-gnueabihf')
+             }
+           } catch (e) {
+             loadError = e
+@@ -259,9 +265,9 @@ switch (platform) {
+           )
+           try {
+             if (localFileExisted) {
+-              nativeBinding = require('./smol.linux-riscv64-musl.node')
++              nativeBinding = loadBinding('./smol.linux-riscv64-musl.node')
+             } else {
+-              nativeBinding = require('smolmachines-linux-riscv64-musl')
++              nativeBinding = loadBinding('smolmachines-linux-riscv64-musl')
+             }
+           } catch (e) {
+             loadError = e
+@@ -272,9 +278,9 @@ switch (platform) {
+           )
+           try {
+             if (localFileExisted) {
+-              nativeBinding = require('./smol.linux-riscv64-gnu.node')
++              nativeBinding = loadBinding('./smol.linux-riscv64-gnu.node')
+             } else {
+-              nativeBinding = require('smolmachines-linux-riscv64-gnu')
++              nativeBinding = loadBinding('smolmachines-linux-riscv64-gnu')
+             }
+           } catch (e) {
+             loadError = e
+@@ -287,9 +293,9 @@ switch (platform) {
+         )
+         try {
+           if (localFileExisted) {
+-            nativeBinding = require('./smol.linux-s390x-gnu.node')
++            nativeBinding = loadBinding('./smol.linux-s390x-gnu.node')
+           } else {
+-            nativeBinding = require('smolmachines-linux-s390x-gnu')
++            nativeBinding = loadBinding('smolmachines-linux-s390x-gnu')
+           }
+         } catch (e) {
+           loadError = e

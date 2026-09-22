@@ -18,5 +18,8 @@
   "workspaces": [
     "packages/*",
     "apps/*"
-  ]
+  ],
+  "patchedDependencies": {
+    "smolmachines@1.17.0": "patches/smolmachines@1.17.0.patch"
+  }
 }

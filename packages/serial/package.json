@@ -14,7 +14,9 @@
     "build:dts": "tsc -p tsconfig.build.json",
     "check": "tsc --noEmit",
     "test": "bun test",
-    "typecheck": "bun run check"
+    "typecheck": "bun run check",
+    "format": "prettier --config ../../prettier.config.mjs --ignore-path ../../.prettierignore --write .",
+    "format:check": "prettier --config ../../prettier.config.mjs --ignore-path ../../.prettierignore --check ."
   },
   "exports": {
     ".": {
@@ -45,7 +47,11 @@
       "default": "./dist/bun.js"
     }
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/v5x-dev/v5x.git",

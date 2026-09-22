@@ -10,53 +10,33 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AppProgramsIndexRouteImport } from './routes/_app/programs/index'
-import { Route as AppProgramsProgramIdRouteImport } from './routes/_app/programs/$programId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppProgramsIndexRoute = AppProgramsIndexRouteImport.update({
-  id: '/_app/programs/',
-  path: '/programs/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppProgramsProgramIdRoute = AppProgramsProgramIdRouteImport.update({
-  id: '/_app/programs/$programId',
-  path: '/programs/$programId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/programs/$programId': typeof AppProgramsProgramIdRoute
-  '/programs/': typeof AppProgramsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/programs/$programId': typeof AppProgramsProgramIdRoute
-  '/programs': typeof AppProgramsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/_app/programs/$programId': typeof AppProgramsProgramIdRoute
-  '/_app/programs/': typeof AppProgramsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/programs/$programId' | '/programs/'
+  fullPaths: '/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/programs/$programId' | '/programs'
-  id: '__root__' | '/' | '/_app/programs/$programId' | '/_app/programs/'
+  to: '/'
+  id: '__root__' | '/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AppProgramsProgramIdRoute: typeof AppProgramsProgramIdRoute
-  AppProgramsIndexRoute: typeof AppProgramsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -68,27 +48,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/programs/': {
-      id: '/_app/programs/'
-      path: '/programs'
-      fullPath: '/programs/'
-      preLoaderRoute: typeof AppProgramsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_app/programs/$programId': {
-      id: '/_app/programs/$programId'
-      path: '/programs/$programId'
-      fullPath: '/programs/$programId'
-      preLoaderRoute: typeof AppProgramsProgramIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AppProgramsProgramIdRoute: AppProgramsProgramIdRoute,
-  AppProgramsIndexRoute: AppProgramsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

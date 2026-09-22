@@ -1,7 +1,7 @@
-import { PacketView } from "./vex-packet-view";
-import { CrcGenerator } from "./vex-crc";
+import { PacketView } from "./vex-packet-view"
+import { CrcGenerator } from "./vex-crc"
 
-import * as AllPackets from "./vex-packet";
+import * as AllPackets from "./vex-packet"
 import {
   AckType,
   type DataArray,
@@ -19,56 +19,60 @@ import {
   type SelectDashScreen,
   USER_FIFO_MAX_WRITE_SIZE,
   UserFifoChannel,
-} from "./vex";
-import { VexFirmwareVersion } from "./vex-firmware-version";
+} from "./vex"
+import { VexFirmwareVersion } from "./vex-firmware-version"
 
-const textEncoder = new TextEncoder();
+const textEncoder = new TextEncoder()
 
 function encodeFixedText(
   value: string,
   field: string,
-  maxBytes: number,
+  maxBytes: number
 ): Uint8Array {
   if (value.includes("\0")) {
-    throw new TypeError(`${field} must not contain NUL characters`);
+    throw new TypeError(`${field} must not contain NUL characters`)
   }
-  const encoded = textEncoder.encode(value);
+  const encoded = textEncoder.encode(value)
   if (encoded.byteLength > maxBytes) {
-    throw new RangeError(`${field} must be at most ${maxBytes} UTF-8 bytes`);
+    throw new RangeError(`${field} must be at most ${maxBytes} UTF-8 bytes`)
   }
-  return encoded;
+  return encoded
 }
 
-function filePayload(first: number, second: number, filename: string): Uint8Array {
-  const payload = new Uint8Array(26);
-  payload[0] = first;
-  payload[1] = second;
-  payload.set(encodeFixedText(filename, "Filename", 24), 2);
-  return payload;
+function filePayload(
+  first: number,
+  second: number,
+  filename: string
+): Uint8Array {
+  const payload = new Uint8Array(26)
+  payload[0] = first
+  payload[1] = second
+  payload.set(encodeFixedText(filename, "Filename", 24), 2)
+  return payload
 }
 
 export class PacketEncoder {
-  static HEADERS_LENGTH = 4;
-  static HEADER_TO_DEVICE = [201, 54, 184, 71];
-  static HEADER_TO_HOST = [170, 85];
+  static HEADERS_LENGTH = 4
+  static HEADER_TO_DEVICE = [201, 54, 184, 71]
+  static HEADER_TO_HOST = [170, 85]
 
-  static J2000_EPOCH = 946684800;
+  static J2000_EPOCH = 946684800
 
-  vexVersion: number;
+  vexVersion: number
 
-  crcgen: CrcGenerator;
-  allPacketsTable: Record<string, typeof HostBoundPacket> = {};
+  crcgen: CrcGenerator
+  allPacketsTable: Record<string, typeof HostBoundPacket> = {}
 
   static getInstance(): PacketEncoder {
     if (Packet.ENCODER === undefined) {
-      Packet.ENCODER = new PacketEncoder();
+      Packet.ENCODER = new PacketEncoder()
     }
-    return Packet.ENCODER;
+    return Packet.ENCODER
   }
 
   private constructor() {
-    this.vexVersion = 0;
-    this.crcgen = new CrcGenerator();
+    this.vexVersion = 0
+    this.crcgen = new CrcGenerator()
 
     Object.values(AllPackets).forEach((packet) => {
       if (
@@ -79,9 +83,9 @@ export class PacketEncoder {
         this.allPacketsTable[
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (packet as any).COMMAND_ID + " " + (packet as any).COMMAND_EXTENDED_ID
-        ] = packet as typeof HostBoundPacket;
+        ] = packet as typeof HostBoundPacket
       }
-    });
+    })
   }
 
   /**
@@ -91,11 +95,11 @@ export class PacketEncoder {
   createHeader(buf: ArrayBuffer | undefined): Uint8Array {
     // create a buffer if is is not defined
     if (buf === undefined || buf.byteLength < PacketEncoder.HEADERS_LENGTH) {
-      buf = new ArrayBuffer(PacketEncoder.HEADERS_LENGTH);
+      buf = new ArrayBuffer(PacketEncoder.HEADERS_LENGTH)
     }
-    const h = new Uint8Array(buf);
-    h.set(PacketEncoder.HEADER_TO_DEVICE);
-    return h;
+    const h = new Uint8Array(buf)
+    h.set(PacketEncoder.HEADER_TO_DEVICE)
+    return h
   }
 
   /**
@@ -103,10 +107,10 @@ export class PacketEncoder {
    * @param cmd the CDC command byte
    */
   cdcCommand(cmd: number): Uint8Array {
-    const buf = new ArrayBuffer(PacketEncoder.HEADERS_LENGTH + 1);
-    const h = this.createHeader(buf);
-    h.set([cmd], PacketEncoder.HEADERS_LENGTH);
-    return h;
+    const buf = new ArrayBuffer(PacketEncoder.HEADERS_LENGTH + 1)
+    const h = this.createHeader(buf)
+    h.set([cmd], PacketEncoder.HEADERS_LENGTH)
+    return h
   }
 
   /**
@@ -116,15 +120,15 @@ export class PacketEncoder {
    */
   cdcCommandWithData(cmd: number, data: Uint8Array): Uint8Array {
     if (data.byteLength > 0xff) {
-      throw new RangeError("CDC payload must be at most 255 bytes");
+      throw new RangeError("CDC payload must be at most 255 bytes")
     }
-    const buf = new ArrayBuffer(PacketEncoder.HEADERS_LENGTH + 2 + data.length);
-    const h = this.createHeader(buf);
+    const buf = new ArrayBuffer(PacketEncoder.HEADERS_LENGTH + 2 + data.length)
+    const h = this.createHeader(buf)
     // add command and length bytes
-    h.set([cmd, data.length], PacketEncoder.HEADERS_LENGTH);
+    h.set([cmd, data.length], PacketEncoder.HEADERS_LENGTH)
     // add the message data
-    h.set(data, PacketEncoder.HEADERS_LENGTH + 2);
-    return h;
+    h.set(data, PacketEncoder.HEADERS_LENGTH + 2)
+    return h
   }
 
   /**
@@ -134,13 +138,13 @@ export class PacketEncoder {
    * @return a message
    */
   cdc2Command(cmd: number, ext: number): Uint8Array {
-    const buf = new ArrayBuffer(PacketEncoder.HEADERS_LENGTH + 5);
-    const h = this.createHeader(buf);
-    h.set([cmd, ext, 0], PacketEncoder.HEADERS_LENGTH);
+    const buf = new ArrayBuffer(PacketEncoder.HEADERS_LENGTH + 5)
+    const h = this.createHeader(buf)
+    h.set([cmd, ext, 0], PacketEncoder.HEADERS_LENGTH)
     // Add CRC
-    const crc = this.crcgen.crc16(h.subarray(0, buf.byteLength - 2), 0) >>> 0;
-    h.set([crc >>> 8, crc & 0xff], buf.byteLength - 2);
-    return h;
+    const crc = this.crcgen.crc16(h.subarray(0, buf.byteLength - 2), 0) >>> 0
+    h.set([crc >>> 8, crc & 0xff], buf.byteLength - 2)
+    return h
   }
 
   /**
@@ -152,10 +156,10 @@ export class PacketEncoder {
     // New command use header + 1 byte command
     //                        + 1 byte function
     //                        + 1 byte data length
-    let length = PacketEncoder.HEADERS_LENGTH + data.length + 3 + 2;
+    let length = PacketEncoder.HEADERS_LENGTH + data.length + 3 + 2
     // If data length is > 127 bytes then an additional data length byte is added
-    if (data.length > 127) length += 1;
-    return length;
+    if (data.length > 127) length += 1
+    return length
   }
 
   /**
@@ -167,196 +171,196 @@ export class PacketEncoder {
    */
   cdc2CommandWithData(cmd: number, ext: number, data: Uint8Array): Uint8Array {
     if (data.byteLength > 0x7fff) {
-      throw new RangeError("CDC2 payload must be at most 32767 bytes");
+      throw new RangeError("CDC2 payload must be at most 32767 bytes")
     }
-    const buf = new ArrayBuffer(this.cdc2CommandBufferLength(data));
-    const h = this.createHeader(buf);
+    const buf = new ArrayBuffer(this.cdc2CommandBufferLength(data))
+    const h = this.createHeader(buf)
     // add command and length bytes
     if (data.length < 128) {
-      h.set([cmd, ext, data.length], PacketEncoder.HEADERS_LENGTH);
+      h.set([cmd, ext, data.length], PacketEncoder.HEADERS_LENGTH)
       // add the message data
-      h.set(data, PacketEncoder.HEADERS_LENGTH + 3);
+      h.set(data, PacketEncoder.HEADERS_LENGTH + 3)
     } else {
-      const lengthMsb = ((data.length >>> 8) | 0x80) >>> 0;
-      const lengthLsb = (data.length & 0xff) >>> 0;
-      h.set([cmd, ext, lengthMsb, lengthLsb], PacketEncoder.HEADERS_LENGTH);
+      const lengthMsb = ((data.length >>> 8) | 0x80) >>> 0
+      const lengthLsb = (data.length & 0xff) >>> 0
+      h.set([cmd, ext, lengthMsb, lengthLsb], PacketEncoder.HEADERS_LENGTH)
       // add the message data
-      h.set(data, PacketEncoder.HEADERS_LENGTH + 4);
+      h.set(data, PacketEncoder.HEADERS_LENGTH + 4)
     }
     // Add CRC (little endian)
-    const crc = this.crcgen.crc16(h.subarray(0, buf.byteLength - 2), 0);
-    h.set([crc >>> 8, crc & 0xff], buf.byteLength - 2);
-    return h;
+    const crc = this.crcgen.crc16(h.subarray(0, buf.byteLength - 2), 0)
+    h.set([crc >>> 8, crc & 0xff], buf.byteLength - 2)
+    return h
   }
 
   validateHeader(data: Uint8Array): boolean {
     return !(
       data[0] !== PacketEncoder.HEADER_TO_HOST[0] ||
       data[1] !== PacketEncoder.HEADER_TO_HOST[1]
-    );
+    )
   }
 
   validateMessageCdc(data: Uint8Array): boolean {
-    const message = data.subarray(0, data.byteLength - 2);
+    const message = data.subarray(0, data.byteLength - 2)
     const lastTwoBytes =
-      (data[data.byteLength - 2] << 8) + data[data.byteLength - 1];
-    return this.crcgen.crc16(message, 0) === lastTwoBytes;
+      (data[data.byteLength - 2] << 8) + data[data.byteLength - 1]
+    return this.crcgen.crc16(message, 0) === lastTwoBytes
   }
 
   getPayloadSize(data: Uint8Array): number {
-    let t = 0;
-    let a = data[3];
+    let t = 0
+    let a = data[3]
     if ((128 & a) !== 0) {
-      t = 127 & a;
-      a = data[4];
+      t = 127 & a
+      a = data[4]
     }
-    return (t << 8) + a;
+    return (t << 8) + a
   }
 
   getHostHeaderLength(data: Uint8Array): number {
-    return (data[3] & 0x80) === 0 ? 4 : 5;
+    return (data[3] & 0x80) === 0 ? 4 : 5
   }
 
   getPacketType(
     commandId: number | undefined,
-    commandExtendedId: number | undefined,
+    commandExtendedId: number | undefined
   ): typeof HostBoundPacket | undefined {
-    if (commandId === undefined) return undefined;
-    return this.allPacketsTable[`${commandId} ${commandExtendedId}`];
+    if (commandId === undefined) return undefined
+    return this.allPacketsTable[`${commandId} ${commandExtendedId}`]
   }
 }
 
 export abstract class Packet {
-  data: Uint8Array; // the buffer sent to the device or received from the device
+  data: Uint8Array // the buffer sent to the device or received from the device
 
-  static ENCODER: PacketEncoder;
+  static ENCODER: PacketEncoder
 
   constructor(rawData: DataArray) {
     this.data =
-      rawData instanceof ArrayBuffer ? new Uint8Array(rawData) : rawData;
+      rawData instanceof ArrayBuffer ? new Uint8Array(rawData) : rawData
   }
 }
 
 export class DeviceBoundPacket extends Packet {
-  static COMMAND_ID: number;
-  static COMMAND_EXTENDED_ID: number | undefined;
+  static COMMAND_ID: number
+  static COMMAND_EXTENDED_ID: number | undefined
 
   get commandId(): number {
-    return (this.constructor as typeof DeviceBoundPacket).COMMAND_ID;
+    return (this.constructor as typeof DeviceBoundPacket).COMMAND_ID
   }
 
   get commandExtendedId(): number | undefined {
-    return (this.constructor as typeof DeviceBoundPacket).COMMAND_EXTENDED_ID;
+    return (this.constructor as typeof DeviceBoundPacket).COMMAND_EXTENDED_ID
   }
 
   constructor(payload?: Uint8Array) {
-    const me = new.target as typeof DeviceBoundPacket;
-    super(new Uint8Array());
+    const me = new.target as typeof DeviceBoundPacket
+    super(new Uint8Array())
 
     if (me.COMMAND_EXTENDED_ID === undefined) {
       if (payload === undefined) {
-        this.data = Packet.ENCODER.cdcCommand(me.COMMAND_ID);
+        this.data = Packet.ENCODER.cdcCommand(me.COMMAND_ID)
       } else {
-        this.data = Packet.ENCODER.cdcCommandWithData(me.COMMAND_ID, payload);
+        this.data = Packet.ENCODER.cdcCommandWithData(me.COMMAND_ID, payload)
       }
     } else {
       if (payload === undefined) {
         this.data = Packet.ENCODER.cdc2Command(
           me.COMMAND_ID,
-          me.COMMAND_EXTENDED_ID,
-        );
+          me.COMMAND_EXTENDED_ID
+        )
       } else {
         this.data = Packet.ENCODER.cdc2CommandWithData(
           me.COMMAND_ID,
           me.COMMAND_EXTENDED_ID,
-          payload,
-        );
+          payload
+        )
       }
     }
   }
 }
 
 export class Query1H2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 33;
-  static COMMAND_EXTENDED_ID = undefined;
+  static COMMAND_ID = 33
+  static COMMAND_EXTENDED_ID = undefined
 
   constructor() {
-    super(undefined);
+    super(undefined)
   }
 }
 
 export class SystemVersionH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 164;
-  static COMMAND_EXTENDED_ID = undefined;
+  static COMMAND_ID = 164
+  static COMMAND_EXTENDED_ID = undefined
 
   constructor() {
-    super(undefined);
+    super(undefined)
   }
 }
 
 export class UpdateMatchModeH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 88;
-  static COMMAND_EXTENDED_ID = 193;
+  static COMMAND_ID = 88
+  static COMMAND_EXTENDED_ID = 193
 
   constructor(mode: MatchMode, matchClock: number) {
-    let bit1;
+    let bit1
     switch (mode) {
       case "autonomous":
-        bit1 = 10;
-        break;
+        bit1 = 10
+        break
       case "driver":
-        bit1 = 8;
-        break;
+        bit1 = 8
+        break
       case "disabled":
-        bit1 = 11;
+        bit1 = 11
     }
 
-    const payload = new Uint8Array(5);
-    const view = new DataView(payload.buffer);
-    payload[0] = (15 & bit1) >>> 0;
+    const payload = new Uint8Array(5)
+    const view = new DataView(payload.buffer)
+    payload[0] = (15 & bit1) >>> 0
 
-    view.setUint32(1, matchClock, true);
+    view.setUint32(1, matchClock, true)
 
-    super(payload);
+    super(payload)
   }
 }
 
 export class GetMatchStatusH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 88;
-  static COMMAND_EXTENDED_ID = 194;
+  static COMMAND_ID = 88
+  static COMMAND_EXTENDED_ID = 194
 
   constructor() {
-    super(undefined);
+    super(undefined)
   }
 }
 
 export class GetRadioModeH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 88;
-  static COMMAND_EXTENDED_ID = 65;
+  static COMMAND_ID = 88
+  static COMMAND_EXTENDED_ID = 65
 
   constructor(mode: number) {
-    const payload = new Uint8Array(1);
-    payload[0] = mode;
+    const payload = new Uint8Array(1)
+    payload[0] = mode
 
-    super(payload);
+    super(payload)
   }
 }
 
 export class FileControlH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 16;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 16
 
   constructor(a: number, b: number) {
-    const payload = new Uint8Array(2);
-    payload.set([a, b], 0);
+    const payload = new Uint8Array(2)
+    payload.set([a, b], 0)
 
-    super(payload);
+    super(payload)
   }
 }
 
 export class InitFileTransferH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 17;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 17
 
   constructor(
     operation: FileInitAction,
@@ -367,667 +371,665 @@ export class InitFileTransferH2DPacket extends DeviceBoundPacket {
     addr: number,
     name: string,
     type?: string,
-    version: VexFirmwareVersion = new VexFirmwareVersion(1, 0, 0, 0),
+    version: VexFirmwareVersion = new VexFirmwareVersion(1, 0, 0, 0)
   ) {
-    const payload = new Uint8Array(52);
-    const view = new DataView(payload.buffer);
+    const payload = new Uint8Array(52)
+    const view = new DataView(payload.buffer)
 
-    view.setUint8(0, operation);
-    view.setUint8(1, target);
-    view.setUint8(2, vendor);
-    view.setUint8(3, options);
-    view.setUint32(4, binary.length, true);
-    view.setUint32(8, addr, true);
+    view.setUint8(0, operation)
+    view.setUint8(1, target)
+    view.setUint8(2, vendor)
+    view.setUint8(3, options)
+    view.setUint32(4, binary.length, true)
+    view.setUint32(8, addr, true)
     view.setUint32(
       12,
       operation === FileInitAction.WRITE
         ? Packet.ENCODER.crcgen.crc32(binary, 0)
         : 0,
-      true,
-    );
+      true
+    )
 
-    const reResult = /(?:\.([^.]+))?$/.exec(name);
-    let ext = reResult?.[1] ?? "";
+    const reResult = /(?:\.([^.]+))?$/.exec(name)
+    let ext = reResult?.[1] ?? ""
     // files with gz extension are also type bin
-    ext = ext === "gz" ? "bin" : ext;
-    payload.set(encodeFixedText(type ?? ext, "File type", 4), 16);
+    ext = ext === "gz" ? "bin" : ext
+    payload.set(encodeFixedText(type ?? ext, "File type", 4), 16)
 
-    const timestamp = ((Date.now() / 1000) >>> 0) - PacketEncoder.J2000_EPOCH;
-    view.setUint32(20, timestamp, true);
+    const timestamp = ((Date.now() / 1000) >>> 0) - PacketEncoder.J2000_EPOCH
+    view.setUint32(20, timestamp, true)
 
-    payload.set(version.toUint8Array(), 24);
+    payload.set(version.toUint8Array(), 24)
 
     // filename
-    payload.set(encodeFixedText(name, "Filename", 24), 28);
+    payload.set(encodeFixedText(name, "Filename", 24), 28)
 
-    super(payload);
+    super(payload)
   }
 }
 
 export class ExitFileTransferH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 18;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 18
 
   constructor(action: FileExitAction) {
-    const payload = new Uint8Array(1);
-    payload[0] = action;
+    const payload = new Uint8Array(1)
+    payload[0] = action
 
-    super(payload);
+    super(payload)
   }
 }
 
 export class WriteFileH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 19;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 19
 
   constructor(addr: number, buf: Uint8Array) {
-    const payload = new Uint8Array(4 + buf.length);
-    const view = new DataView(payload.buffer);
-    view.setUint32(0, addr, true);
-    payload.set(buf, 4);
+    const payload = new Uint8Array(4 + buf.length)
+    const view = new DataView(payload.buffer)
+    view.setUint32(0, addr, true)
+    payload.set(buf, 4)
 
-    super(payload);
+    super(payload)
   }
 }
 
 export class ReadFileH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 20;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 20
 
   constructor(addr: number, size: number) {
-    const payload = new Uint8Array(6);
-    const view = new DataView(payload.buffer);
-    view.setUint32(0, addr, true);
-    view.setUint16(4, size, true);
+    const payload = new Uint8Array(6)
+    const view = new DataView(payload.buffer)
+    view.setUint32(0, addr, true)
+    view.setUint16(4, size, true)
 
-    super(payload);
+    super(payload)
   }
 }
 
 export class LinkFileH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 21;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 21
 
   constructor(vendor: FileVendor, fileName: string, options: number) {
-    super(filePayload(vendor, options, fileName));
+    super(filePayload(vendor, options, fileName))
   }
 }
 
 export class GetDirectoryFileCountH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 22;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 22
 
   constructor(vendor: FileVendor) {
-    const payload = new Uint8Array(2);
-    payload.set([vendor, 0], 0);
+    const payload = new Uint8Array(2)
+    payload.set([vendor, 0], 0)
 
-    super(payload);
+    super(payload)
   }
 }
 
 export class GetDirectoryEntryH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 23;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 23
 
   constructor(index: number) {
-    const payload = new Uint8Array(2);
-    payload.set([index, 0], 0);
+    const payload = new Uint8Array(2)
+    payload.set([index, 0], 0)
 
-    super(payload);
+    super(payload)
   }
 }
 
 export class LoadFileActionH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 24;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 24
 
   constructor(
     vendor: FileVendor,
     actionId: FileLoadAction,
-    fileNameOrSlotNumber: SlotNumber | string,
+    fileNameOrSlotNumber: SlotNumber | string
   ) {
-    let fileName;
+    let fileName
     if (typeof fileNameOrSlotNumber === "string") {
-      fileName = fileNameOrSlotNumber;
+      fileName = fileNameOrSlotNumber
     } else {
-      fileName = "___s_" + (fileNameOrSlotNumber - 1) + ".bin";
+      fileName = "___s_" + (fileNameOrSlotNumber - 1) + ".bin"
     }
 
-    super(filePayload(vendor, actionId, fileName));
+    super(filePayload(vendor, actionId, fileName))
   }
 }
 
 export class GetFileMetadataH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 25;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 25
 
   constructor(vendor: FileVendor, fileName: string, options: number) {
-    super(filePayload(vendor, options, fileName));
+    super(filePayload(vendor, options, fileName))
   }
 }
 
 export class SetFileMetadataH2DPacket extends DeviceBoundPacket {
   // DOES NOT WORK
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 26;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 26
 
   constructor(
     vendor: FileVendor,
     fileName: string,
     fileInfo: IFileMetadata,
-    options: number,
+    options: number
   ) {
-    const encodedName = encodeFixedText(fileName, "Filename", 24);
-    const encodedType = encodeFixedText(fileInfo.type, "File type", 4);
+    const encodedName = encodeFixedText(fileName, "Filename", 24)
+    const encodedType = encodeFixedText(fileInfo.type, "File type", 4)
 
-    const payload = new Uint8Array(42);
-    const view = new DataView(payload.buffer);
-    view.setUint8(0, vendor);
-    view.setUint8(1, options);
-    view.setUint32(2, fileInfo.loadAddress, true);
-    payload.set(encodedType.subarray(0, 4), 6);
-    const timestamp = fileInfo.timestamp - PacketEncoder.J2000_EPOCH;
-    view.setUint32(10, timestamp, true);
-    payload.set(fileInfo.version.toUint8Array(), 14);
-    payload.set(encodedName, 18);
+    const payload = new Uint8Array(42)
+    const view = new DataView(payload.buffer)
+    view.setUint8(0, vendor)
+    view.setUint8(1, options)
+    view.setUint32(2, fileInfo.loadAddress, true)
+    payload.set(encodedType.subarray(0, 4), 6)
+    const timestamp = fileInfo.timestamp - PacketEncoder.J2000_EPOCH
+    view.setUint32(10, timestamp, true)
+    payload.set(fileInfo.version.toUint8Array(), 14)
+    payload.set(encodedName, 18)
 
-    super(payload);
+    super(payload)
   }
 }
 
 export class EraseFileH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 27;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 27
 
   constructor(vendor: FileVendor, fileName: string) {
-    super(filePayload(vendor, 128, fileName));
+    super(filePayload(vendor, 128, fileName))
   }
 }
 
 export class GetProgramSlotInfoH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 28;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 28
 
   constructor(vendor: FileVendor, fileName: string) {
-    super(filePayload(vendor, 0, fileName));
+    super(filePayload(vendor, 0, fileName))
   }
 }
 
 export class FileClearUpH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 30;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 30
 
   constructor(vendor: FileVendor) {
-    const payload = new Uint8Array(2);
-    payload.set([vendor, 0], 0);
+    const payload = new Uint8Array(2)
+    payload.set([vendor, 0], 0)
 
-    super(payload);
+    super(payload)
   }
 }
 
 export class FileFormatH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 31;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 31
 
   constructor() {
-    const payload = new Uint8Array(4);
-    payload.set([68, 67, 66, 65], 0);
+    const payload = new Uint8Array(4)
+    payload.set([68, 67, 66, 65], 0)
 
-    super(payload);
+    super(payload)
   }
 }
 
 export class GetSystemFlagsH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 32;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 32
 }
 
 export class GetDeviceStatusH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 33;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 33
 
   constructor() {
-    super(undefined);
+    super(undefined)
   }
 }
 
 export class GetSystemStatusH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 34;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 34
 
   constructor() {
-    super(undefined);
+    super(undefined)
   }
 }
 
 export class GetFdtStatusH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 35;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 35
 
   constructor() {
-    super(undefined);
+    super(undefined)
   }
 }
 
 export class GetLogCountH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 36;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 36
 
   constructor() {
-    super(undefined);
+    super(undefined)
   }
 }
 
 export class ReadLogPageH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 37;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 37
 
   constructor(offset: number, count: number) {
-    const payload = new Uint8Array(8);
-    const view = new DataView(payload.buffer);
-    view.setUint32(0, offset, true);
-    view.setUint32(4, count, true);
+    const payload = new Uint8Array(8)
+    const view = new DataView(payload.buffer)
+    view.setUint32(0, offset, true)
+    view.setUint32(4, count, true)
 
-    super(payload);
+    super(payload)
   }
 }
 
 export class GetRadioStatusH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 38;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 38
 
   constructor() {
-    super(undefined);
+    super(undefined)
   }
 }
 
 export class UserFifoH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 39;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 39
 
   constructor(channel: UserFifoChannel, write?: Uint8Array) {
-    const length = write?.byteLength ?? 0;
+    const length = write?.byteLength ?? 0
     if (length > USER_FIFO_MAX_WRITE_SIZE) {
       throw new RangeError(
-        `User FIFO writes must be at most ${USER_FIFO_MAX_WRITE_SIZE} bytes`,
-      );
+        `User FIFO writes must be at most ${USER_FIFO_MAX_WRITE_SIZE} bytes`
+      )
     }
 
-    const payload = new Uint8Array(2 + length);
-    payload[0] = channel;
-    payload[1] = length;
-    if (write !== undefined) payload.set(write, 2);
+    const payload = new Uint8Array(2 + length)
+    payload[0] = channel
+    payload[1] = length
+    if (write !== undefined) payload.set(write, 2)
 
-    super(payload);
+    super(payload)
   }
 }
 
 /** @deprecated Use {@link UserFifoH2DPacket}. */
 export class GetUserDataH2DPacket extends UserFifoH2DPacket {
   constructor(write?: Uint8Array) {
-    super(UserFifoChannel.STDOUT, write);
+    super(UserFifoChannel.STDOUT, write)
   }
 }
 
 export class ScreenCaptureH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 40;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 40
 
   constructor(e: number) {
-    const payload = new Uint8Array(1);
-    payload[0] = e;
+    const payload = new Uint8Array(1)
+    payload[0] = e
 
-    super(payload);
+    super(payload)
   }
 }
 
 export class SendDashTouchH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 42;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 42
 
   constructor(x: number, y: number, press: boolean) {
-    const payload = new Uint8Array(6);
-    const view = new DataView(payload.buffer);
-    view.setUint16(0, x, true);
-    view.setUint16(2, y, true);
-    view.setUint16(4, press ? 1 : 0, true);
+    const payload = new Uint8Array(6)
+    const view = new DataView(payload.buffer)
+    view.setUint16(0, x, true)
+    view.setUint16(2, y, true)
+    view.setUint16(4, press ? 1 : 0, true)
 
-    super(payload);
+    super(payload)
   }
 }
 
 export class SelectDashH2DPacket extends DeviceBoundPacket {
   // UNSURE
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 43;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 43
   /** @param port untested */
   constructor(screen: number | SelectDashScreen, port: number) {
-    const payload = new Uint8Array(2);
-    payload[0] = screen;
-    payload[1] = port;
+    const payload = new Uint8Array(2)
+    payload[0] = screen
+    payload[1] = port
 
-    super(payload);
+    super(payload)
   }
 }
 
 export class EnableDashH2DPacket extends DeviceBoundPacket {
   // UNSURE
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 44;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 44
 
   constructor(unknown1?: number) {
     if (unknown1 === undefined) {
-      super(undefined);
+      super(undefined)
     } else {
-      const payload = new Uint8Array(1);
-      payload[0] = unknown1;
+      const payload = new Uint8Array(1)
+      payload[0] = unknown1
 
-      super(payload);
+      super(payload)
     }
   }
 }
 
 export class DisableDashH2DPacket extends DeviceBoundPacket {
   // UNSURE
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 45;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 45
 
   constructor() {
-    super(undefined);
+    super(undefined)
   }
 }
 
 export class ReadKeyValueH2DPacket extends DeviceBoundPacket {
   // UNSURE
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 46;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 46
 
   constructor(key: string) {
-    const payload = new Uint8Array(32);
-    payload.set(encodeFixedText(key, "Key", 31), 0);
+    const payload = new Uint8Array(32)
+    payload.set(encodeFixedText(key, "Key", 31), 0)
 
-    super(payload);
+    super(payload)
   }
 }
 
 export class WriteKeyValueH2DPacket extends DeviceBoundPacket {
   // UNSURE
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 47;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 47
 
   constructor(key: string, value: string) {
-    const strk = encodeFixedText(key, "Key", 31);
-    const strv = encodeFixedText(value, "Value", 0x7fff);
+    const strk = encodeFixedText(key, "Key", 31)
+    const strv = encodeFixedText(value, "Value", 0x7fff)
     if (strk.byteLength + strv.byteLength + 20 > 0x7fff) {
-      throw new RangeError("Key and value are too large for a protocol packet");
+      throw new RangeError("Key and value are too large for a protocol packet")
     }
 
-    const payload = new Uint8Array(strk.length + strv.length + 20);
-    payload.set(strk, 0);
-    payload.set(strv, strk.length + 1);
+    const payload = new Uint8Array(strk.length + strv.length + 20)
+    payload.set(strk, 0)
+    payload.set(strv, strk.length + 1)
 
-    super(payload);
+    super(payload)
   }
 }
 
 export class GetSlot1to4InfoH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 49;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 49
 
   constructor() {
-    super(undefined);
+    super(undefined)
   }
 }
 
 export class GetSlot5to8InfoH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 50;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 50
 
   constructor() {
-    super(undefined);
+    super(undefined)
   }
 }
 
 export class FactoryStatusH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 241;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 241
 }
 
 export class FactoryEnableH2DPacket extends DeviceBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 255;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 255
 
   constructor() {
-    const payload = new Uint8Array(4);
-    payload.set([77, 76, 75, 74], 0);
+    const payload = new Uint8Array(4)
+    payload.set([77, 76, 75, 74], 0)
 
-    super(payload);
+    super(payload)
   }
 }
 
 export class HostBoundPacket extends Packet {
-  ack: AckType = AckType.CDC2_NACK;
-  payloadSize: number;
-  ackIndex: number;
+  ack: AckType = AckType.CDC2_NACK
+  payloadSize: number
+  ackIndex: number
 
   constructor(data: DataArray) {
-    super(data);
+    super(data)
 
-    this.payloadSize = Packet.ENCODER.getPayloadSize(this.data);
-    const n = Packet.ENCODER.getHostHeaderLength(this.data);
+    this.payloadSize = Packet.ENCODER.getPayloadSize(this.data)
+    const n = Packet.ENCODER.getHostHeaderLength(this.data)
 
     // skip command id check
 
-    this.ack = this.data[(this.ackIndex = n + 1)];
+    this.ack = this.data[(this.ackIndex = n + 1)]
   }
 
   static isValidPacket(data: Uint8Array, n: number): boolean {
-    const ack = data[n + 1];
-    return ack === AckType.CDC2_ACK || ack === 167; // XXX: got 167 from MatchStatusReplyD2HPacket
+    const ack = data[n + 1]
+    return ack === AckType.CDC2_ACK || ack === 167 // XXX: got 167 from MatchStatusReplyD2HPacket
   }
 }
 
 export class Query1ReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 33;
-  static COMMAND_EXTENDED_ID = undefined;
-  joystickFlag1: number;
-  joystickFlag2: number;
-  brainFlag1: number;
-  brainFlag2: number;
-  bootloadFlag1: number;
-  bootloadFlag2: number;
+  static COMMAND_ID = 33
+  static COMMAND_EXTENDED_ID = undefined
+  joystickFlag1: number
+  joystickFlag2: number
+  brainFlag1: number
+  brainFlag2: number
+  bootloadFlag1: number
+  bootloadFlag2: number
 
   constructor(data: DataArray) {
-    super(data);
+    super(data)
 
-    this.joystickFlag1 = this.data[4];
-    this.joystickFlag2 = this.data[5];
-    this.brainFlag1 = this.data[6]; // a.k.a vex version
-    this.brainFlag2 = this.data[7];
-    this.bootloadFlag1 = this.data[10];
-    this.bootloadFlag2 = this.data[11];
+    this.joystickFlag1 = this.data[4]
+    this.joystickFlag2 = this.data[5]
+    this.brainFlag1 = this.data[6] // a.k.a vex version
+    this.brainFlag2 = this.data[7]
+    this.bootloadFlag1 = this.data[10]
+    this.bootloadFlag2 = this.data[11]
   }
 }
 
 export class SystemVersionReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 164;
-  static COMMAND_EXTENDED_ID = undefined;
-  version: VexFirmwareVersion;
-  hardware: number;
+  static COMMAND_ID = 164
+  static COMMAND_EXTENDED_ID = undefined
+  version: VexFirmwareVersion
+  hardware: number
 
   constructor(data: DataArray) {
-    super(data);
+    super(data)
 
     this.version = new VexFirmwareVersion(
       this.data[4],
       this.data[5],
       this.data[6],
-      this.data[8],
-    );
-    this.hardware = this.data[7];
+      this.data[8]
+    )
+    this.hardware = this.data[7]
   }
 }
 
 export class MatchModeReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 88;
-  static COMMAND_EXTENDED_ID = 193;
+  static COMMAND_ID = 88
+  static COMMAND_EXTENDED_ID = 193
 
-  modebit: number;
+  modebit: number
 
   constructor(data: DataArray) {
-    super(data);
+    super(data)
 
-    const dataView = PacketView.fromPacket(this);
+    const dataView = PacketView.fromPacket(this)
 
-    this.modebit = dataView.nextUint8();
+    this.modebit = dataView.nextUint8()
   }
 }
 
 export class MatchStatusReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 88;
-  static COMMAND_EXTENDED_ID = 194;
+  static COMMAND_ID = 88
+  static COMMAND_EXTENDED_ID = 194
 
-  rssi: number; // a.k.a Signal Strength
-  systemStatusBits: number;
-  radioStatusBits: number; // a.k.a Data Quality
-  fieldStatusBits: number;
-  matchClock: number;
-  brainBatteryPercent: number;
-  controllerBatteryPercent: number;
-  partnerControllerBatteryPercent: number;
-  pad: number;
-  buttons: number;
-  activeProgram: number;
-  radioType: number;
-  radioChannel: number;
-  radioSlot: number;
-  robotName: string;
-  controllerFlags: number;
-  rxSignalQuality: number;
+  rssi: number // a.k.a Signal Strength
+  systemStatusBits: number
+  radioStatusBits: number // a.k.a Data Quality
+  fieldStatusBits: number
+  matchClock: number
+  brainBatteryPercent: number
+  controllerBatteryPercent: number
+  partnerControllerBatteryPercent: number
+  pad: number
+  buttons: number
+  activeProgram: number
+  radioType: number
+  radioChannel: number
+  radioSlot: number
+  robotName: string
+  controllerFlags: number
+  rxSignalQuality: number
 
   constructor(data: DataArray) {
-    super(data);
+    super(data)
 
-    const dataView = PacketView.fromPacket(this);
-    const n = this.ackIndex;
+    const dataView = PacketView.fromPacket(this)
+    const n = this.ackIndex
 
-    this.rssi = dataView.nextInt8();
-    this.systemStatusBits = dataView.nextUint16();
-    this.radioStatusBits = dataView.nextUint16();
-    this.fieldStatusBits = dataView.nextUint8();
-    this.matchClock = dataView.nextUint8();
-    this.brainBatteryPercent = dataView.nextUint8();
-    this.controllerBatteryPercent = dataView.nextUint8();
-    this.partnerControllerBatteryPercent = dataView.nextUint8();
-    this.pad = dataView.nextUint8();
-    this.buttons = dataView.nextUint16();
-    this.activeProgram = dataView.nextUint8();
-    this.radioType = dataView.nextUint8();
-    this.radioChannel = dataView.nextUint8();
-    this.radioSlot = dataView.nextUint8();
-    this.robotName = dataView.nextNTBS(10);
-    this.controllerFlags = dataView.getUint8(n + 28);
-    this.rxSignalQuality = dataView.getUint8(n + 29);
+    this.rssi = dataView.nextInt8()
+    this.systemStatusBits = dataView.nextUint16()
+    this.radioStatusBits = dataView.nextUint16()
+    this.fieldStatusBits = dataView.nextUint8()
+    this.matchClock = dataView.nextUint8()
+    this.brainBatteryPercent = dataView.nextUint8()
+    this.controllerBatteryPercent = dataView.nextUint8()
+    this.partnerControllerBatteryPercent = dataView.nextUint8()
+    this.pad = dataView.nextUint8()
+    this.buttons = dataView.nextUint16()
+    this.activeProgram = dataView.nextUint8()
+    this.radioType = dataView.nextUint8()
+    this.radioChannel = dataView.nextUint8()
+    this.radioSlot = dataView.nextUint8()
+    this.robotName = dataView.nextNTBS(10)
+    this.controllerFlags = dataView.getUint8(n + 28)
+    this.rxSignalQuality = dataView.getUint8(n + 29)
 
     let rawStr = new TextDecoder("UTF-8").decode(
-      data.slice(n + 18, n + this.payloadSize + 28),
-    );
-    const endIdx = rawStr.indexOf("\0");
+      data.slice(n + 18, n + this.payloadSize + 28)
+    )
+    const endIdx = rawStr.indexOf("\0")
     if (endIdx > -1) {
-      rawStr = rawStr.substr(0, endIdx);
+      rawStr = rawStr.substr(0, endIdx)
     }
-    this.robotName = rawStr;
+    this.robotName = rawStr
   }
 }
 
 export class FileControlReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 16;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 16
 }
 
 export class InitFileTransferReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 17;
-  windowSize: number;
-  fileSize: number;
-  crc32: number;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 17
+  windowSize: number
+  fileSize: number
+  crc32: number
 
   constructor(data: DataArray) {
-    super(data);
+    super(data)
 
-    const dataView = PacketView.fromPacket(this);
+    const dataView = PacketView.fromPacket(this)
 
-    this.windowSize = dataView.nextUint16();
-    this.fileSize = dataView.nextUint32();
-    this.crc32 = dataView.nextUint32();
+    this.windowSize = dataView.nextUint16()
+    this.fileSize = dataView.nextUint32()
+    this.crc32 = dataView.nextUint32()
   }
 }
 
 export class ExitFileTransferReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 18;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 18
 }
 
 export class WriteFileReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 19;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 19
 }
 
 export class ReadFileReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 20;
-  addr: number;
-  length: number;
-  buf: ArrayBuffer;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 20
+  addr: number
+  length: number
+  buf: ArrayBuffer
 
   constructor(data: DataArray) {
-    super(data);
+    super(data)
 
-    const dataView = PacketView.fromPacket(this);
+    const dataView = PacketView.fromPacket(this)
 
-    this.addr = dataView.nextUint32(true);
-    this.length = Math.max(0, this.payloadSize - 8);
-    const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
-    this.buf = bytes.slice(
-      dataView.position,
-      dataView.position + this.length,
-    ).buffer as ArrayBuffer;
+    this.addr = dataView.nextUint32(true)
+    this.length = Math.max(0, this.payloadSize - 8)
+    const bytes = data instanceof Uint8Array ? data : new Uint8Array(data)
+    this.buf = bytes.slice(dataView.position, dataView.position + this.length)
+      .buffer as ArrayBuffer
   }
 
   static isValidPacket(data: Uint8Array, n: number): boolean {
-    return super.isValidPacket(data, n);
+    return super.isValidPacket(data, n)
   }
 }
 
 export class LinkFileReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 21;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 21
 }
 
 export class GetDirectoryFileCountReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 22;
-  count: number;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 22
+  count: number
 
   constructor(data: DataArray) {
-    super(data);
+    super(data)
 
-    const dataView = PacketView.fromPacket(this);
+    const dataView = PacketView.fromPacket(this)
 
-    this.count = dataView.nextUint16();
+    this.count = dataView.nextUint16()
   }
 }
 
 export class GetDirectoryEntryReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 23;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 23
 
-  file?: IFileEntry;
+  file?: IFileEntry
 
   constructor(data: DataArray) {
-    super(data);
+    super(data)
 
-    const dataView = PacketView.fromPacket(this);
+    const dataView = PacketView.fromPacket(this)
 
     if (this.payloadSize > 4) {
       this.file = {
@@ -1039,27 +1041,27 @@ export class GetDirectoryEntryReplyD2HPacket extends HostBoundPacket {
         timestamp: dataView.nextUint32() + PacketEncoder.J2000_EPOCH,
         version: dataView.nextVersion(),
         filename: dataView.nextNTBS(32),
-      };
+      }
     }
   }
 }
 
 export class LoadFileActionReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 24;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 24
 }
 
 export class GetFileMetadataReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 25;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 25
 
-  file?: IFileMetadata;
+  file?: IFileMetadata
 
   constructor(data: DataArray) {
-    super(data);
+    super(data)
 
-    const dataView = PacketView.fromPacket(this);
-    dataView.nextUint8();
+    const dataView = PacketView.fromPacket(this)
+    dataView.nextUint8()
 
     if (this.payloadSize > 4) {
       this.file = {
@@ -1069,113 +1071,113 @@ export class GetFileMetadataReplyD2HPacket extends HostBoundPacket {
         type: dataView.nextString(4),
         timestamp: dataView.nextUint32() + PacketEncoder.J2000_EPOCH,
         version: dataView.nextVersion(),
-      };
+      }
     }
   }
 }
 
 export class SetFileMetadataReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 26;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 26
 }
 
 export class EraseFileReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 27;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 27
 }
 
 export class GetProgramSlotInfoReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 28;
-  requestedSlot: number;
-  slot: number;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 28
+  requestedSlot: number
+  slot: number
 
   constructor(data: DataArray) {
-    super(data);
+    super(data)
 
-    const dataView = PacketView.fromPacket(this);
+    const dataView = PacketView.fromPacket(this)
 
-    this.slot = dataView.nextUint8();
-    this.requestedSlot = dataView.nextUint8();
+    this.slot = dataView.nextUint8()
+    this.requestedSlot = dataView.nextUint8()
   }
 }
 
 export class FileClearUpReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 30;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 30
 }
 
 export class FileFormatReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 31;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 31
 }
 
 export class GetSystemFlagsReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 32;
-  flags: number;
-  radioSearching: boolean;
-  radioQuality?: number;
-  controllerBatteryPercent?: number;
-  partnerControllerBatteryPercent?: number;
-  battery?: number;
-  currentProgram: number;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 32
+  flags: number
+  radioSearching: boolean
+  radioQuality?: number
+  controllerBatteryPercent?: number
+  partnerControllerBatteryPercent?: number
+  battery?: number
+  currentProgram: number
 
   constructor(data: DataArray) {
-    super(data);
+    super(data)
 
-    const dataView = PacketView.fromPacket(this);
+    const dataView = PacketView.fromPacket(this)
 
-    this.radioSearching = false;
-    this.currentProgram = 0;
+    this.radioSearching = false
+    this.currentProgram = 0
 
-    this.flags = dataView.nextUint32();
-    const hasPartner = (8192 & this.flags) !== 0;
-    const hasRadio = (1536 & this.flags) === 1536;
+    this.flags = dataView.nextUint32()
+    const hasPartner = (8192 & this.flags) !== 0
+    const hasRadio = (1536 & this.flags) === 1536
 
-    const byte1 = dataView.nextUint8();
-    const byte2 = dataView.nextUint8();
+    const byte1 = dataView.nextUint8()
+    const byte2 = dataView.nextUint8()
 
     if (this.payloadSize === 11) {
-      this.battery = 8 * (byte1 & 0x0f);
+      this.battery = 8 * (byte1 & 0x0f)
       if ((this.flags & 0x100) !== 0 || hasRadio)
-        this.controllerBatteryPercent = 8 * ((byte1 >> 4) & 0x0f);
-      if (hasRadio) this.radioQuality = 8 * (byte2 & 0x0f);
-      this.radioSearching = (this.flags & 0x600) === 0x200;
+        this.controllerBatteryPercent = 8 * ((byte1 >> 4) & 0x0f)
+      if (hasRadio) this.radioQuality = 8 * (byte2 & 0x0f)
+      this.radioSearching = (this.flags & 0x600) === 0x200
       if (hasPartner)
-        this.partnerControllerBatteryPercent = 8 * ((byte2 >> 4) & 0x0f);
-      this.currentProgram = dataView.nextUint8();
+        this.partnerControllerBatteryPercent = 8 * ((byte2 >> 4) & 0x0f)
+      this.currentProgram = dataView.nextUint8()
 
-      if (this.battery != null && this.battery > 100) this.battery = 100;
+      if (this.battery != null && this.battery > 100) this.battery = 100
       if (
         this.controllerBatteryPercent != null &&
         this.controllerBatteryPercent > 100
       )
-        this.controllerBatteryPercent = 100;
+        this.controllerBatteryPercent = 100
       if (this.radioQuality != null && this.radioQuality > 100)
-        this.radioQuality = 100;
+        this.radioQuality = 100
       if (
         this.partnerControllerBatteryPercent != null &&
         this.partnerControllerBatteryPercent > 100
       )
-        this.partnerControllerBatteryPercent = 100;
+        this.partnerControllerBatteryPercent = 100
     }
   }
 }
 
 export class GetDeviceStatusReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 33;
-  count: number;
-  devices: ISmartDeviceInfo[];
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 33
+  count: number
+  devices: ISmartDeviceInfo[]
 
   constructor(data: DataArray) {
-    super(data);
+    super(data)
 
-    const dataView = PacketView.fromPacket(this);
+    const dataView = PacketView.fromPacket(this)
 
-    this.count = dataView.nextUint8();
-    this.devices = [];
+    this.count = dataView.nextUint8()
+    this.devices = []
     for (let i = 0; i < this.count; i++) {
       this.devices.push({
         port: dataView.nextUint8(),
@@ -1184,49 +1186,49 @@ export class GetDeviceStatusReplyD2HPacket extends HostBoundPacket {
         betaversion: dataView.nextUint8(),
         version: dataView.nextUint16(),
         bootversion: dataView.nextUint16(),
-      });
+      })
     }
   }
 }
 
 export class GetSystemStatusReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 34;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 34
 
-  systemVersion: VexFirmwareVersion;
-  cpu0Version: VexFirmwareVersion;
-  cpu1Version: VexFirmwareVersion;
-  nxpVersion: VexFirmwareVersion;
-  touchVersion: VexFirmwareVersion;
-  uniqueId: number;
-  sysflags: number[];
-  eventBrain: boolean;
-  romBootloaderActive: boolean;
-  ramBootloaderActive: boolean;
-  goldenVersion: VexFirmwareVersion;
+  systemVersion: VexFirmwareVersion
+  cpu0Version: VexFirmwareVersion
+  cpu1Version: VexFirmwareVersion
+  nxpVersion: VexFirmwareVersion
+  touchVersion: VexFirmwareVersion
+  uniqueId: number
+  sysflags: number[]
+  eventBrain: boolean
+  romBootloaderActive: boolean
+  ramBootloaderActive: boolean
+  goldenVersion: VexFirmwareVersion
 
   constructor(data: DataArray) {
-    super(data);
+    super(data)
 
-    const dataView = PacketView.fromPacket(this);
+    const dataView = PacketView.fromPacket(this)
 
-    dataView.nextUint8();
+    dataView.nextUint8()
 
-    this.systemVersion = dataView.nextVersion();
-    this.cpu0Version = dataView.nextVersion();
-    this.cpu1Version = dataView.nextVersion();
-    this.touchVersion = dataView.nextVersion(true);
+    this.systemVersion = dataView.nextVersion()
+    this.cpu0Version = dataView.nextVersion()
+    this.cpu1Version = dataView.nextVersion()
+    this.touchVersion = dataView.nextVersion(true)
 
-    this.uniqueId = 1234;
-    this.sysflags = [0, 0, 0, 0, 0, 0, 0];
-    this.goldenVersion = VexFirmwareVersion.allZero();
-    this.nxpVersion = VexFirmwareVersion.allZero();
-    this.eventBrain = false;
-    this.romBootloaderActive = false;
-    this.ramBootloaderActive = false;
+    this.uniqueId = 1234
+    this.sysflags = [0, 0, 0, 0, 0, 0, 0]
+    this.goldenVersion = VexFirmwareVersion.allZero()
+    this.nxpVersion = VexFirmwareVersion.allZero()
+    this.eventBrain = false
+    this.romBootloaderActive = false
+    this.ramBootloaderActive = false
 
     if (this.payloadSize > 25) {
-      this.uniqueId = dataView.nextUint32();
+      this.uniqueId = dataView.nextUint32()
       this.sysflags = [
         dataView.nextUint8(),
         dataView.nextUint8(),
@@ -1235,35 +1237,35 @@ export class GetSystemStatusReplyD2HPacket extends HostBoundPacket {
         dataView.nextUint8(),
         0,
         dataView.nextUint8(),
-      ];
-      this.eventBrain = (1 & this.sysflags[6]) !== 0;
-      this.romBootloaderActive = (2 & this.sysflags[6]) !== 0;
-      this.ramBootloaderActive = (4 & this.sysflags[6]) !== 0;
+      ]
+      this.eventBrain = (1 & this.sysflags[6]) !== 0
+      this.romBootloaderActive = (2 & this.sysflags[6]) !== 0
+      this.ramBootloaderActive = (4 & this.sysflags[6]) !== 0
 
-      dataView.nextUint16();
+      dataView.nextUint16()
 
-      this.goldenVersion = dataView.nextVersion();
+      this.goldenVersion = dataView.nextVersion()
     }
 
     if (this.payloadSize > 37) {
-      this.nxpVersion = dataView.nextVersion();
+      this.nxpVersion = dataView.nextVersion()
     }
   }
 }
 
 export class GetFdtStatusReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 35;
-  count: number;
-  status: unknown[];
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 35
+  count: number
+  status: unknown[]
 
   constructor(data: DataArray) {
-    super(data);
+    super(data)
 
-    const dataView = PacketView.fromPacket(this);
+    const dataView = PacketView.fromPacket(this)
 
-    this.count = dataView.nextUint8();
-    this.status = [];
+    this.count = dataView.nextUint8()
+    this.status = []
     for (let i = 0; i < this.count; i++) {
       this.status.push({
         index: dataView.nextUint8(),
@@ -1272,46 +1274,46 @@ export class GetFdtStatusReplyD2HPacket extends HostBoundPacket {
         betaversion: dataView.nextUint8(),
         version: dataView.nextUint16(),
         bootversion: dataView.nextUint16(),
-      });
+      })
     }
   }
 }
 
 export class GetLogCountReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 36;
-  count: number;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 36
+  count: number
 
   constructor(data: DataArray) {
-    super(data);
+    super(data)
 
-    const dataView = PacketView.fromPacket(this);
+    const dataView = PacketView.fromPacket(this)
 
-    dataView.nextUint8();
+    dataView.nextUint8()
 
-    this.count = dataView.nextUint32();
+    this.count = dataView.nextUint32()
   }
 }
 
 export class ReadLogPageReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 37;
-  offset: number;
-  count: number;
-  entries: unknown[];
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 37
+  offset: number
+  count: number
+  entries: unknown[]
 
   constructor(data: DataArray) {
-    super(data);
+    super(data)
 
-    const dataView = PacketView.fromPacket(this);
-    const n = this.ackIndex;
+    const dataView = PacketView.fromPacket(this)
+    const n = this.ackIndex
 
-    const size = dataView.nextUint8();
-    this.offset = dataView.nextUint32();
-    this.count = dataView.nextUint16();
-    this.entries = [];
+    const size = dataView.nextUint8()
+    this.offset = dataView.nextUint32()
+    this.count = dataView.nextUint16()
+    this.entries = []
 
-    let j = n + 8;
+    let j = n + 8
     for (let i = 0; i < this.count; i++) {
       this.entries.push({
         code: dataView.getUint8(j),
@@ -1319,49 +1321,49 @@ export class ReadLogPageReplyD2HPacket extends HostBoundPacket {
         desc: dataView.getUint8(j + 2),
         spare: dataView.getUint8(j + 3),
         time: dataView.getUint32(j + 4, true),
-      });
-      j += size;
+      })
+      j += size
     }
   }
 }
 
 export class GetRadioStatusReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 38;
-  device: number; // unsure
-  quality: number;
-  strength: number;
-  channel: number;
-  timeslot: number; // time delay?
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 38
+  device: number // unsure
+  quality: number
+  strength: number
+  channel: number
+  timeslot: number // time delay?
 
   constructor(data: DataArray) {
-    super(data);
+    super(data)
 
-    const dataView = PacketView.fromPacket(this);
-    const n = this.ackIndex;
+    const dataView = PacketView.fromPacket(this)
+    const n = this.ackIndex
 
-    this.device = dataView.nextUint8();
-    this.quality = dataView.nextUint16();
-    this.strength = dataView.nextInt16();
-    this.channel = this.data[n + 6];
-    this.timeslot = this.data[n + 7];
+    this.device = dataView.nextUint8()
+    this.quality = dataView.nextUint16()
+    this.strength = dataView.nextInt16()
+    this.channel = this.data[n + 6]
+    this.timeslot = this.data[n + 7]
   }
 }
 
 export class UserFifoReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 39;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 39
 
-  channel: number;
-  buf: Uint8Array;
+  channel: number
+  buf: Uint8Array
 
   constructor(data: DataArray) {
-    super(data);
+    super(data)
 
-    const view = PacketView.fromPacket(this);
-    this.channel = view.nextUint8();
-    const length = Math.max(0, this.payloadSize - 5);
-    this.buf = this.data.subarray(view.position, view.position + length);
+    const view = PacketView.fromPacket(this)
+    this.channel = view.nextUint8()
+    const length = Math.max(0, this.payloadSize - 5)
+    this.buf = this.data.subarray(view.position, view.position + length)
   }
 }
 
@@ -1369,8 +1371,8 @@ export class UserFifoReplyD2HPacket extends HostBoundPacket {
 export class GetUserDataReplyD2HPacket extends UserFifoReplyD2HPacket {}
 
 export class ScreenCaptureReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 40;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 40
 }
 
 // export class UserProgramControlReplyD2HPacket extends HostBoundPacket {
@@ -1379,107 +1381,107 @@ export class ScreenCaptureReplyD2HPacket extends HostBoundPacket {
 // }
 
 export class SendDashTouchReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 42;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 42
 }
 
 export class SelectDashReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 43;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 43
 }
 
 export class EnableDashReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 44;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 44
 }
 
 export class DisableDashReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 45;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 45
 }
 
 export class ReadKeyValueReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 46;
-  value: string;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 46
+  value: string
 
   constructor(data: DataArray) {
-    super(data);
+    super(data)
 
-    const dataView = PacketView.fromPacket(this);
+    const dataView = PacketView.fromPacket(this)
 
-    this.value = dataView.nextVarNTBS(255);
+    this.value = dataView.nextVarNTBS(255)
   }
 }
 
 export class WriteKeyValueReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 47;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 47
 }
 
 export class GetSlot1to4InfoReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 49;
-  slotFlags: number;
-  slots: unknown[];
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 49
+  slotFlags: number
+  slots: unknown[]
 
   constructor(data: DataArray, start: number = 1) {
-    super(data);
+    super(data)
 
-    const dataView = PacketView.fromPacket(this);
+    const dataView = PacketView.fromPacket(this)
 
-    this.slotFlags = dataView.nextUint8();
-    this.slots = [];
+    this.slotFlags = dataView.nextUint8()
+    this.slots = []
 
     for (let i = 0; i < 4; i++) {
-      const hasData = (this.slotFlags & Math.pow(2, start - 1 + i)) !== 0;
+      const hasData = (this.slotFlags & Math.pow(2, start - 1 + i)) !== 0
 
-      if (!hasData) continue;
+      if (!hasData) continue
 
-      const iconNum = dataView.nextUint16();
-      const nameLen = dataView.nextUint8();
-      const name = dataView.nextString(nameLen);
+      const iconNum = dataView.nextUint16()
+      const nameLen = dataView.nextUint8()
+      const name = dataView.nextString(nameLen)
 
       this.slots.push({
         slot: start + i,
         icon: iconNum,
         name,
-      });
+      })
     }
   }
 }
 
 export class GetSlot5to8InfoReplyD2HPacket extends GetSlot1to4InfoReplyD2HPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 50;
-  slotStartIndex = 5;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 50
+  slotStartIndex = 5
 
   constructor(data: DataArray) {
-    super(data, 5);
+    super(data, 5)
   }
 }
 
 export class FactoryStatusReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 241;
-  status: number;
-  percent: number;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 241
+  status: number
+  percent: number
 
   constructor(data: DataArray) {
-    super(data);
+    super(data)
 
-    const dataView = PacketView.fromPacket(this);
+    const dataView = PacketView.fromPacket(this)
 
-    this.status = dataView.nextUint8();
-    this.percent = dataView.nextUint8();
+    this.status = dataView.nextUint8()
+    this.percent = dataView.nextUint8()
   }
 }
 
 export class FactoryEnableReplyD2HPacket extends HostBoundPacket {
-  static COMMAND_ID = 86;
-  static COMMAND_EXTENDED_ID = 255;
+  static COMMAND_ID = 86
+  static COMMAND_EXTENDED_ID = 255
 }
 
 // Packet constructors are part of the public module, so initialize the shared
 // encoder even when a caller imports this file without the connection module.
-PacketEncoder.getInstance();
+PacketEncoder.getInstance()

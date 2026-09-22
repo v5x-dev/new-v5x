@@ -1,15 +1,15 @@
 export function createByteStreams(handlers: {
-  write: (data: Uint8Array) => Promise<void>;
+  write: (data: Uint8Array) => Promise<void>
   subscribe: (
     onData: (data: Uint8Array) => void,
     onError: (err: unknown) => void,
-    onClose: () => void,
-  ) => () => void;
+    onClose: () => void
+  ) => () => void
 }): {
-  readable: ReadableStream<Uint8Array>;
-  writable: WritableStream<Uint8Array>;
+  readable: ReadableStream<Uint8Array>
+  writable: WritableStream<Uint8Array>
 } {
-  let unsubscribe: (() => void) | undefined;
+  let unsubscribe: (() => void) | undefined
   const readable = new ReadableStream<Uint8Array>({
     start(controller) {
       unsubscribe = handlers.subscribe(
@@ -17,19 +17,19 @@ export function createByteStreams(handlers: {
         (err) => controller.error(err),
         () => {
           try {
-            controller.close();
+            controller.close()
           } catch {}
-        },
-      );
+        }
+      )
     },
     cancel() {
-      unsubscribe?.();
+      unsubscribe?.()
     },
-  });
+  })
   const writable = new WritableStream<Uint8Array>({
     write(chunk) {
-      return handlers.write(chunk);
+      return handlers.write(chunk)
     },
-  });
-  return { readable, writable };
+  })
+  return { readable, writable }
 }

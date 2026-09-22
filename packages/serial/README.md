@@ -14,14 +14,14 @@ The protocol is transport-independent. Supply an adapter for the runtime you
 are using:
 
 ```ts
-import { V5SerialConnection } from "@v5x/serial";
-import { createBrowserAdapter } from "@v5x/serial/browser";
+import { V5SerialConnection } from "@v5x/serial"
+import { createBrowserAdapter } from "@v5x/serial/browser"
 
-const connection = new V5SerialConnection(createBrowserAdapter());
-if (await connection.open() === true) {
-  const version = await connection.getSystemVersion();
-  const terminal = connection.openTerminal();
-  terminal?.on("text", (text) => console.log(text));
+const connection = new V5SerialConnection(createBrowserAdapter())
+if ((await connection.open()) === true) {
+  const version = await connection.getSystemVersion()
+  const terminal = connection.openTerminal()
+  terminal?.on("text", (text) => console.log(text))
 }
 ```
 
@@ -35,4 +35,6 @@ For local development:
 bun run check
 bun test
 bun run build
+bun run format
+bun run format:check
 ```

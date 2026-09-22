@@ -4,16 +4,16 @@
  * form of the string representation and quickly compare versions.
  */
 export class VexFirmwareVersion {
-  major: number;
-  minor: number;
-  build: number;
-  beta: number;
+  major: number
+  minor: number
+  build: number
+  beta: number
 
   constructor(major: number, minor: number, build: number, beta: number) {
-    this.major = major;
-    this.minor = minor;
-    this.build = build;
-    this.beta = beta;
+    this.major = major
+    this.minor = minor
+    this.build = build
+    this.beta = beta
   }
 
   /**
@@ -27,11 +27,11 @@ export class VexFirmwareVersion {
       .toLowerCase()
       .replace(/b/g, "")
       .split(".")
-      .map((x) => parseInt(x, 10));
+      .map((x) => parseInt(x, 10))
     while (parts.length < 4) {
-      parts.push(0);
+      parts.push(0)
     }
-    return new VexFirmwareVersion(parts[0], parts[1], parts[2], parts[3]);
+    return new VexFirmwareVersion(parts[0], parts[1], parts[2], parts[3])
   }
 
   /**
@@ -43,18 +43,18 @@ export class VexFirmwareVersion {
   static fromUint8Array(
     data: Uint8Array,
     offset: number = 0,
-    reverse: boolean = false,
+    reverse: boolean = false
   ): VexFirmwareVersion {
     return new VexFirmwareVersion(
       data[offset + (reverse ? 3 : 0)],
       data[offset + (reverse ? 2 : 1)],
       data[offset + (reverse ? 1 : 2)],
-      data[offset + (reverse ? 0 : 3)],
-    );
+      data[offset + (reverse ? 0 : 3)]
+    )
   }
 
   static allZero(): VexFirmwareVersion {
-    return new VexFirmwareVersion(0, 0, 0, 0);
+    return new VexFirmwareVersion(0, 0, 0, 0)
   }
 
   /**
@@ -64,37 +64,37 @@ export class VexFirmwareVersion {
    * @returns a VexFirmwareVersion representing the provided string
    */
   static fromCatalogString(version: string): VexFirmwareVersion {
-    return VexFirmwareVersion.fromString(version.replace(/_/g, "."));
+    return VexFirmwareVersion.fromString(version.replace(/_/g, "."))
   }
 
   isBeta(): boolean {
-    return this.beta !== 0;
+    return this.beta !== 0
   }
 
   /**
    * returns version as Uint Array
    */
   toUint8Array(reverse: boolean = false): Uint8Array {
-    const data = new Uint8Array(4);
-    data[reverse ? 3 : 0] = this.major;
-    data[reverse ? 2 : 1] = this.minor;
-    data[reverse ? 1 : 2] = this.build;
-    data[reverse ? 0 : 3] = this.beta;
-    return data;
+    const data = new Uint8Array(4)
+    data[reverse ? 3 : 0] = this.major
+    data[reverse ? 2 : 1] = this.minor
+    data[reverse ? 1 : 2] = this.build
+    data[reverse ? 0 : 3] = this.beta
+    return data
   }
 
   /**
    * returns version as major.minor.build
    */
   toUserString(): string {
-    return `${this.major}.${this.minor}.${this.build}`;
+    return `${this.major}.${this.minor}.${this.build}`
   }
 
   /**
    * returns version as ${major}.${minor}.{build}.b${beta}
    */
   toInternalString(): string {
-    return `${this.toUserString()}.b${this.beta}`;
+    return `${this.toUserString()}.b${this.beta}`
   }
 
   /**
@@ -105,20 +105,20 @@ export class VexFirmwareVersion {
    * @param that the version to compare again
    */
   compare(that: VexFirmwareVersion): number {
-    const majorComp = this.major - that.major;
-    const minorComp = this.minor - that.minor;
-    const buildComp = this.build - that.build;
-    const betaComp = this.beta - that.beta;
+    const majorComp = this.major - that.major
+    const minorComp = this.minor - that.minor
+    const buildComp = this.build - that.build
+    const betaComp = this.beta - that.beta
 
     if (majorComp !== 0) {
-      return majorComp;
+      return majorComp
     } else if (minorComp !== 0) {
-      return minorComp;
+      return minorComp
     } else if (buildComp !== 0) {
-      return buildComp;
+      return buildComp
     } else if (betaComp !== 0) {
-      return betaComp;
+      return betaComp
     }
-    return 0;
+    return 0
   }
 }

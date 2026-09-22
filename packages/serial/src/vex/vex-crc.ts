@@ -28,53 +28,52 @@ const CRC16TABLE = [
   0x5c64, 0x4c45, 0x3ca2, 0x2c83, 0x1ce0, 0x0cc1, 0xef1f, 0xff3e, 0xcf5d,
   0xdf7c, 0xaf9b, 0xbfba, 0x8fd9, 0x9ff8, 0x6e17, 0x7e36, 0x4e55, 0x5e74,
   0x2e93, 0x3eb2, 0x0ed1, 0x1ef0,
-];
+]
 
 export class CrcGenerator {
-  crc16Table: Uint32Array;
-  crc32Table: Uint32Array;
-  static POLYNOMIAL_CRC32 = 79764919;
-  static POLYNOMIAL_CRC16 = 4129;
+  crc16Table: Uint32Array
+  crc32Table: Uint32Array
+  static POLYNOMIAL_CRC32 = 79764919
+  static POLYNOMIAL_CRC16 = 4129
 
   constructor() {
-    this.crc16Table = Uint32Array.from(CRC16TABLE);
-    this.crc32Table = new Uint32Array(256);
-    this.crc32GenTable();
+    this.crc16Table = Uint32Array.from(CRC16TABLE)
+    this.crc32Table = new Uint32Array(256)
+    this.crc32GenTable()
   }
 
   /**
    * Calculate CRC16 for buffer
    */
   crc16(buf: Uint8Array, initValue: number): number {
-    const numberOfBytes = buf.byteLength;
-    let accumulator = initValue;
-    let i;
-    let j;
+    const numberOfBytes = buf.byteLength
+    let accumulator = initValue
+    let i
+    let j
 
     // now calculate CRC16
     for (j = 0; j < numberOfBytes; j++) {
-      i = ((accumulator >>> 8) ^ buf[j]) & 0xff;
-      accumulator = ((accumulator << 8) ^ CRC16TABLE[i]) >>> 0;
+      i = ((accumulator >>> 8) ^ buf[j]) & 0xff
+      accumulator = ((accumulator << 8) ^ CRC16TABLE[i]) >>> 0
     }
-    return (accumulator & 0xffff) >>> 0;
+    return (accumulator & 0xffff) >>> 0
   }
 
   /**
    * Generate CRC32 reverse table
    */
   crc32GenTable(): void {
-    let i;
-    let j;
-    let crcAccumulator;
+    let i
+    let j
+    let crcAccumulator
     for (i = 0; i < 256; i++) {
-      crcAccumulator = i << 24;
+      crcAccumulator = i << 24
       for (j = 0; j < 8; j++) {
         if ((crcAccumulator & 0x80000000) !== 0)
-          crcAccumulator =
-            (crcAccumulator << 1) ^ CrcGenerator.POLYNOMIAL_CRC32;
-        else crcAccumulator = crcAccumulator << 1;
+          crcAccumulator = (crcAccumulator << 1) ^ CrcGenerator.POLYNOMIAL_CRC32
+        else crcAccumulator = crcAccumulator << 1
       }
-      this.crc32Table[i] = crcAccumulator;
+      this.crc32Table[i] = crcAccumulator
     }
   }
 
@@ -82,16 +81,16 @@ export class CrcGenerator {
    * Calculate CRC32 for buffer
    */
   crc32(buf: Uint8Array, initValue: number): number {
-    const numberOfBytes = buf.byteLength;
-    let crcAccumulator = initValue;
-    let i;
-    let j;
+    const numberOfBytes = buf.byteLength
+    let crcAccumulator = initValue
+    let i
+    let j
 
     // now calculate CRC32
     for (j = 0; j < numberOfBytes; j++) {
-      i = ((crcAccumulator >>> 24) ^ buf[j]) & 0xff;
-      crcAccumulator = ((crcAccumulator << 8) ^ this.crc32Table[i]) >>> 0;
+      i = ((crcAccumulator >>> 24) ^ buf[j]) & 0xff
+      crcAccumulator = ((crcAccumulator << 8) ^ this.crc32Table[i]) >>> 0
     }
-    return (crcAccumulator & 0xffffffff) >>> 0;
+    return (crcAccumulator & 0xffffffff) >>> 0
   }
 }

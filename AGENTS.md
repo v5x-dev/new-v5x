@@ -59,26 +59,6 @@ When changing this package:
 the development and production build, and Convex provides the backend.
 Better Auth handles email and password sessions.
 
-The app currently includes:
-
-- TanStack Router routes for the landing page, authentication, and programs.
-- A program list and program detail view for C++ and Python VEX projects.
-- Convex queries and mutations in `convex/programs.ts`.
-- Convex schema tables for `programs` and `programFiles`.
-- Built-in C++ and Python starter files in `convex/templates.ts`.
-- Auth handlers under `src/routes/api/auth` and shared auth helpers in
-  `src/lib`.
-- Shared UI components in `src/components/ui` and the V5 robot brain viewer.
-
-`src/routeTree.gen.ts` and `convex/_generated` are generated files. Change the
-source routes or Convex functions, then use the relevant generator instead of
-hand-editing generated output.
-
-For local app work, run `bun run --cwd apps/code convex:dev` once the Convex
-deployment is configured. It creates or updates `.env.local` and
-`convex/_generated`. Set `SITE_URL=http://localhost:3000` in `.env.local`,
-then run the Vite app with `bun run --cwd apps/code dev`.
-
 ## Common commands
 
 Run these from the repository root unless a command includes `--cwd`.
@@ -131,7 +111,4 @@ commands and entry points when those change.
 ## UI changes
 
 - Always use Tailwind CSS utility classes and shadcn/ui components when writing UI code. Prefer existing shadcn/ui primitives and Tailwind classes over bespoke component CSS.
-- For every UI change, use `agent-browser` to open and verify the changed UI at
-  a 1920x1080 viewport. Screenshots must be captured at exactly 1920x1080
-  (1080p, 16:9). Before finishing the task, take a screenshot of the change
-  and attach it to the thread.
+- For every UI change, use `agent-browser` to open and verify the changed UI. Before finishing the task, take a screenshot of the change and attach it to the thread.

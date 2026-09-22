@@ -1,15 +1,27 @@
 node_modules
-.DS_Store
-dist
-dist-ssr
-*.local
-.env*
-.tanstack
-.wrangler
-.output
-.vinxi
-__unconfig*
-todos.json
 
-# typescript
-*.tsbuildinfo
+!.env
+.env
+.env.local
+.DS_Store
+.cache
+.vercel
+.output
+.nitro
+.tanstack
+
+/build/
+/api/
+/server/build
+/public/build
+/dist/
+/dist-ssr/
+
+# Sentry Config File
+.env.sentry-build-plugin
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+app.config.timestamp_*.js

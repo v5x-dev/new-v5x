@@ -3,75 +3,75 @@ import type {
   RequestPortOptions,
   SerialAdapter,
   SerialPortInfo,
-} from "./serial-adapter";
+} from "./serial-adapter"
 
 class BrowserSerialPort implements AdapterSerialPort {
-  #port: SerialPort;
-  #onDisconnect?: () => void;
+  #port: SerialPort
+  #onDisconnect?: () => void
 
   constructor(port: SerialPort) {
-    this.#port = port;
-    this.#port.addEventListener("disconnect", () => this.#onDisconnect?.());
+    this.#port = port
+    this.#port.addEventListener("disconnect", () => this.#onDisconnect?.())
   }
 
   get readable(): ReadableStream<Uint8Array> | null {
-    return this.#port.readable as ReadableStream<Uint8Array> | null;
+    return this.#port.readable as ReadableStream<Uint8Array> | null
   }
 
   get writable(): WritableStream<Uint8Array> | null {
-    return this.#port.writable as WritableStream<Uint8Array> | null;
+    return this.#port.writable as WritableStream<Uint8Array> | null
   }
 
   getInfo(): SerialPortInfo {
-    const info = this.#port.getInfo();
+    const info = this.#port.getInfo()
     return {
       usbVendorId: info.usbVendorId,
       usbProductId: info.usbProductId,
-    };
+    }
   }
 
   open(options: { baudRate: number }): Promise<void> {
-    return this.#port.open(options);
+    return this.#port.open(options)
   }
 
   close(): Promise<void> {
-    return this.#port.close();
+    return this.#port.close()
   }
 
   addEventListener(type: "disconnect", listener: () => void): void {
-    if (type === "disconnect") this.#onDisconnect = listener;
+    if (type === "disconnect") this.#onDisconnect = listener
   }
 
   removeEventListener(type: "disconnect", listener: () => void): void {
     if (type === "disconnect" && this.#onDisconnect === listener) {
-      this.#onDisconnect = undefined;
+      this.#onDisconnect = undefined
     }
   }
 }
 
 export function createBrowserAdapter(
-  serial: Serial = navigator.serial,
+  serial: Serial = navigator.serial
 ): SerialAdapter {
   return {
     async getPorts() {
-      const ports = await serial.getPorts();
-      return ports.map((port) => new BrowserSerialPort(port));
+      const ports = await serial.getPorts()
+      return ports.map((port) => new BrowserSerialPort(port))
     },
     async requestPort(options?: RequestPortOptions) {
       const port = await serial.requestPort({
         // Web Serial requires a vendor ID in chooser filters. Product-only
         // filters still work for already-granted ports through getPorts().
         filters: (options?.filters ?? []).flatMap((filter) => {
-          if (filter.usbVendorId === undefined) return [];
+          if (filter.usbVendorId === undefined) return []
           return [
             {
               usbVendorId: filter.usbVendorId,
               usbProductId: filter.usbProductId,
             },
-          ];
+          ]
         }),
-      });
-      return new BrowserSerialPort(port);
+      })
+      return new BrowserSerialPort(port)
     },
-  };
+  }
 }

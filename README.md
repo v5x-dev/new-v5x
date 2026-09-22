@@ -18,5 +18,12 @@ bun test
 bun run --cwd packages/serial build
 ```
 
+Format the repository or verify its formatting:
+
+```sh
+bun run format
+bun run format:check
+```
+
 The `@v5x/serial` package has runtime-specific adapters at
 `@v5x/serial/browser`, `@v5x/serial/node`, and `@v5x/serial/bun`.

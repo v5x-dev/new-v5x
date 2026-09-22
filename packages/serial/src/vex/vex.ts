@@ -1,86 +1,87 @@
-import { type VexFirmwareVersion } from "./vex-firmware-version";
-import { type HostBoundPacket } from "./vex-packet";
+import { type VexFirmwareVersion } from "./vex-firmware-version"
+import { type HostBoundPacket } from "./vex-packet"
 
-export const USER_PROG_CHUNK_SIZE = 4096; // chunk size
-export const USER_FIFO_MAX_WRITE_SIZE = 224;
-export const USER_FLASH_START = 0x03000000; // start address of memory
-export const USER_FLASH_SYS_CODE_START = 0x03400000; // start address of system code
-export const USER_FLASH_USR_CODE_START = 0x03800000; // start address of user code
-export const USER_FLASH_END = 0x08000000; // end address of memory
-export const USER_FLASH_MAX_FILE_SIZE = 0x200000; // maximum file size for qspi
-export const USER_FLASH_START_B = 0x10200000; // special app flash start
-export const USER_FLASH_END_B = 0x10400000; // special app flash end
-export const USER_FLASH_START_C = 0x30200000; // special app flash start
-export const USER_FLASH_END_C = 0x31000000; // special app flash end
+export const USER_PROG_CHUNK_SIZE = 4096 // chunk size
+export const USER_FIFO_MAX_WRITE_SIZE = 224
+export const USER_FLASH_START = 0x03000000 // start address of memory
+export const USER_FLASH_SYS_CODE_START = 0x03400000 // start address of system code
+export const USER_FLASH_USR_CODE_START = 0x03800000 // start address of user code
+export const USER_FLASH_END = 0x08000000 // end address of memory
+export const USER_FLASH_MAX_FILE_SIZE = 0x200000 // maximum file size for qspi
+export const USER_FLASH_START_B = 0x10200000 // special app flash start
+export const USER_FLASH_END_B = 0x10400000 // special app flash end
+export const USER_FLASH_START_C = 0x30200000 // special app flash start
+export const USER_FLASH_END_C = 0x31000000 // special app flash end
 
 export interface ISmartDeviceInfo {
-  port: number;
-  type: SmartDeviceType;
-  status: number;
-  betaversion: number;
-  version: number;
-  bootversion: number;
+  port: number
+  type: SmartDeviceType
+  status: number
+  betaversion: number
+  version: number
+  bootversion: number
 }
 
 export interface IFileBasicInfo {
-  filename: string;
-  vendor: FileVendor;
-  loadAddress?: number;
-  size?: number;
+  filename: string
+  vendor: FileVendor
+  loadAddress?: number
+  size?: number
 }
 
 export interface IFileMetadata {
-  loadAddress: number;
-  size: number;
-  crc32: number;
-  type: string;
-  timestamp: number;
-  version: VexFirmwareVersion;
+  loadAddress: number
+  size: number
+  crc32: number
+  type: string
+  timestamp: number
+  version: VexFirmwareVersion
 }
 
 export interface IFileHandle extends IFileBasicInfo, IFileMetadata {
-  loadAddress: number;
-  size: number;
+  loadAddress: number
+  size: number
 }
 
 export interface IFileEntry extends IFileMetadata {
-  index: number;
-  filename: string;
+  index: number
+  filename: string
 }
 
 export interface IFileWriteRequest {
-  filename: string;
-  vendor?: FileVendor;
-  loadAddress?: number;
-  buf?: Uint8Array;
-  downloadTarget: FileDownloadTarget;
-  exttype?: string;
-  autoRun: boolean;
-  exitAction?: FileExitAction;
-  linkedFile?: IFileWriteRequest;
+  filename: string
+  vendor?: FileVendor
+  loadAddress?: number
+  buf?: Uint8Array
+  downloadTarget: FileDownloadTarget
+  exttype?: string
+  autoRun: boolean
+  exitAction?: FileExitAction
+  linkedFile?: IFileWriteRequest
 }
 
 export interface IProgramInfo {
-  name: string;
-  binfile: string;
-  size: number;
-  time: Date;
-  slot: number;
-  requestedSlot: number;
+  name: string
+  binfile: string
+  size: number
+  time: Date
+  slot: number
+  requestedSlot: number
 }
 
 export interface IPacketCallback {
-  callback: (data: HostBoundPacket | ArrayBuffer | Uint8Array | AckType) => void;
-  timeout: ReturnType<typeof setTimeout>;
-  wantedCommandId: number | undefined;
-  wantedCommandExId: number | undefined;
+  callback: (data: HostBoundPacket | ArrayBuffer | Uint8Array | AckType) => void
+  timeout: ReturnType<typeof setTimeout>
+  wantedCommandId: number | undefined
+  wantedCommandExId: number | undefined
 }
 
-export type DataArray = ArrayBuffer | Uint8Array;
+export type DataArray = ArrayBuffer | Uint8Array
 
-export type MatchMode = "driver" | "autonomous" | "disabled";
+export type MatchMode = "driver" | "autonomous" | "disabled"
 
-export enum FileVendor { // a.k.a vid
+export enum FileVendor {
+  // a.k.a vid
   USER = 1,
   SYS = 15,
   DEV1 = 16,
@@ -145,9 +146,9 @@ export enum UserFifoChannel {
   STDIN = 2,
 }
 
-export type SlotNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+export type SlotNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
 
-export type ZerobaseSlotNumber = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export type ZerobaseSlotNumber = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
 
 export type PortNumber =
   | 1
@@ -170,7 +171,7 @@ export type PortNumber =
   | 18
   | 19
   | 20
-  | 21;
+  | 21
 
 export enum AckType {
   CDC2_ACK = 118,

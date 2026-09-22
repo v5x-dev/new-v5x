@@ -1,0 +1,16 @@
+# Package-manager locks are machine-maintained.
+**/package-lock.json
+**/pnpm-lock.yaml
+**/yarn.lock
+bun.lock
+
+# Generated and build output.
+**/dist/
+**/coverage/
+apps/code/.tanstack/
+apps/code/.vinxi/
+apps/code/.output/
+apps/code/.wrangler/
+apps/code/convex/_generated/
+apps/code/src/routeTree.gen.ts
+artifacts/

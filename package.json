@@ -1,17 +1,22 @@
 {
   "name": "v5x",
-  "private": true,
-  "workspaces": [
-    "packages/*",
-    "apps/*"
-  ],
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "prettier": "^3.9.6",
+    "prettier-plugin-tailwindcss": "^0.8.1"
   },
   "peerDependencies": {
     "typescript": "^7"
   },
+  "private": true,
   "scripts": {
-    "dev:web": "bun --cwd=apps/code --bun run dev"
-  }
+    "dev:code": "bun --cwd=apps/code --bun run dev",
+    "convex:code": "bun --cwd=apps/code convex dev",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ]
 }

@@ -24,6 +24,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { api } from "../../../convex/_generated/api";
 import { useAction } from "convex/react";
+import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_app/")({
 	beforeLoad: async () => {
@@ -73,7 +74,15 @@ function Dashboard() {
 					<TableBody>
 						{programs?.map((program) => (
 							<TableRow key={program._id}>
-								<TableCell>{program.name}</TableCell>
+								<TableCell>
+									<Link
+										to="/p/$programId"
+										params={{ programId: program._id }}
+										className="hover:underline"
+									>
+										{program.name}
+									</Link>
+								</TableCell>
 							</TableRow>
 						))}
 					</TableBody>

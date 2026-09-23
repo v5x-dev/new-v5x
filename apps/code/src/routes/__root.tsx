@@ -1,23 +1,22 @@
+import type { ConvexQueryClient } from "@convex-dev/react-query";
+import { TanStackDevtools } from "@tanstack/react-devtools";
+import type { QueryClient } from "@tanstack/react-query";
 import {
+	createRootRouteWithContext,
 	HeadContent,
 	Link,
 	Scripts,
-	createRootRouteWithContext,
+	useRouter,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { TanStackDevtools } from "@tanstack/react-devtools";
-
 import { Button } from "../components/ui/button";
-import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
-
 import ConvexProvider from "../integrations/convex/provider";
-
+import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 import appCss from "../styles.css?url";
-
-import type { QueryClient } from "@tanstack/react-query";
 
 interface MyRouterContext {
 	queryClient: QueryClient;
+	convexQueryClient: ConvexQueryClient;
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
@@ -63,13 +62,15 @@ function NotFound() {
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+	const { convexQueryClient } = useRouter().options.context;
+
 	return (
 		<html lang="en" className="dark">
 			<head>
 				<HeadContent />
 			</head>
 			<body>
-				<ConvexProvider>
+				<ConvexProvider convexQueryClient={convexQueryClient}>
 					{children}
 					<TanStackDevtools
 						config={{

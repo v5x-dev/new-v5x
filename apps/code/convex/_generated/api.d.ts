@@ -10,6 +10,7 @@
 
 import type * as http from "../http.js";
 import type * as program from "../program.js";
+import type * as programBuild from "../programBuild.js";
 import type * as store from "../store.js";
 import type * as template from "../template.js";
 
@@ -22,6 +23,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   http: typeof http;
   program: typeof program;
+  programBuild: typeof programBuild;
   store: typeof store;
   template: typeof template;
 }>;

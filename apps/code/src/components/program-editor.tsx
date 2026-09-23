@@ -2,10 +2,11 @@ import { registerCustomTheme, type ThemeRegistration } from "@pierre/diffs";
 import { Editor, type EditorFactory } from "@pierre/diffs/edit";
 import { EditProvider, File } from "@pierre/diffs/react";
 import type { CSSProperties } from "react";
-import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "#/components/ui/button";
 import birdsOfParadise from "#/themes/birds-of-paradise.json";
-import { FloppyDiskIcon } from "@phosphor-icons/react";
+import { GitCommitIcon } from "@phosphor-icons/react";
 
 registerCustomTheme(
 	"birds-of-paradise",
@@ -30,33 +31,82 @@ const createEditor: EditorFactory<undefined, undefined> = (
 export function ProgramEditor({
 	path,
 	load,
-	save,
+	commit,
+	commitContainer,
 	initialDraft,
 	onDraft,
+	onStatusChange,
+	onCommit,
 }: {
 	path: string;
 	load: (path: string) => Promise<string>;
-	save: (path: string, contents: string) => Promise<void>;
+	commit: (path: string, contents: string) => Promise<void>;
+	commitContainer: HTMLElement | null;
 	initialDraft?: string;
 	onDraft: (contents: string) => void;
+	onStatusChange: (modified: boolean) => void;
+	onCommit: (contents: string) => void;
 }) {
 	const [contents, setContents] = useState<string>();
 	const [draft, setDraft] = useState<string | undefined>(initialDraft);
-	const [savedContents, setSavedContents] = useState<string>();
-	const [saving, setSaving] = useState(false);
+	const [committedContents, setCommittedContents] = useState<string>();
+	const [committing, setCommitting] = useState(false);
 	const [error, setError] = useState<string>();
-	const [saveError, setSaveError] = useState<string>();
+	const [commitError, setCommitError] = useState<string>();
+	const initialDraftRef = useRef(initialDraft);
+	const committingRef = useRef(false);
+
+	const commitDraft = useCallback(async () => {
+		if (
+			committingRef.current ||
+			draft === undefined ||
+			draft === committedContents
+		)
+			return;
+		committingRef.current = true;
+		setCommitting(true);
+		setCommitError(undefined);
+		try {
+			await commit(path, draft);
+			setCommittedContents(draft);
+			onCommit(draft);
+		} catch (err) {
+			setCommitError(String(err));
+		} finally {
+			committingRef.current = false;
+			setCommitting(false);
+		}
+	}, [commit, committedContents, draft, onCommit, path]);
+
+	useEffect(() => {
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (
+				event.key.toLowerCase() !== "s" ||
+				!(event.ctrlKey || event.metaKey) ||
+				event.altKey
+			)
+				return;
+			event.preventDefault();
+			void commitDraft();
+		};
+		window.addEventListener("keydown", handleKeyDown, true);
+		return () => window.removeEventListener("keydown", handleKeyDown, true);
+	}, [commitDraft]);
 
 	useEffect(() => {
 		let active = true;
 		setContents(undefined);
-		setDraft(initialDraft);
+		setDraft(initialDraftRef.current);
 		setError(undefined);
 		load(path).then(
 			(text) => {
 				if (active) {
-					setContents(initialDraft ?? text);
-					setSavedContents(text);
+					setContents(initialDraftRef.current ?? text);
+					setCommittedContents(text);
+					onStatusChange(
+						initialDraftRef.current !== undefined &&
+							initialDraftRef.current !== text,
+					);
 				}
 			},
 			(err) => {
@@ -66,38 +116,31 @@ export function ProgramEditor({
 		return () => {
 			active = false;
 		};
-	}, [path, load, initialDraft]);
+	}, [path, load]);
 
 	if (error) return <p className="p-4 text-destructive">{error}</p>;
 	if (contents === undefined) return <p className="p-4">Loading {path}...</p>;
 
 	return (
 		<EditProvider createEditor={createEditor}>
-			<div className="flex h-full flex-col overflow-hidden">
-				<div className="flex items-center justify-between border-b px-4 py-2">
-					<span className="truncate text-sm">{path}</span>
+			{commitContainer &&
+				createPortal(
 					<Button
 						size="icon-sm"
 						variant="ghost"
-						disabled={saving || draft === undefined || draft === savedContents}
-						onClick={async () => {
-							if (draft === undefined) return;
-							setSaving(true);
-							setSaveError(undefined);
-							try {
-								await save(path, draft);
-								setSavedContents(draft);
-							} catch (err) {
-								setSaveError(String(err));
-							} finally {
-								setSaving(false);
-							}
-						}}
+						aria-label="Commit file"
+						title="Commit file (Ctrl+S)"
+						disabled={
+							committing || draft === undefined || draft === committedContents
+						}
+						onClick={() => void commitDraft()}
 					>
-						<FloppyDiskIcon />
-					</Button>
-				</div>
-				{saveError && <p className="p-2 text-destructive">{saveError}</p>}
+						<GitCommitIcon />
+					</Button>,
+					commitContainer,
+				)}
+			<div className="flex h-full flex-col overflow-hidden">
+				{commitError && <p className="p-2 text-destructive">{commitError}</p>}
 				<div className="min-h-0 flex-1 overflow-auto">
 					<File
 						file={{ name: path, contents }}
@@ -111,6 +154,7 @@ export function ProgramEditor({
 						onEditChange={(event) => {
 							setDraft(event.file.contents);
 							onDraft(event.file.contents);
+							onStatusChange(event.file.contents !== committedContents);
 						}}
 					/>
 				</div>

@@ -143,3 +143,25 @@
     @apply cursor-pointer;
   }
 }
+@keyframes hammer-swing {
+  0%, 100% {
+    transform: rotate(-22deg);
+  }
+  45% {
+    transform: rotate(24deg);
+  }
+  65% {
+    transform: rotate(16deg);
+  }
+}
+
+.animate-hammer {
+  transform-origin: 25% 80%;
+  animation: hammer-swing 0.85s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-hammer {
+    animation: none;
+  }
+}

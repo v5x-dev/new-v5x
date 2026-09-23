@@ -1,9 +1,11 @@
 import { FileTree, useFileTree } from "@pierre/trees/react";
 import type React from "react";
+import { useEffect } from "react";
 
-export function ProgramTree({ paths, onSelect }: { paths: readonly string[]; onSelect: (path: string) => void }) {
+export function ProgramTree({ paths, modifiedPaths, onSelect }: { paths: readonly string[]; modifiedPaths: ReadonlySet<string>; onSelect: (path: string) => void }) {
 	const { model } = useFileTree({
 		paths,
+		gitStatus: paths.filter((path) => modifiedPaths.has(path)).map((path) => ({ path, status: "modified" as const })),
 		initialExpansion: "open",
 		search: false,
 		onSelectionChange: (selected) => {
@@ -11,6 +13,10 @@ export function ProgramTree({ paths, onSelect }: { paths: readonly string[]; onS
 			if (path) onSelect(path);
 		},
 	});
+
+	useEffect(() => {
+		model.setGitStatus(paths.filter((path) => modifiedPaths.has(path)).map((path) => ({ path, status: "modified" })));
+	}, [model, paths, modifiedPaths]);
 
 	return (
 		<FileTree

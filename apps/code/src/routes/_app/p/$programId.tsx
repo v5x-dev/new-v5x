@@ -1,17 +1,18 @@
-import { ProgramTree } from "#/components/program-tree";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useAction, useConvexAuth, useQuery } from "convex/react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ProgramEditor } from "#/components/program-editor";
+import { ProgramSidebar } from "#/components/program-sidebar";
 import {
 	Sidebar,
 	SidebarContent,
 	SidebarInset,
 	SidebarProvider,
 } from "#/components/ui/sidebar";
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useAction, useConvexAuth } from "convex/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Spinner } from "#/components/ui/spinner";
+import { hasAuthSession } from "#/lib/auth-guard";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
-import { hasAuthSession } from "#/lib/auth-guard";
 
 export const Route = createFileRoute("/_app/p/$programId")({
 	beforeLoad: async () => {
@@ -24,11 +25,17 @@ function RouteComponent() {
 	const { isAuthenticated } = useConvexAuth();
 	return (
 		<SidebarProvider>
-			{isAuthenticated ? <AuthenticatedProgram /> : (
+			{isAuthenticated ? (
+				<AuthenticatedProgram />
+			) : (
 				<>
-					<Sidebar variant="floating"><SidebarContent /></Sidebar>
+					<Sidebar variant="floating">
+						<SidebarContent />
+					</Sidebar>
 					<SidebarInset className="max-h-screen overflow-hidden">
-						<p className="p-4">Loading files...</p>
+						<div className="w-full h-full grid place-items-center">
+							<Spinner />
+						</div>
 					</SidebarInset>
 				</>
 			)}
@@ -39,24 +46,67 @@ function RouteComponent() {
 function AuthenticatedProgram() {
 	const { programId } = Route.useParams();
 	const id = programId as Id<"program">;
+	const program = useQuery(api.program.get, { programId: id });
+
 	const listFiles = useAction(api.program.files);
 	const readFile = useAction(api.program.readFile);
 	const saveFile = useAction(api.program.saveFile);
-	const load = useCallback((path: string) => readFile({ programId: id, path }), [readFile, id]);
-	const save = useCallback(async (path: string, contents: string) => {
-		await saveFile({ programId: id, path, contents });
-	}, [saveFile, id]);
+	const buildProgram = useAction(api.programBuild.build);
+
+	const load = useCallback(
+		(path: string) => readFile({ programId: id, path }),
+		[readFile, id],
+	);
+	const commit = useCallback(
+		async (path: string, contents: string) => {
+			await saveFile({ programId: id, path, contents });
+		},
+		[saveFile, id],
+	);
+
 	const [paths, setPaths] = useState<string[]>();
 	const [selectedPath, setSelectedPath] = useState<string>();
 	const [error, setError] = useState<string>();
+	const [building, setBuilding] = useState(false);
+	const [modifiedPaths, setModifiedPaths] = useState<ReadonlySet<string>>(
+		new Set(),
+	);
+	const [commitContainer, setCommitContainer] = useState<HTMLDivElement | null>(
+		null,
+	);
 	const drafts = useRef(new Map<string, string>());
+	const build = async () => {
+		setBuilding(true);
+		try {
+			const result = await buildProgram({ programId: id });
+			if (result.exitCode !== 0) console.error("Build failed:", result.stderr);
+		} catch (error) {
+			console.error("Build failed:", error);
+		} finally {
+			setBuilding(false);
+		}
+	};
+	const updateStatus = useCallback((path: string, modified: boolean) => {
+		setModifiedPaths((previous) => {
+			if (previous.has(path) === modified) return previous;
+
+			const next = new Set(previous);
+			if (modified) next.add(path);
+			else next.delete(path);
+
+			return next;
+		});
+	}, []);
 
 	useEffect(() => {
 		let active = true;
+
 		setPaths(undefined);
 		setSelectedPath(undefined);
 		setError(undefined);
+		setModifiedPaths(new Set());
 		drafts.current.clear();
+
 		listFiles({ programId: id }).then(
 			(files) => {
 				if (active) {
@@ -64,23 +114,57 @@ function AuthenticatedProgram() {
 					if (files.includes("src/main.cpp")) setSelectedPath("src/main.cpp");
 				}
 			},
-			(err) => { if (active) setError(String(err)); },
+			(err) => {
+				if (active) setError(String(err));
+			},
 		);
-		return () => { active = false; };
+
+		return () => {
+			active = false;
+		};
 	}, [id, listFiles]);
 
 	return (
 		<>
-			<Sidebar variant="floating">
-				<SidebarContent>
-					{paths && <ProgramTree paths={paths} onSelect={setSelectedPath} />}
-				</SidebarContent>
-			</Sidebar>
+			<ProgramSidebar
+				name={program?.name}
+				paths={paths}
+				modifiedPaths={modifiedPaths}
+				onSelect={setSelectedPath}
+				onCommitContainer={setCommitContainer}
+				onBuild={() => void build()}
+				building={building}
+			/>
 
 			<SidebarInset className="max-h-screen overflow-hidden">
-				{error ? <p className="p-4 text-destructive">{error}</p> : !paths ? <p className="p-4">Loading files...</p> : selectedPath ? (
-					<ProgramEditor key={selectedPath} path={selectedPath} load={load} save={save} initialDraft={drafts.current.get(selectedPath)} onDraft={(contents) => drafts.current.set(selectedPath, contents)} />
-				) : <p className="p-4 text-muted-foreground">Select a file to edit.</p>}
+				{error ? (
+					<p className="p-4 text-destructive">{error}</p>
+				) : !paths ? (
+					<div className="w-full h-full grid place-items-center">
+						<Spinner />
+					</div>
+				) : (
+					selectedPath && (
+						<ProgramEditor
+							key={selectedPath}
+							path={selectedPath}
+							load={load}
+							commit={commit}
+							commitContainer={commitContainer}
+							initialDraft={drafts.current.get(selectedPath)}
+							onDraft={(contents) => drafts.current.set(selectedPath, contents)}
+							onStatusChange={(modified) =>
+								updateStatus(selectedPath, modified)
+							}
+							onCommit={(contents) =>
+								updateStatus(
+									selectedPath,
+									drafts.current.get(selectedPath) !== contents,
+								)
+							}
+						/>
+					)
+				)}
 			</SidebarInset>
 		</>
 	);

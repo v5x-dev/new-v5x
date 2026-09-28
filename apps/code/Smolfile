@@ -1,0 +1,15 @@
+# Local smolvm profile for the VEX build environment. Cloud builds still resolve
+# their tenant image in convex/programBuild.ts.
+# From a VEX program directory, set REGISTRY_NAMESPACE from /v1/me and run:
+# smolvm machine run --oci-cache --smolfile /path/to/v5x/apps/code/Smolfile \
+#   --image "registry.smolmachines.com/${REGISTRY_NAMESPACE}/vexcode:v1"
+
+cpus = 2
+memory = 2048
+net = true
+cmd = ["make"]
+
+[dev]
+workdir = "/workspace"
+volumes = ["./:/workspace"]
+env = ["VEX_SDK_PATH=/sdk"]

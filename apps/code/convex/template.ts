@@ -1,6 +1,8 @@
 import type { Repo } from "@pierre/storage"
 
-const templateFiles: Record<string, string> = {
+export type ProgramTemplate = "vexcode" | "pros" | "ez-template"
+
+const vexcodeTemplateFiles: Record<string, string> = {
   ".gitignore": "/bin\n/build\ncompile_commands.json\n",
   "include/vex.h": "#include <math.h>\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n\n#include \"v5.h\"\n#include \"v5_vcs.h\"\n\n\n#define waitUntil(condition)                                                   \\\n  do {                                                                         \\\n    wait(5, msec);                                                             \\\n  } while (!(condition))\n\n#define repeat(iterations)                                                     \\\n  for (int iterator = 0; iterator < iterations; iterator++)",
   "makefile": "# VEXcode makefile 2019_03_26_01\n\n# show compiler output\nVERBOSE = 0\n\n# include toolchain options\ninclude vex/mkenv.mk\n\n# location of the project source cpp and c files\nSRC_C  = $(wildcard src/*.cpp) \nSRC_C += $(wildcard src/*.c)\nSRC_C += $(wildcard src/*/*.cpp) \nSRC_C += $(wildcard src/*/*.c)\n\nOBJ = $(addprefix $(BUILD)/, $(addsuffix .o, $(basename $(SRC_C))) )\n\n# location of include files that c and cpp files depend on\nSRC_H  = $(wildcard include/*.h)\n\n# additional dependancies\nSRC_A  = makefile\n\n# project header file locations\nINC_F  = include\n\n# build targets\nall: $(BUILD)/$(PROJECT).bin\n\n# include build rules\ninclude vex/mkrules.mk\n",
@@ -9,17 +11,48 @@ const templateFiles: Record<string, string> = {
   "vex/mkrules.mk": "# VEXcode mkrules.mk 2019_03_26_01\n\n# compile C files\n$(BUILD)/%.o: %.c $(SRC_H)\n\t$(Q)$(MKDIR)\n\t$(ECHO) \"CC  $<\"\n\t$(Q)$(CC) $(CFLAGS) $(INC) -c -o $@ $<\n\t\n# compile C++ files\n$(BUILD)/%.o: %.cpp $(SRC_H) $(SRC_A)\n\t$(Q)$(MKDIR)\n\t$(ECHO) \"CXX $<\"\n\t$(Q)$(CXX) $(CXX_FLAGS) $(INC) -c -o $@ $<\n\t\n# create executable \n$(BUILD)/$(PROJECT).elf: $(OBJ)\n\t$(ECHO) \"LINK $@\"\n\t$(Q)$(LINK) $(LNK_FLAGS) -o $@ $^ $(LIBS)\n\t$(Q)$(SIZE) $@\n\n# create binary \n$(BUILD)/$(PROJECT).bin: $(BUILD)/$(PROJECT).elf\n\t$(Q)$(OBJCOPY) -O binary $(BUILD)/$(PROJECT).elf $(BUILD)/$(PROJECT).bin\n\n# create archive\n$(BUILD)/$(PROJECTLIB).a: $(OBJ)\n\t$(Q)$(ARCH) $(ARCH_FLAGS) $@ $^\n\n# clean project\nclean:\n\t$(info clean project)\n\t$(Q)$(CLEAN)\n"
 };
 
-export async function initializeTemplate(repo: Repo) {
+const prosTemplateFiles: Record<string, string> = {
+  ".gitignore": "*.o\n*.obj\n*.bin\n*.elf\nbin/\n.d/\n.vscode/\n.cache/\ncompile_commands.json\ntemp.log\ntemp.errors\n*.ini\n",
+  "Makefile": "CEXTS:=c\nASMEXTS:=s S\nCXXEXTS:=cpp c++ cc\n\nROOT=.\nFWDIR:=$(ROOT)/firmware\nBINDIR=$(ROOT)/bin\nSRCDIR=$(ROOT)/src\nINCDIR=$(ROOT)/include\n\nWARNFLAGS+=\nEXTRA_CFLAGS=\nEXTRA_CXXFLAGS=\n\nUSE_PACKAGE:=1\nEXCLUDE_COLD_LIBRARIES:=\nIS_LIBRARY:=0\n.DEFAULT_GOAL=quick\n-include ./common.mk\n",
+  "project.pros": "{\n  \"target\": \"v5\",\n  \"templates\": {},\n  \"upload_options\": {},\n  \"project_name\": \"pros-project\"\n}\n",
+  "include/main.h": "#ifndef _PROS_MAIN_H_\n#define _PROS_MAIN_H_\n\n#define PROS_USE_SIMPLE_NAMES\n#define PROS_USE_LITERALS\n\n#include \"api.h\"\n\n#ifdef __cplusplus\nextern \"C\" {\n#endif\nvoid autonomous(void);\nvoid initialize(void);\nvoid disabled(void);\nvoid competition_initialize(void);\nvoid opcontrol(void);\n#ifdef __cplusplus\n}\n#endif\n\n#endif  // _PROS_MAIN_H_\n",
+  "src/main.cpp": "#include \"main.h\"\n\nvoid initialize() {}\n\nvoid disabled() {}\n\nvoid competition_initialize() {}\n\nvoid autonomous() {}\n\nvoid opcontrol() {\n  while (true) {\n    pros::delay(20);\n  }\n}\n",
+}
+
+const ezTemplateFiles: Record<string, string> = {
+  ".ez-template": "3.2.2\n",
+  ".gitignore": "*.o\n*.obj\n*.bin\n*.elf\nbin/\n.d/\n.vscode/\n.cache/\ncompile_commands.json\ntemp.log\ntemp.errors\n*.ini\n",
+  "Makefile": "CEXTS:=c\nASMEXTS:=s S\nCXXEXTS:=cpp c++ cc\n\nROOT=.\nFWDIR:=$(ROOT)/firmware\nBINDIR=$(ROOT)/bin\nSRCDIR=$(ROOT)/src\nINCDIR=$(ROOT)/include\n\nWARNFLAGS+=\nEXTRA_CFLAGS=\nEXTRA_CXXFLAGS=-Wno-deprecated-enum-enum-conversion\n\nUSE_PACKAGE:=1\nEXCLUDE_COLD_LIBRARIES:=\nIS_LIBRARY:=0\n.DEFAULT_GOAL=quick\n-include ./common.mk\n",
+  "project.pros": "{\n  \"target\": \"v5\",\n  \"templates\": {},\n  \"upload_options\": {},\n  \"project_name\": \"EZ-Template-Example\"\n}\n",
+  "include/main.h": "#ifndef _PROS_MAIN_H_\n#define _PROS_MAIN_H_\n\n#define PROS_USE_SIMPLE_NAMES\n#define PROS_USE_LITERALS\n\n#include \"api.h\"\n#include \"EZ-Template/api.hpp\"\n\nusing namespace okapi::literals;\n\n#ifdef __cplusplus\nextern \"C\" {\n#endif\nvoid autonomous(void);\nvoid initialize(void);\nvoid disabled(void);\nvoid competition_initialize(void);\nvoid opcontrol(void);\n#ifdef __cplusplus\n}\n#endif\n\n#endif  // _PROS_MAIN_H_\n",
+  "src/main.cpp": "#include \"main.h\"\n\n// Change these example ports, wheel size, and motor speed for your robot.\nez::Drive chassis({1, 2, 3}, {-4, -5, -6}, 7, 4.125, 343);\n\nvoid default_constants() {\n  chassis.pid_drive_constants_set(20.0, 0.0, 100.0);\n  chassis.pid_heading_constants_set(11.0, 0.0, 20.0);\n  chassis.pid_turn_constants_set(3.0, 0.05, 20.0, 15.0);\n}\n\nvoid initialize() {\n  ez::ez_template_print();\n  pros::delay(500);\n  default_constants();\n  chassis.initialize();\n}\n\nvoid disabled() {}\n\nvoid competition_initialize() {}\n\nvoid autonomous() {\n  chassis.pid_targets_reset();\n  chassis.drive_imu_reset();\n  chassis.drive_sensor_reset();\n  chassis.odom_xyt_set(0_in, 0_in, 0_deg);\n  chassis.pid_drive_set(24_in, 80);\n  chassis.pid_wait();\n}\n\nvoid opcontrol() {\n  chassis.drive_brake_set(MOTOR_BRAKE_COAST);\n  while (true) {\n    chassis.opcontrol_tank();\n    pros::delay(ez::util::DELAY_TIME);\n  }\n}\n",
+}
+
+export async function initializeTemplate(
+  repo: Repo,
+  template: ProgramTemplate = "vexcode",
+) {
+  const files =
+    template === "ez-template"
+      ? ezTemplateFiles
+      : template === "pros"
+        ? prosTemplateFiles
+        : vexcodeTemplateFiles
   const commit = repo.createCommit({
     targetBranch: repo.defaultBranch,
-    commitMessage: "Initialize C++ competition template",
+    commitMessage:
+      template === "ez-template"
+        ? "Initialize EZ-Template project"
+        : template === "pros"
+          ? "Initialize PROS competition template"
+          : "Initialize C++ competition template",
     author: {
       name: "v5x Template",
       email: "template@v5x.dev",
     },
   });
 
-  for (const [path, contents] of Object.entries(templateFiles)) {
+  for (const [path, contents] of Object.entries(files)) {
     commit.addFileFromString(path, contents);
   }
 

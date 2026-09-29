@@ -41,8 +41,24 @@ function RouteComponent() {
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton onClick={() => createProgram({})}>
-                    VEXCode
+                  <SidebarMenuButton
+                    onClick={() => createProgram({ template: 'vexcode' })}
+                  >
+                    VEXcode
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => createProgram({ template: 'pros' })}
+                  >
+                    PROS
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => createProgram({ template: 'ez-template' })}
+                  >
+                    EZ-Template
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>

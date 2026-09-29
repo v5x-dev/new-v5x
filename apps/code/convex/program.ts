@@ -4,11 +4,18 @@ import type { Doc, Id } from './_generated/dataModel'
 import boring from 'boring-name-generator'
 import { store } from './store'
 import { api, internal } from './_generated/api'
-import { initializeTemplate } from './template'
+import { initializeTemplate, type ProgramTemplate } from './template'
 
 export const createProgram = action({
   args: {
     name: v.optional(v.string()),
+    template: v.optional(
+      v.union(
+        v.literal('vexcode'),
+        v.literal('pros'),
+        v.literal('ez-template'),
+      ),
+    ),
   },
   handler: async (ctx, args): Promise<Id<'program'>> => {
     const identity = await ctx.auth.getUserIdentity()
@@ -17,7 +24,8 @@ export const createProgram = action({
     const repo = await store.createRepo({
       id: boring({ words: 2, number: true }).dashed,
     })
-    await initializeTemplate(repo)
+    const template: ProgramTemplate = args.template ?? 'vexcode'
+    await initializeTemplate(repo, template)
 
     const programId: Id<'program'> = await ctx.runMutation(api.program.create, {
       name: args.name || repo.id,

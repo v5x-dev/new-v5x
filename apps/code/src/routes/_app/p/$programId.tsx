@@ -11,9 +11,16 @@ import { FileTree, useFileTree } from '@pierre/trees/react'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useAction } from 'convex/react'
-import { ArrowLeftIcon, GitCommitIcon, HammerIcon } from '@phosphor-icons/react'
+import {
+  ArrowLeftIcon,
+  GitCommitIcon,
+  HammerIcon,
+  UploadSimpleIcon,
+} from '@phosphor-icons/react'
 import * as React from 'react'
 import type { CSSProperties } from 'react'
+import { FileExitAction, ProgramIniConfig, V5SerialDevice } from '@v5x/serial'
+import { createBrowserAdapter } from '@v5x/serial/browser'
 import type { Id } from '../../../../convex/_generated/dataModel'
 import { api } from '../../../../convex/_generated/api'
 import { Button } from '~/components/ui/button'
@@ -68,23 +75,60 @@ function RouteComponent() {
   const [loadError, setLoadError] = React.useState<string | null>(null)
   const [selectedFile, setSelectedFile] = React.useState<string | null>(null)
   const [buildFiles, setBuildFiles] = React.useState<string[]>([])
+  const [buildArtifacts, setBuildArtifacts] = React.useState<
+    Map<string, Uint8Array>
+  >(() => new Map())
   const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false)
   const [isSaving, setIsSaving] = React.useState(false)
   const [isBuilding, setIsBuilding] = React.useState(false)
+  const [isUploading, setIsUploading] = React.useState(false)
+  const [brainSlot, setBrainSlot] = React.useState(1)
   const [buildMessage, setBuildMessage] = React.useState('')
+  const [uploadMessage, setUploadMessage] = React.useState('')
   const saveHandlerRef = React.useRef<(() => Promise<void>) | null>(null)
 
   const build = async () => {
-    if (!program || hasUnsavedChanges || isSaving || isBuilding) return
+    if (!program || hasUnsavedChanges || isSaving || isBuilding || isUploading)
+      return
 
     setIsBuilding(true)
     setBuildMessage('')
     setBuildFiles([])
+    setBuildArtifacts(new Map())
     try {
       const result = await buildProgram({ programId })
       if (result.exitCode === 0) {
-        setBuildMessage('Build succeeded')
         setBuildFiles(result.binFiles)
+        try {
+          const artifacts = await Promise.all(
+            result.artifacts.map(async ({ path, url }) => {
+              const response = await fetch(url)
+              if (!response.ok) {
+                throw new Error(`Could not download ${path}`)
+              }
+              return [
+                path,
+                new Uint8Array(await response.arrayBuffer()),
+              ] as const
+            }),
+          )
+          setBuildArtifacts(new Map(artifacts))
+          const firstProgramArtifact =
+            result.binFiles.find((path) => path.endsWith('hot.package.bin')) ??
+            result.binFiles.find(
+              (path) => !path.endsWith('cold.package.bin'),
+            ) ??
+            result.binFiles[0]
+          if (firstProgramArtifact) setSelectedFile(firstProgramArtifact)
+          setBuildMessage(
+            result.binFiles.length > 0
+              ? 'Build succeeded'
+              : 'Build succeeded, no .bin files found',
+          )
+        } catch (error) {
+          setBuildMessage('Build succeeded, but artifacts could not be loaded')
+          console.error('Could not load VEX V5 build artifacts:', error)
+        }
       } else {
         setBuildMessage(`Build failed (exit code ${result.exitCode})`)
         console.error('VEX V5 build failed:', result.stderr)
@@ -97,13 +141,83 @@ function RouteComponent() {
     }
   }
 
+  const uploadToBrain = async () => {
+    if (!program || hasUnsavedChanges || isSaving || isBuilding || isUploading)
+      return
+
+    const hotPath = buildFiles.find((path) => path.endsWith('hot.package.bin'))
+    const programPath =
+      activeFile &&
+      buildArtifacts.has(activeFile) &&
+      !activeFile.endsWith('cold.package.bin')
+        ? activeFile
+        : (hotPath ??
+          buildFiles.find((path) => !path.endsWith('cold.package.bin')))
+    const programBytes = programPath
+      ? buildArtifacts.get(programPath)
+      : undefined
+    if (!programPath || !programBytes) return
+
+    const coldPath = programPath.endsWith('hot.package.bin')
+      ? buildFiles.find((path) => path.endsWith('cold.package.bin'))
+      : undefined
+    const coldBytes = coldPath ? buildArtifacts.get(coldPath) : undefined
+
+    setIsUploading(true)
+    setUploadMessage('Connecting to Brain')
+    try {
+      const device = new V5SerialDevice(createBrowserAdapter(), {
+        autoRefresh: false,
+      })
+      device.autoReconnect = false
+      try {
+        if (!(await device.connect())) {
+          throw new Error('Could not connect to a V5 Brain or controller.')
+        }
+
+        const ini = new ProgramIniConfig()
+        ini.baseName = `slot_${brainSlot}`
+        ini.program.name = program.name
+        ini.program.slot = (brainSlot - 1) as typeof ini.program.slot
+        ini.program.description = 'Built with v5x'
+        ini.project.ide = 'VEXcode'
+        ini.autorun = false
+        ini.after = FileExitAction.EXIT_NONE
+        ini.setProgramDate(new Date())
+
+        const uploaded = await device.brain.uploadProgram(
+          ini,
+          programBytes,
+          coldBytes,
+          (state, current, total) => {
+            const percent = total > 0 ? Math.round((current / total) * 100) : 0
+            setUploadMessage(`Uploading ${state} ${percent}%`)
+          },
+        )
+        if (uploaded !== true) {
+          throw new Error('Upload failed. Check the Brain connection.')
+        }
+        setUploadMessage(`Uploaded to slot ${brainSlot}`)
+      } finally {
+        await device.dispose()
+      }
+    } catch (error) {
+      setUploadMessage(error instanceof Error ? error.message : 'Upload failed')
+      console.error('VEX V5 upload failed:', error)
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
   React.useEffect(() => {
     let isCurrent = true
     setPaths(null)
     setLoadError(null)
     setSelectedFile(null)
     setBuildFiles([])
+    setBuildArtifacts(new Map())
     setBuildMessage('')
+    setUploadMessage('')
 
     getProgramFiles({ programId })
       .then((nextPaths) => {
@@ -136,6 +250,13 @@ function RouteComponent() {
     : hasUnsavedChanges || isSaving
       ? 'Commit changes before building'
       : buildMessage || 'Build program'
+  const uploadButtonLabel = isUploading
+    ? uploadMessage || 'Uploading to Brain'
+    : hasUnsavedChanges || isSaving
+      ? 'Commit changes before uploading'
+      : buildArtifacts.size === 0
+        ? 'Build the program before uploading'
+        : uploadMessage || `Upload to Brain slot ${brainSlot}`
 
   return (
     <EditProvider createEditor={createFileEditor}>
@@ -155,7 +276,7 @@ function RouteComponent() {
                 paths={treePaths ?? paths}
                 selectedFile={activeFile}
                 onSelect={(path) => {
-                  if (isSaving) return false
+                  if (isSaving || isUploading) return false
                   if (
                     path !== activeFile &&
                     hasUnsavedChanges &&
@@ -176,8 +297,9 @@ function RouteComponent() {
               variant="ghost"
               aria-label="Back to programs"
               title="Back to programs"
+              disabled={isSaving || isUploading}
               onClick={() => {
-                if (isSaving) return
+                if (isSaving || isUploading) return
                 if (
                   hasUnsavedChanges &&
                   !window.confirm('Discard unsaved changes and go back?')
@@ -190,6 +312,43 @@ function RouteComponent() {
               <ArrowLeftIcon />
             </Button>
             <div className="flex flex-row gap-0.5 items-center">
+              <label className="sr-only" htmlFor="brain-slot">
+                Brain slot
+              </label>
+              <select
+                id="brain-slot"
+                aria-label="Brain slot"
+                title="Brain slot"
+                className="h-7 w-12 rounded-md border border-input bg-background px-1 text-xs"
+                value={brainSlot}
+                onChange={(event) => setBrainSlot(Number(event.target.value))}
+                disabled={isUploading}
+              >
+                {Array.from({ length: 8 }, (_, index) => index + 1).map(
+                  (slot) => (
+                    <option key={slot} value={slot}>
+                      {slot}
+                    </option>
+                  ),
+                )}
+              </select>
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                aria-label={uploadButtonLabel}
+                title={uploadButtonLabel}
+                onClick={() => void uploadToBrain()}
+                disabled={
+                  !program ||
+                  buildArtifacts.size === 0 ||
+                  isBuilding ||
+                  isSaving ||
+                  isUploading ||
+                  hasUnsavedChanges
+                }
+              >
+                {isUploading ? <Spinner /> : <UploadSimpleIcon />}
+              </Button>
               <Button
                 size="icon-sm"
                 variant="ghost"
@@ -214,14 +373,18 @@ function RouteComponent() {
                 title={buildButtonLabel}
                 onClick={() => void build()}
                 disabled={
-                  !program || isBuilding || isSaving || hasUnsavedChanges
+                  !program ||
+                  isBuilding ||
+                  isSaving ||
+                  hasUnsavedChanges ||
+                  isUploading
                 }
               >
                 {isBuilding ? <Spinner /> : <HammerIcon />}
               </Button>
             </div>
             <span className="sr-only" role="status" aria-live="polite">
-              {buildMessage}
+              {[buildMessage, uploadMessage].filter(Boolean).join('. ')}
             </span>
           </SidebarFooter>
         </Sidebar>

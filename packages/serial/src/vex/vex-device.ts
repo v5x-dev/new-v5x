@@ -1062,8 +1062,11 @@ export class V5SerialDevice extends VexSerialDevice {
           this.connectionOptions
         )
 
-        const result = await c.open(tryIdx++, true)
-        if (result === undefined) return false // no port left
+        // Try each previously granted port before showing the browser chooser.
+        // A chooser selection is not part of that indexed list.
+        const result = await c.open(tryIdx, false)
+        if (result === undefined) break // no granted port left
+        tryIdx++
         if (!result) {
           // has been opened
           await c.close()
@@ -1079,6 +1082,20 @@ export class V5SerialDevice extends VexSerialDevice {
         this.clearDisconnectListener(this.connection)
         this.connection = c
         break
+      }
+
+      if (!this.isConnected) {
+        const c = new V5SerialConnection(
+          this.defaultSerial,
+          this.connectionOptions
+        )
+        if (!(await c.open(undefined, true))) return false
+        if ((await c.query1()) === null) {
+          await c.close()
+          return false
+        }
+        this.clearDisconnectListener(this.connection)
+        this.connection = c
       }
     }
 

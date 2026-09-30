@@ -834,6 +834,12 @@ export class HostBoundPacket extends Packet {
 export class Query1ReplyD2HPacket extends HostBoundPacket {
   static COMMAND_ID = 33
   static COMMAND_EXTENDED_ID = undefined
+
+  // Query1 is a simple CDC reply. Its payload has no CDC2 ACK byte.
+  static override isValidPacket(data: Uint8Array, headerLength: number): boolean {
+    return data.length >= headerLength + 10
+  }
+
   joystickFlag1: number
   joystickFlag2: number
   brainFlag1: number
@@ -856,6 +862,12 @@ export class Query1ReplyD2HPacket extends HostBoundPacket {
 export class SystemVersionReplyD2HPacket extends HostBoundPacket {
   static COMMAND_ID = 164
   static COMMAND_EXTENDED_ID = undefined
+
+  // SystemVersion is a simple CDC reply and has no CDC2 ACK byte.
+  static override isValidPacket(data: Uint8Array, headerLength: number): boolean {
+    return data.length >= headerLength + 5
+  }
+
   version: VexFirmwareVersion
   hardware: number
 

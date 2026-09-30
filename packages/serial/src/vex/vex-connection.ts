@@ -48,6 +48,9 @@ import {
   SystemVersionReplyD2HPacket,
   Query1H2DPacket,
   Query1ReplyD2HPacket,
+  GetFileMetadataH2DPacket,
+  GetFileMetadataReplyD2HPacket,
+  PacketEncoder,
   LoadFileActionH2DPacket,
   LoadFileActionReplyD2HPacket,
   GetSystemFlagsH2DPacket,
@@ -439,7 +442,7 @@ export class VexSerialConnection extends VexEventTarget<VexSerialConnectionEvent
   }
 
   async query1(): Promise<Query1ReplyD2HPacket | null> {
-    const result = await this.writeDataAsync(new Query1H2DPacket(), 100)
+    const result = await this.writeDataAsync(new Query1H2DPacket(), 1000)
     return result instanceof Query1ReplyD2HPacket ? result : null
   }
 
@@ -564,14 +567,31 @@ export class V5SerialConnection extends VexSerialConnection {
             exttype: "bin",
           }
         : undefined
-    if (coldRequest != null) {
-      const r2 = await this.uploadFileToDeviceUnlocked(
-        coldRequest,
-        (current, total) => {
-          progressCallback("COLD", current, total)
-        }
+    if (coldRequest != null && coldBuf != null) {
+      const metadata = await this.writeDataAsync(
+        new GetFileMetadataH2DPacket(
+          FileVendor.DEV2,
+          coldRequest.filename,
+          0
+        )
       )
-      if (!r2) return false
+      const coldCrc = PacketEncoder.getInstance().crcgen.crc32(coldBuf, 0)
+      const coldIsPresent =
+        metadata instanceof GetFileMetadataReplyD2HPacket &&
+        metadata.file?.size === coldBuf.byteLength &&
+        metadata.file.crc32 === coldCrc
+
+      if (coldIsPresent) {
+        progressCallback("COLD (cached)", coldBuf.byteLength, coldBuf.byteLength)
+      } else {
+        const r2 = await this.uploadFileToDeviceUnlocked(
+          coldRequest,
+          (current, total) => {
+            progressCallback("COLD", current, total)
+          }
+        )
+        if (!r2) return false
+      }
     }
 
     const after =
@@ -804,7 +824,14 @@ export class V5SerialConnection extends VexSerialConnection {
       )
     }
 
-    return exit instanceof ExitFileTransferReplyD2HPacket
+    if (!(exit instanceof ExitFileTransferReplyD2HPacket)) {
+      const reason =
+        typeof exit === "number"
+          ? (AckType[exit] ?? `code ${exit}`)
+          : exit.constructor.name
+      throw new Error(`Finishing ${filename} failed: ${reason}`)
+    }
+    return true
   }
 
   async withFileTransfer<T>(operation: () => Promise<T> | T): Promise<T> {

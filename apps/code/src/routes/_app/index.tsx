@@ -23,6 +23,13 @@ import {
 import { api } from '../../../convex/_generated/api'
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
+import { QuestionMark } from '@phosphor-icons/react'
+
+const templateInfo = {
+  vexcode: { label: 'VEXcode', icon: '/template-icons/vexcode.png' },
+  pros: { label: 'PROS', icon: '/template-icons/pros.png' },
+  'ez-template': { label: 'EZ', icon: '/template-icons/ez.png' },
+} as const
 
 export const Route = createFileRoute('/_app/')({
   component: RouteComponent,
@@ -44,21 +51,39 @@ function RouteComponent() {
                   <SidebarMenuButton
                     onClick={() => createProgram({ template: 'vexcode' })}
                   >
-                    VEXcode
+                    <img
+                      src={templateInfo.vexcode.icon}
+                      alt=""
+                      aria-hidden="true"
+                      className="size-4 shrink-0 object-contain"
+                    />
+                    <span>VEXcode</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     onClick={() => createProgram({ template: 'pros' })}
                   >
-                    PROS
+                    <img
+                      src={templateInfo.pros.icon}
+                      alt=""
+                      aria-hidden="true"
+                      className="size-4 shrink-0 object-contain"
+                    />
+                    <span>PROS</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     onClick={() => createProgram({ template: 'ez-template' })}
                   >
-                    EZ-Template
+                    <img
+                      src={templateInfo['ez-template'].icon}
+                      alt=""
+                      aria-hidden="true"
+                      className="size-4 shrink-0 object-contain"
+                    />
+                    <span>EZ</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -72,6 +97,7 @@ function RouteComponent() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
+              <TableHead>Template</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -81,6 +107,22 @@ function RouteComponent() {
                   <Link to="/p/$programId" params={{ programId: program._id }}>
                     {program.name}
                   </Link>
+                </TableCell>
+                <TableCell>
+                  {program.template ? (
+                    <img
+                      src={templateInfo[program.template].icon}
+                      alt={templateInfo[program.template].label}
+                      title={templateInfo[program.template].label}
+                      className="size-6 object-contain"
+                    />
+                  ) : (
+                    <QuestionMark
+                      size={24}
+                      role="img"
+                      aria-label="Unknown template"
+                    />
+                  )}
                 </TableCell>
               </TableRow>
             ))}

@@ -5,6 +5,7 @@ import boring from 'boring-name-generator'
 import { store } from './store'
 import { api, internal } from './_generated/api'
 import { initializeTemplate, type ProgramTemplate } from './template'
+import { authComponent } from './betterAuth/auth'
 
 export const createProgram = action({
   args: {
@@ -20,16 +21,21 @@ export const createProgram = action({
   handler: async (ctx, args): Promise<Id<'program'>> => {
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new Error('Unauthorized')
+    const user = await authComponent.getAuthUser(ctx)
 
     const repo = await store.createRepo({
       id: boring({ words: 2, number: true }).dashed,
     })
     const template: ProgramTemplate = args.template ?? 'vexcode'
-    await initializeTemplate(repo, template)
+    await initializeTemplate(repo, template, {
+      name: user.name,
+      email: user.email,
+    })
 
     const programId: Id<'program'> = await ctx.runMutation(api.program.create, {
       name: args.name || repo.id,
       repoId: repo.id,
+      template,
     })
 
     return programId
@@ -40,6 +46,13 @@ export const create = mutation({
   args: {
     name: v.string(),
     repoId: v.string(),
+    template: v.optional(
+      v.union(
+        v.literal('vexcode'),
+        v.literal('pros'),
+        v.literal('ez-template'),
+      ),
+    ),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity()
@@ -49,6 +62,7 @@ export const create = mutation({
       name: args.name,
       repoId: args.repoId,
       ownerId: identity.subject,
+      ...(args.template ? { template: args.template } : {}),
     })
   },
 })
@@ -159,6 +173,7 @@ export const saveProgramFile = action({
   handler: async (ctx, { programId, path, contents }) => {
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new Error('Unauthorized')
+    const user = await authComponent.getAuthUser(ctx)
 
     const program: Doc<'program'> | null = await ctx.runQuery(
       internal.program.getOwned,
@@ -183,8 +198,8 @@ export const saveProgramFile = action({
       targetBranch: repo.defaultBranch,
       commitMessage: `Update ${path}`,
       author: {
-        name: identity.name ?? 'v5x user',
-        email: identity.email ?? 'v5x-user@users.noreply.v5x.dev',
+        name: user.name,
+        email: user.email,
       },
     })
     commit.addFileFromString(path, contents)

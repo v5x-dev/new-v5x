@@ -1,4 +1,5 @@
 import type { Repo } from "@pierre/storage"
+import { ezTemplateFiles } from "./ezTemplate"
 
 export type ProgramTemplate = "vexcode" | "pros" | "ez-template"
 
@@ -19,18 +20,10 @@ const prosTemplateFiles: Record<string, string> = {
   "src/main.cpp": "#include \"main.h\"\n\nvoid initialize() {}\n\nvoid disabled() {}\n\nvoid competition_initialize() {}\n\nvoid autonomous() {}\n\nvoid opcontrol() {\n  while (true) {\n    pros::delay(20);\n  }\n}\n",
 }
 
-const ezTemplateFiles: Record<string, string> = {
-  ".ez-template": "3.2.2\n",
-  ".gitignore": "*.o\n*.obj\n*.bin\n*.elf\nbin/\n.d/\n.vscode/\n.cache/\ncompile_commands.json\ntemp.log\ntemp.errors\n*.ini\n",
-  "Makefile": "CEXTS:=c\nASMEXTS:=s S\nCXXEXTS:=cpp c++ cc\n\nROOT=.\nFWDIR:=$(ROOT)/firmware\nBINDIR=$(ROOT)/bin\nSRCDIR=$(ROOT)/src\nINCDIR=$(ROOT)/include\n\nWARNFLAGS+=\nEXTRA_CFLAGS=\nEXTRA_CXXFLAGS=-Wno-deprecated-enum-enum-conversion\n\nUSE_PACKAGE:=1\nEXCLUDE_COLD_LIBRARIES:=\nIS_LIBRARY:=0\n.DEFAULT_GOAL=quick\n-include ./common.mk\n",
-  "project.pros": "{\n  \"target\": \"v5\",\n  \"templates\": {},\n  \"upload_options\": {},\n  \"project_name\": \"EZ-Template-Example\"\n}\n",
-  "include/main.h": "#ifndef _PROS_MAIN_H_\n#define _PROS_MAIN_H_\n\n#define PROS_USE_SIMPLE_NAMES\n#define PROS_USE_LITERALS\n\n#include \"api.h\"\n#include \"EZ-Template/api.hpp\"\n\nusing namespace okapi::literals;\n\n#ifdef __cplusplus\nextern \"C\" {\n#endif\nvoid autonomous(void);\nvoid initialize(void);\nvoid disabled(void);\nvoid competition_initialize(void);\nvoid opcontrol(void);\n#ifdef __cplusplus\n}\n#endif\n\n#endif  // _PROS_MAIN_H_\n",
-  "src/main.cpp": "#include \"main.h\"\n\n// Change these example ports, wheel size, and motor speed for your robot.\nez::Drive chassis({1, 2, 3}, {-4, -5, -6}, 7, 4.125, 343);\n\nvoid default_constants() {\n  chassis.pid_drive_constants_set(20.0, 0.0, 100.0);\n  chassis.pid_heading_constants_set(11.0, 0.0, 20.0);\n  chassis.pid_turn_constants_set(3.0, 0.05, 20.0, 15.0);\n}\n\nvoid initialize() {\n  ez::ez_template_print();\n  pros::delay(500);\n  default_constants();\n  chassis.initialize();\n}\n\nvoid disabled() {}\n\nvoid competition_initialize() {}\n\nvoid autonomous() {\n  chassis.pid_targets_reset();\n  chassis.drive_imu_reset();\n  chassis.drive_sensor_reset();\n  chassis.odom_xyt_set(0_in, 0_in, 0_deg);\n  chassis.pid_drive_set(24_in, 80);\n  chassis.pid_wait();\n}\n\nvoid opcontrol() {\n  chassis.drive_brake_set(MOTOR_BRAKE_COAST);\n  while (true) {\n    chassis.opcontrol_tank();\n    pros::delay(ez::util::DELAY_TIME);\n  }\n}\n",
-}
-
 export async function initializeTemplate(
   repo: Repo,
-  template: ProgramTemplate = "vexcode",
+  template: ProgramTemplate,
+  author: { name: string; email: string },
 ) {
   const files =
     template === "ez-template"
@@ -46,10 +39,7 @@ export async function initializeTemplate(
         : template === "pros"
           ? "Initialize PROS competition template"
           : "Initialize C++ competition template",
-    author: {
-      name: "v5x Template",
-      email: "template@v5x.dev",
-    },
+    author,
   });
 
   for (const [path, contents] of Object.entries(files)) {

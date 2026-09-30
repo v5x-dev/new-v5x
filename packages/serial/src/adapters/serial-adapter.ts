@@ -20,6 +20,7 @@ export interface AdapterSerialPort {
   getInfo(): SerialPortInfo
   open(options: { baudRate: number }): Promise<void>
   close(): Promise<void>
+  forget?(): Promise<void>
   addEventListener(type: "disconnect", listener: () => void): void
   removeEventListener?: (type: "disconnect", listener: () => void) => void
 }

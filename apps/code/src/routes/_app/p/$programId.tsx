@@ -19,11 +19,26 @@ import {
 } from '@phosphor-icons/react'
 import * as React from 'react'
 import type { CSSProperties } from 'react'
-import { FileExitAction, ProgramIniConfig, V5SerialDevice } from '@v5x/serial'
+import {
+  FileExitAction,
+  ProgramIniConfig,
+  V5SerialConnection,
+  V5SerialDevice,
+  type AdapterSerialPort,
+} from '@v5x/serial'
 import { createBrowserAdapter } from '@v5x/serial/browser'
+import { buildArtifactStore } from '~/lib/build-artifacts'
 import type { Id } from '../../../../convex/_generated/dataModel'
 import { api } from '../../../../convex/_generated/api'
 import { Button } from '~/components/ui/button'
+import {
+  Popover,
+  PopoverContent,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from '~/components/ui/popover'
+import { Separator } from '~/components/ui/separator'
 import { Spinner } from '~/components/ui/spinner'
 import {
   Sidebar,
@@ -85,34 +100,96 @@ function RouteComponent() {
   const [brainSlot, setBrainSlot] = React.useState(1)
   const [buildMessage, setBuildMessage] = React.useState('')
   const [uploadMessage, setUploadMessage] = React.useState('')
+  const [isBrainConnected, setIsBrainConnected] = React.useState(false)
+  const brainConnectionRef = React.useRef<{
+    device: V5SerialDevice
+    port: AdapterSerialPort
+    onDisconnect: () => void
+  } | null>(null)
   const saveHandlerRef = React.useRef<(() => Promise<void>) | null>(null)
+  const buildGenerationRef = React.useRef(0)
+
+  const disconnectBrain = async () => {
+    const connection = brainConnectionRef.current
+    brainConnectionRef.current = null
+    setIsBrainConnected(false)
+    if (!connection) return
+    connection.port.removeEventListener?.('disconnect', connection.onDisconnect)
+    try {
+      await connection.device.dispose()
+    } finally {
+      await connection.port.forget?.()
+    }
+  }
 
   const build = async () => {
     if (!program || hasUnsavedChanges || isSaving || isBuilding || isUploading)
       return
 
+    const started = performance.now()
+    const browserTimings: Array<{ stage: string; ms: number }> = []
+    let serverTimings: Array<{ stage: string; ms: number }> = []
+    const measure = async <T,>(stage: string, work: () => Promise<T>) => {
+      const stageStarted = performance.now()
+      try {
+        return await work()
+      } finally {
+        browserTimings.push({
+          stage,
+          ms: Math.round(performance.now() - stageStarted),
+        })
+      }
+    }
+
+    buildGenerationRef.current++
     setIsBuilding(true)
     setBuildMessage('')
+    setUploadMessage('')
     setBuildFiles([])
     setBuildArtifacts(new Map())
     try {
-      const result = await buildProgram({ programId })
+      try {
+        await measure('Clear previous local build', () =>
+          buildArtifactStore.delete(programId),
+        )
+      } catch (error) {
+        console.error('Could not clear previous VEX V5 build artifacts:', error)
+      }
+      const result = await measure('Build action round trip', () =>
+        buildProgram({ programId }),
+      )
+      serverTimings = result.timings
       if (result.exitCode === 0) {
         setBuildFiles(result.binFiles)
         try {
-          const artifacts = await Promise.all(
-            result.artifacts.map(async ({ path, url }) => {
-              const response = await fetch(url)
-              if (!response.ok) {
-                throw new Error(`Could not download ${path}`)
-              }
-              return [
-                path,
-                new Uint8Array(await response.arrayBuffer()),
-              ] as const
-            }),
+          const artifacts = await measure('Download all artifacts', () =>
+            Promise.all(
+              result.artifacts.map(({ path, url }) =>
+                measure(`Download ${path}`, async () => {
+                  const response = await fetch(url)
+                  if (!response.ok) {
+                    throw new Error(`Could not download ${path}`)
+                  }
+                  return [
+                    path,
+                    new Uint8Array(await response.arrayBuffer()),
+                  ] as const
+                }),
+              ),
+            ),
           )
           setBuildArtifacts(new Map(artifacts))
+          try {
+            await measure('Cache artifacts in IndexedDB', () =>
+              buildArtifactStore.put({
+                programId,
+                files: result.binFiles,
+                artifacts: artifacts.map(([path, bytes]) => ({ path, bytes })),
+              }),
+            )
+          } catch (error) {
+            console.error('Could not save VEX V5 build artifacts:', error)
+          }
           const firstProgramArtifact =
             result.binFiles.find((path) => path.endsWith('hot.package.bin')) ??
             result.binFiles.find(
@@ -138,6 +215,16 @@ function RouteComponent() {
       console.error('VEX V5 build failed:', error)
     } finally {
       setIsBuilding(false)
+      console.info(`VEX V5 build timings for ${programId}`)
+      console.table([
+        ...serverTimings.map((timing) => ({ source: 'server', ...timing })),
+        ...browserTimings.map((timing) => ({ source: 'browser', ...timing })),
+        {
+          source: 'browser',
+          stage: 'Total build click to ready',
+          ms: Math.round(performance.now() - started),
+        },
+      ])
     }
   }
 
@@ -166,15 +253,52 @@ function RouteComponent() {
     setIsUploading(true)
     setUploadMessage('Connecting to Brain')
     try {
-      const device = new V5SerialDevice(createBrowserAdapter(), {
-        autoRefresh: false,
-      })
-      device.autoReconnect = false
-      try {
-        if (!(await device.connect())) {
-          throw new Error('Could not connect to a V5 Brain or controller.')
+      let connection = brainConnectionRef.current
+      if (!connection) {
+        const port = await createBrowserAdapter().requestPort({
+          filters: [{ usbVendorId: 10376 }],
+        })
+        const device = new V5SerialDevice(
+          {
+            getPorts: async () => [port],
+            requestPort: async () => port,
+          },
+          { autoRefresh: false },
+        )
+        const serialConnection = new V5SerialConnection({
+          getPorts: async () => [port],
+          requestPort: async () => port,
+        })
+        device.autoReconnect = false
+        try {
+          if (!(await serialConnection.open(0, false))) {
+            throw new Error(
+              'Could not open the selected Brain serial port. Close VEXcode or another app using the Brain, then retry.',
+            )
+          }
+          if (!(await device.connect(serialConnection))) {
+            throw new Error(
+              'The Brain serial port opened, but the Brain did not respond to the V5 handshake.',
+            )
+          }
+          const onDisconnect = () => {
+            if (brainConnectionRef.current?.port !== port) return
+            brainConnectionRef.current = null
+            setIsBrainConnected(false)
+            setUploadMessage('Brain disconnected')
+            void device.dispose()
+          }
+          port.addEventListener('disconnect', onDisconnect)
+          connection = { device, port, onDisconnect }
+          brainConnectionRef.current = connection
+          setIsBrainConnected(true)
+        } catch (error) {
+          await device.dispose()
+          await serialConnection.close()
+          throw error
         }
-
+      }
+      try {
         const ini = new ProgramIniConfig()
         ini.baseName = `slot_${brainSlot}`
         ini.program.name = program.name
@@ -185,7 +309,7 @@ function RouteComponent() {
         ini.after = FileExitAction.EXIT_NONE
         ini.setProgramDate(new Date())
 
-        const uploaded = await device.brain.uploadProgram(
+        const uploaded = await connection.device.brain.uploadProgram(
           ini,
           programBytes,
           coldBytes,
@@ -198,8 +322,9 @@ function RouteComponent() {
           throw new Error('Upload failed. Check the Brain connection.')
         }
         setUploadMessage(`Uploaded to slot ${brainSlot}`)
-      } finally {
-        await device.dispose()
+      } catch (error) {
+        if (!connection.device.isConnected) await disconnectBrain()
+        throw error
       }
     } catch (error) {
       setUploadMessage(error instanceof Error ? error.message : 'Upload failed')
@@ -211,6 +336,7 @@ function RouteComponent() {
 
   React.useEffect(() => {
     let isCurrent = true
+    const generation = ++buildGenerationRef.current
     setPaths(null)
     setLoadError(null)
     setSelectedFile(null)
@@ -218,6 +344,21 @@ function RouteComponent() {
     setBuildArtifacts(new Map())
     setBuildMessage('')
     setUploadMessage('')
+
+    buildArtifactStore
+      .get(programId)
+      .then((stored) => {
+        if (!isCurrent || generation !== buildGenerationRef.current || !stored)
+          return
+        setBuildFiles(stored.files)
+        setBuildArtifacts(
+          new Map(stored.artifacts.map(({ path, bytes }) => [path, bytes])),
+        )
+        setBuildMessage('Build restored')
+      })
+      .catch((error: unknown) => {
+        console.error('Could not restore VEX V5 build artifacts:', error)
+      })
 
     getProgramFiles({ programId })
       .then((nextPaths) => {
@@ -235,6 +376,15 @@ function RouteComponent() {
 
     return () => {
       isCurrent = false
+      const connection = brainConnectionRef.current
+      brainConnectionRef.current = null
+      if (connection) {
+        connection.port.removeEventListener?.(
+          'disconnect',
+          connection.onDisconnect,
+        )
+        void connection.device.dispose()
+      }
     }
   }, [getProgramFiles, programId])
 
@@ -250,13 +400,14 @@ function RouteComponent() {
     : hasUnsavedChanges || isSaving
       ? 'Commit changes before building'
       : buildMessage || 'Build program'
-  const uploadButtonLabel = isUploading
-    ? uploadMessage || 'Uploading to Brain'
-    : hasUnsavedChanges || isSaving
-      ? 'Commit changes before uploading'
-      : buildArtifacts.size === 0
-        ? 'Build the program before uploading'
-        : uploadMessage || `Upload to Brain slot ${brainSlot}`
+  const uploadUnavailableReason =
+    hasUnsavedChanges || isSaving
+      ? 'Commit changes before uploading.'
+      : isBuilding
+        ? 'Wait for the build to finish.'
+        : buildArtifacts.size === 0
+          ? 'Build the program before uploading.'
+          : ''
 
   return (
     <EditProvider createEditor={createFileEditor}>
@@ -312,43 +463,6 @@ function RouteComponent() {
               <ArrowLeftIcon />
             </Button>
             <div className="flex flex-row gap-0.5 items-center">
-              <label className="sr-only" htmlFor="brain-slot">
-                Brain slot
-              </label>
-              <select
-                id="brain-slot"
-                aria-label="Brain slot"
-                title="Brain slot"
-                className="h-7 w-12 rounded-md border border-input bg-background px-1 text-xs"
-                value={brainSlot}
-                onChange={(event) => setBrainSlot(Number(event.target.value))}
-                disabled={isUploading}
-              >
-                {Array.from({ length: 8 }, (_, index) => index + 1).map(
-                  (slot) => (
-                    <option key={slot} value={slot}>
-                      {slot}
-                    </option>
-                  ),
-                )}
-              </select>
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                aria-label={uploadButtonLabel}
-                title={uploadButtonLabel}
-                onClick={() => void uploadToBrain()}
-                disabled={
-                  !program ||
-                  buildArtifacts.size === 0 ||
-                  isBuilding ||
-                  isSaving ||
-                  isUploading ||
-                  hasUnsavedChanges
-                }
-              >
-                {isUploading ? <Spinner /> : <UploadSimpleIcon />}
-              </Button>
               <Button
                 size="icon-sm"
                 variant="ghost"
@@ -382,6 +496,90 @@ function RouteComponent() {
               >
                 {isBuilding ? <Spinner /> : <HammerIcon />}
               </Button>
+              <Popover>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      aria-label="Upload to Brain"
+                      title="Upload to Brain"
+                    />
+                  }
+                >
+                  <UploadSimpleIcon />
+                </PopoverTrigger>
+                <PopoverContent side="top" align="end" className="w-64">
+                  <PopoverHeader>
+                    <PopoverTitle className="text-base font-semibold">
+                      Upload to Brain
+                    </PopoverTitle>
+                  </PopoverHeader>
+                  <Separator />
+                  <div className="grid gap-2">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Brain slot
+                    </p>
+                    <div
+                      role="group"
+                      aria-label="Brain slot"
+                      className="grid grid-cols-4 gap-1.5"
+                    >
+                      {Array.from({ length: 8 }, (_, index) => index + 1).map(
+                        (slot) => (
+                          <Button
+                            key={slot}
+                            type="button"
+                            size="sm"
+                            variant={brainSlot === slot ? 'default' : 'outline'}
+                            className="w-full"
+                            aria-pressed={brainSlot === slot}
+                            disabled={isUploading}
+                            onClick={() => setBrainSlot(slot)}
+                          >
+                            {slot}
+                          </Button>
+                        ),
+                      )}
+                    </div>
+                    <Button
+                      className="w-full"
+                      onClick={() => void uploadToBrain()}
+                      disabled={
+                        !program ||
+                        buildArtifacts.size === 0 ||
+                        isBuilding ||
+                        isSaving ||
+                        isUploading ||
+                        hasUnsavedChanges
+                      }
+                    >
+                      {isUploading ? <Spinner /> : <UploadSimpleIcon />}
+                      {isUploading ? 'Uploading to Brain' : 'Upload to Brain'}
+                    </Button>
+                    {isBrainConnected ? (
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        disabled={isUploading}
+                        onClick={() => void disconnectBrain()}
+                      >
+                        Disconnect Brain
+                      </Button>
+                    ) : null}
+                    {uploadMessage ? (
+                      <p className="text-xs text-muted-foreground">
+                        {uploadMessage}
+                      </p>
+                    ) : null}
+                    {!uploadMessage && uploadUnavailableReason ? (
+                      <p className="text-xs text-muted-foreground">
+                        {uploadUnavailableReason}
+                      </p>
+                    ) : null}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
             <span className="sr-only" role="status" aria-live="polite">
               {[buildMessage, uploadMessage].filter(Boolean).join('. ')}

@@ -9,6 +9,7 @@
  */
 
 import type * as betterAuth_auth from "../betterAuth/auth.js";
+import type * as ezTemplate from "../ezTemplate.js";
 import type * as http from "../http.js";
 import type * as program from "../program.js";
 import type * as programBuild from "../programBuild.js";
@@ -23,6 +24,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "betterAuth/auth": typeof betterAuth_auth;
+  ezTemplate: typeof ezTemplate;
   http: typeof http;
   program: typeof program;
   programBuild: typeof programBuild;

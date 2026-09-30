@@ -9,7 +9,7 @@
   "sideEffects": true,
   "scripts": {
     "build": "bun run build:js && bun run build:cjs && bun run build:dts",
-    "build:js": "bun build ./src/index.ts ./src/packet-core.ts --target browser --format esm --sourcemap=linked --outdir ./dist && bun build ./src/adapters/browser.ts --target browser --format esm --sourcemap=linked --outdir ./dist && bun build ./src/adapters/node.ts --target node --format esm --sourcemap=linked --external serialport --outdir ./dist && bun build ./src/adapters/bun.ts --target bun --format esm --sourcemap=linked --external bun-serialport --outdir ./dist",
+    "build:js": "bun build ./src/index.ts ./src/packet-core.ts ./src/adapters/browser.ts ./src/adapters/bluetooth.ts --target browser --format esm --splitting --sourcemap=linked --outdir ./dist --entry-naming=[name].js && bun build ./src/adapters/node.ts --target node --format esm --sourcemap=linked --external serialport --outdir ./dist && bun build ./src/adapters/bun.ts --target bun --format esm --sourcemap=linked --external bun-serialport --outdir ./dist",
     "build:cjs": "bun build ./src/index.ts --target node --format cjs --sourcemap=linked --outdir ./dist --entry-naming=index.cjs && bun build ./src/packet-core.ts --target node --format cjs --sourcemap=linked --outdir ./dist --entry-naming=packet-core.cjs",
     "build:dts": "tsc -p tsconfig.build.json",
     "check": "tsc --noEmit",
@@ -45,6 +45,11 @@
       "types": "./dist/adapters/bun.d.ts",
       "import": "./dist/bun.js",
       "default": "./dist/bun.js"
+    },
+    "./bluetooth": {
+      "types": "./dist/adapters/bluetooth.d.ts",
+      "import": "./dist/bluetooth.js",
+      "default": "./dist/bluetooth.js"
     }
   },
   "files": [

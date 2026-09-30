@@ -569,11 +569,7 @@ export class V5SerialConnection extends VexSerialConnection {
         : undefined
     if (coldRequest != null && coldBuf != null) {
       const metadata = await this.writeDataAsync(
-        new GetFileMetadataH2DPacket(
-          FileVendor.DEV2,
-          coldRequest.filename,
-          0
-        )
+        new GetFileMetadataH2DPacket(FileVendor.DEV2, coldRequest.filename, 0)
       )
       const coldCrc = PacketEncoder.getInstance().crcgen.crc32(coldBuf, 0)
       const coldIsPresent =
@@ -582,7 +578,11 @@ export class V5SerialConnection extends VexSerialConnection {
         metadata.file.crc32 === coldCrc
 
       if (coldIsPresent) {
-        progressCallback("COLD (cached)", coldBuf.byteLength, coldBuf.byteLength)
+        progressCallback(
+          "COLD (cached)",
+          coldBuf.byteLength,
+          coldBuf.byteLength
+        )
       } else {
         const r2 = await this.uploadFileToDeviceUnlocked(
           coldRequest,
@@ -673,7 +673,7 @@ export class V5SerialConnection extends VexSerialConnection {
         )
       }
 
-      const bufferChunkSize = Math.max(4, getTransferChunkSize(p1.windowSize))
+      const bufferChunkSize = this.getFileTransferChunkSize(p1.windowSize)
       let bufferOffset = 0
       const fileBuf = new Uint8Array(fileSize)
 
@@ -791,7 +791,7 @@ export class V5SerialConnection extends VexSerialConnection {
           throw new Error("LinkFileH2DPacket failed")
       }
 
-      const bufferChunkSize = Math.max(4, getTransferChunkSize(p1.windowSize))
+      const bufferChunkSize = this.getFileTransferChunkSize(p1.windowSize)
       let bufferOffset = 0
       progressCallback?.(0, buf.byteLength)
 
@@ -802,13 +802,16 @@ export class V5SerialConnection extends VexSerialConnection {
         const tmpbuf = new Uint8Array(paddedLength)
         tmpbuf.set(buf.subarray(bufferOffset, bufferOffset + chunkLength))
 
-        const p2 = await this.writeDataAsync(
-          new WriteFileH2DPacket(nextAddress, tmpbuf),
-          3000
-        )
-
-        if (!(p2 instanceof WriteFileReplyD2HPacket))
-          throw new Error("WriteFileReplyD2HPacket failed")
+        const packet = new WriteFileH2DPacket(nextAddress, tmpbuf)
+        if (this.port?.fileWritesWithoutReply) {
+          if (this.writer === undefined || this.isClosing)
+            throw new Error("Not connected")
+          await this.writer.write(packet.data)
+        } else {
+          const p2 = await this.writeDataAsync(packet, 3000)
+          if (!(p2 instanceof WriteFileReplyD2HPacket))
+            throw new Error("WriteFileReplyD2HPacket failed")
+        }
 
         bufferOffset += chunkLength
         nextAddress += chunkLength
@@ -901,10 +904,29 @@ export class V5SerialConnection extends VexSerialConnection {
     })
   }
 
+  private getFileTransferChunkSize(windowSize: number): number {
+    const maxPacketSize = this.port?.maxPacketSize
+    if (maxPacketSize === undefined)
+      return Math.max(4, getTransferChunkSize(windowSize))
+    // BLE uses half the advertised window and reserves 14 bytes for framing.
+    const size =
+      Math.floor((Math.min(maxPacketSize, windowSize / 2) - 14) / 4) * 4
+    if (size < 4) throw new Error("Bluetooth file transfer window is too small")
+    return size
+  }
+
   async readUserFifo(
     channel: UserFifoChannel = UserFifoChannel.STDOUT,
     timeout = DEFAULT_USER_FIFO_TIMEOUT
   ): Promise<Uint8Array | undefined> {
+    if (this.port?.readUser !== undefined) {
+      if (channel !== UserFifoChannel.STDOUT) return undefined
+      try {
+        return await this.port.readUser()
+      } catch {
+        return undefined
+      }
+    }
     const result = await this.writeDataAsync(
       new UserFifoH2DPacket(channel),
       timeout
@@ -921,6 +943,14 @@ export class V5SerialConnection extends VexSerialConnection {
   ): Promise<number | undefined> {
     const bytes =
       typeof data === "string" ? new TextEncoder().encode(data) : data
+    if (this.port?.writeUser !== undefined) {
+      if (channel !== UserFifoChannel.STDIN) return undefined
+      try {
+        return await this.port.writeUser(bytes)
+      } catch {
+        return undefined
+      }
+    }
     for (let offset = 0; offset < bytes.byteLength;) {
       const chunk = bytes.subarray(offset, offset + USER_FIFO_MAX_WRITE_SIZE)
       const result = await this.writeDataAsync(

@@ -15,6 +15,11 @@ export type RequestPortOptions = {
 }
 
 export interface AdapterSerialPort {
+  /** Transport limits for V5 BLE file transfers. Serial ports omit these. */
+  readonly maxPacketSize?: number
+  readonly fileWritesWithoutReply?: boolean
+  readUser?(): Promise<Uint8Array>
+  writeUser?(data: Uint8Array): Promise<number>
   readonly readable: ReadableStream<Uint8Array> | null
   readonly writable: WritableStream<Uint8Array> | null
   getInfo(): SerialPortInfo

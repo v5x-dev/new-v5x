@@ -190,13 +190,6 @@ function RouteComponent() {
           } catch (error) {
             console.error('Could not save VEX V5 build artifacts:', error)
           }
-          const firstProgramArtifact =
-            result.binFiles.find((path) => path.endsWith('hot.package.bin')) ??
-            result.binFiles.find(
-              (path) => !path.endsWith('cold.package.bin'),
-            ) ??
-            result.binFiles[0]
-          if (firstProgramArtifact) setSelectedFile(firstProgramArtifact)
           setBuildMessage(
             result.binFiles.length > 0
               ? 'Build succeeded'

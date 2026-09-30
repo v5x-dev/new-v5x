@@ -136,7 +136,7 @@ export const build = action({
     const machine = await measure('Start build machine', () =>
       Machine.create(
         {
-          image: `registry.smolmachines.com/${registryNamespace}/vexcode:v1`,
+          image: `registry.smolmachines.com/${registryNamespace}/vexcode:${process.env.VEXCODE_IMAGE_TAG || 'v1'}`,
           resources: { cpus: 2, memoryMb: 2048, network: true },
           ttlSeconds: 900,
         },

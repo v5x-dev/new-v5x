@@ -1,5 +1,5 @@
 import { v } from 'convex/values'
-import { internalMutation, query } from './_generated/server'
+import { internalMutation, internalQuery, query } from './_generated/server'
 
 const artifactValidator = v.object({
   path: v.string(),
@@ -16,10 +16,16 @@ export const cacheLatest = internalMutation({
     stderr: v.string(),
     artifacts: v.array(artifactValidator),
     timings: v.array(timingValidator),
+    warmMachineId: v.optional(v.string()),
+    warmImageTag: v.optional(v.string()),
   },
+  returns: v.union(
+    v.null(),
+    v.object({ previousMachineId: v.union(v.null(), v.string()) }),
+  ),
   handler: async (ctx, args) => {
     const program = await ctx.db.get(args.programId)
-    if (!program || program.currentCommitSha !== args.commitSha) return false
+    if (!program || program.currentCommitSha !== args.commitSha) return null
 
     const cached = await ctx.db
       .query('programBuildCache')
@@ -37,12 +43,41 @@ export const cacheLatest = internalMutation({
         stderr: args.stderr,
         artifacts: args.artifacts,
         timings: args.timings,
+        warmMachineId: args.warmMachineId,
+        warmImageTag: args.warmImageTag,
       })
     } else {
-      await ctx.db.insert('programBuildCache', args)
+      const { warmMachineId, warmImageTag, ...buildCache } = args
+      await ctx.db.insert('programBuildCache', {
+        ...buildCache,
+        ...(warmMachineId ? { warmMachineId, warmImageTag } : {}),
+      })
     }
 
-    return true
+    return { previousMachineId: cached?.warmMachineId ?? null }
+  },
+})
+
+export const getWarmMachine = internalQuery({
+  args: {
+    programId: v.id('program'),
+    imageTag: v.string(),
+  },
+  returns: v.union(
+    v.null(),
+    v.object({ machineId: v.string(), commitSha: v.string() }),
+  ),
+  handler: async (ctx, { programId, imageTag }) => {
+    const cached = await ctx.db
+      .query('programBuildCache')
+      .withIndex('by_program', (q) => q.eq('programId', programId))
+      .unique()
+
+    if (!cached?.warmMachineId || cached.warmImageTag !== imageTag) {
+      return null
+    }
+
+    return { machineId: cached.warmMachineId, commitSha: cached.commitSha }
   },
 })
 

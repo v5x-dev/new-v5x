@@ -30,6 +30,8 @@ export default defineSchema({
     exitCode: v.number(),
     stdout: v.string(),
     stderr: v.string(),
+    warmMachineId: v.optional(v.string()),
+    warmImageTag: v.optional(v.string()),
     artifacts: v.array(
       v.object({ path: v.string(), storageId: v.id('_storage') }),
     ),

@@ -1,5 +1,5 @@
-import { defineSchema, defineTable } from "convex/server";
-import { v } from "convex/values";
+import { defineSchema, defineTable } from 'convex/server'
+import { v } from 'convex/values'
 
 // The schema is entirely optional.
 // You can delete this file (schema.ts) and the
@@ -10,8 +10,17 @@ export default defineSchema({
     name: v.string(),
     repoId: v.string(),
     ownerId: v.string(),
+    currentCommitSha: v.optional(v.string()),
     template: v.optional(
-      v.union(v.literal('vexcode'), v.literal('pros'), v.literal('ez-template')),
+      v.union(
+        v.literal('vexcode'),
+        v.literal('pros'),
+        v.literal('ez-template'),
+      ),
     ),
-  }).index('by_owner', ['ownerId'])
-});
+  }).index('by_owner', ['ownerId']),
+  programBuilds: defineTable({
+    programId: v.id('program'),
+    commitSha: v.string(),
+  }).index('by_program_commit', ['programId', 'commitSha']),
+})

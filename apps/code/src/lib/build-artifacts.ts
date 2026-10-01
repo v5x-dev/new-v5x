@@ -2,6 +2,7 @@ import Dexie, { type EntityTable } from 'dexie'
 
 export interface StoredBuildArtifacts {
   programId: string
+  commitSha: string
   files: string[]
   artifacts: Array<{ path: string; bytes: Uint8Array }>
 }

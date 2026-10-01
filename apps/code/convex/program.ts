@@ -1,5 +1,11 @@
 import { v } from 'convex/values'
-import { action, internalQuery, mutation, query } from './_generated/server'
+import {
+  action,
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from './_generated/server'
 import type { Doc, Id } from './_generated/dataModel'
 import boring from 'boring-name-generator'
 import { store } from './store'
@@ -27,7 +33,7 @@ export const createProgram = action({
       id: boring({ words: 2, number: true }).dashed,
     })
     const template: ProgramTemplate = args.template ?? 'vexcode'
-    await initializeTemplate(repo, template, {
+    const initialCommit = await initializeTemplate(repo, template, {
       name: user.name,
       email: user.email,
     })
@@ -36,6 +42,7 @@ export const createProgram = action({
       name: args.name || repo.id,
       repoId: repo.id,
       template,
+      commitSha: initialCommit.commitSha,
     })
 
     return programId
@@ -46,6 +53,7 @@ export const create = mutation({
   args: {
     name: v.string(),
     repoId: v.string(),
+    commitSha: v.string(),
     template: v.optional(
       v.union(
         v.literal('vexcode'),
@@ -62,6 +70,7 @@ export const create = mutation({
       name: args.name,
       repoId: args.repoId,
       ownerId: identity.subject,
+      currentCommitSha: args.commitSha,
       ...(args.template ? { template: args.template } : {}),
     })
   },
@@ -107,6 +116,53 @@ export const getOwned = internalQuery({
   },
 })
 
+export const setCurrentCommitSha = internalMutation({
+  args: {
+    programId: v.id('program'),
+    commitSha: v.string(),
+  },
+  handler: async (ctx, { programId, commitSha }) => {
+    await ctx.db.patch(programId, { currentCommitSha: commitSha })
+    return null
+  },
+})
+
+export const hasRunForCommit = query({
+  args: { programId: v.id('program'), commitSha: v.string() },
+  handler: async (ctx, { programId, commitSha }) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return false
+
+    const program = await ctx.db.get(programId)
+    if (!program || program.ownerId !== identity.subject) return false
+
+    return Boolean(
+      await ctx.db
+        .query('programBuilds')
+        .withIndex('by_program_commit', (q) =>
+          q.eq('programId', programId).eq('commitSha', commitSha),
+        )
+        .unique(),
+    )
+  },
+})
+
+export const claimCommitBuild = internalMutation({
+  args: { programId: v.id('program'), commitSha: v.string() },
+  handler: async (ctx, { programId, commitSha }) => {
+    const existing = await ctx.db
+      .query('programBuilds')
+      .withIndex('by_program_commit', (q) =>
+        q.eq('programId', programId).eq('commitSha', commitSha),
+      )
+      .unique()
+    if (existing) return false
+
+    await ctx.db.insert('programBuilds', { programId, commitSha })
+    return true
+  },
+})
+
 export const getProgramFiles = action({
   args: {
     programId: v.id('program'),
@@ -137,7 +193,21 @@ export const getProgramFiles = action({
       hasMore = page.hasMore
     }
 
-    return paths
+    let commitSha = program.currentCommitSha
+    if (!commitSha) {
+      const { commits } = await repo.listCommits({
+        branch: repo.defaultBranch,
+        limit: 1,
+      })
+      commitSha = commits[0]?.sha
+      if (!commitSha) throw new Error('Program has no commits')
+      await ctx.runMutation(internal.program.setCurrentCommitSha, {
+        programId,
+        commitSha,
+      })
+    }
+
+    return { paths, commitSha }
   },
 })
 
@@ -204,7 +274,11 @@ export const saveProgramFile = action({
     })
     commit.addFileFromString(path, contents)
 
-    await commit.send()
-    return null
+    const result = await commit.send()
+    await ctx.runMutation(internal.program.setCurrentCommitSha, {
+      programId,
+      commitSha: result.commitSha,
+    })
+    return result.commitSha
   },
 })

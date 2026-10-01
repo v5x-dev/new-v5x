@@ -79,6 +79,7 @@ function createBuildTimer(programId: string) {
 export const build = action({
   args: { programId: v.id('program') },
   returns: v.object({
+    commitSha: v.string(),
     exitCode: v.number(),
     stdout: v.string(),
     stderr: v.string(),
@@ -102,6 +103,10 @@ export const build = action({
       ctx.runQuery(api.program.get, { programId }),
     )
     if (!program) throw new Error('Program not found')
+    if (!program.currentCommitSha) {
+      throw new Error('Program commit is still loading')
+    }
+    const commitSha = program.currentCommitSha
 
     const token = env.SMOL_CLOUD_TOKEN
     if (!token) throw new Error('SMOL_CLOUD_TOKEN is not configured')
@@ -162,6 +167,24 @@ export const build = action({
         )
       }
 
+      const checkout = await measure('Select program commit', () =>
+        machine.exec(['git', 'checkout', '--detach', commitSha], {
+          workdir: '/workspace',
+          timeout: 30,
+        }),
+      )
+      if (checkout.exitCode !== 0) {
+        throw new Error(
+          `Unable to select program commit (${checkout.exitCode})`,
+        )
+      }
+
+      const claimed = await ctx.runMutation(internal.program.claimCommitBuild, {
+        programId,
+        commitSha,
+      })
+      if (!claimed) throw new Error('This commit has already been built')
+
       let setupStdout = ''
       let setupStderr = ''
       const prosProject = await measure('Detect PROS project', () =>
@@ -189,6 +212,7 @@ export const build = action({
         setupStderr = setup.stderr
         if (setup.exitCode !== 0) {
           return {
+            commitSha,
             exitCode: setup.exitCode,
             stdout: limitOutput(setup.stdout),
             stderr: limitOutput(setup.stderr),
@@ -268,6 +292,7 @@ export const build = action({
       }
 
       return {
+        commitSha,
         exitCode: result.exitCode,
         stdout: limitOutput(
           [setupStdout, result.stdout].filter(Boolean).join('\n'),

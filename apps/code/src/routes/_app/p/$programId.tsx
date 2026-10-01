@@ -87,9 +87,7 @@ function describeBuildElapsed(seconds: number) {
   if (minutes === 0) return `${remainingSeconds} ${secondLabel}`
 
   const remainingTime =
-    remainingSeconds === 0
-      ? ''
-      : `, ${remainingSeconds} ${secondLabel}`
+    remainingSeconds === 0 ? '' : `, ${remainingSeconds} ${secondLabel}`
 
   return `${minutes} ${minuteLabel}${remainingTime}`
 }
@@ -105,6 +103,13 @@ function RouteComponent() {
   const { data: program, isPending: programIsPending } = useQuery(
     convexQuery(api.program.get, { programId }),
   )
+  const { data: hasBuildForCurrentCommit, isPending: buildStatusIsPending } =
+    useQuery(
+      convexQuery(api.program.hasRunForCommit, {
+        programId,
+        commitSha: program?.currentCommitSha ?? '',
+      }),
+    )
   const getProgramFiles = useAction(api.program.getProgramFiles)
   const buildProgram = useAction(api.programBuild.build)
   const [paths, setPaths] = React.useState<string[] | null>(null)
@@ -114,10 +119,15 @@ function RouteComponent() {
   const [buildArtifacts, setBuildArtifacts] = React.useState<
     Map<string, Uint8Array>
   >(() => new Map())
+  const [buildArtifactsCommitSha, setBuildArtifactsCommitSha] = React.useState<
+    string | null
+  >(null)
   const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false)
   const [isSaving, setIsSaving] = React.useState(false)
   const [isBuilding, setIsBuilding] = React.useState(false)
-  const [buildStartedAt, setBuildStartedAt] = React.useState<number | null>(null)
+  const [buildStartedAt, setBuildStartedAt] = React.useState<number | null>(
+    null,
+  )
   const [buildElapsedSeconds, setBuildElapsedSeconds] = React.useState(0)
   const [isUploading, setIsUploading] = React.useState(false)
   const [brainSlot, setBrainSlot] = React.useState(1)
@@ -131,6 +141,11 @@ function RouteComponent() {
   } | null>(null)
   const saveHandlerRef = React.useRef<(() => Promise<void>) | null>(null)
   const buildGenerationRef = React.useRef(0)
+  const currentCommitShaRef = React.useRef(program?.currentCommitSha)
+
+  React.useEffect(() => {
+    currentCommitShaRef.current = program?.currentCommitSha
+  }, [program?.currentCommitSha])
 
   const disconnectBrain = async () => {
     const connection = brainConnectionRef.current
@@ -146,7 +161,15 @@ function RouteComponent() {
   }
 
   const build = async () => {
-    if (!program || hasUnsavedChanges || isSaving || isBuilding || isUploading)
+    if (
+      !program?.currentCommitSha ||
+      hasBuildForCurrentCommit ||
+      buildStatusIsPending ||
+      hasUnsavedChanges ||
+      isSaving ||
+      isBuilding ||
+      isUploading
+    )
       return
 
     const started = performance.now()
@@ -172,6 +195,7 @@ function RouteComponent() {
     setUploadMessage('')
     setBuildFiles([])
     setBuildArtifacts(new Map())
+    setBuildArtifactsCommitSha(null)
     try {
       try {
         await measure('Clear previous local build', () =>
@@ -184,6 +208,7 @@ function RouteComponent() {
         buildProgram({ programId }),
       )
       serverTimings = result.timings
+      if (result.commitSha !== currentCommitShaRef.current) return
       if (result.exitCode === 0) {
         setBuildFiles(result.binFiles)
         try {
@@ -203,11 +228,14 @@ function RouteComponent() {
               ),
             ),
           )
+          if (result.commitSha !== currentCommitShaRef.current) return
           setBuildArtifacts(new Map(artifacts))
+          setBuildArtifactsCommitSha(result.commitSha)
           try {
             await measure('Cache artifacts in IndexedDB', () =>
               buildArtifactStore.put({
                 programId,
+                commitSha: result.commitSha,
                 files: result.binFiles,
                 artifacts: artifacts.map(([path, bytes]) => ({ path, bytes })),
               }),
@@ -248,7 +276,14 @@ function RouteComponent() {
   }
 
   const uploadToBrain = async () => {
-    if (!program || hasUnsavedChanges || isSaving || isBuilding || isUploading)
+    if (
+      !program ||
+      buildArtifactsCommitSha !== program.currentCommitSha ||
+      hasUnsavedChanges ||
+      isSaving ||
+      isBuilding ||
+      isUploading
+    )
       return
 
     const hotPath = buildFiles.find((path) => path.endsWith('hot.package.bin'))
@@ -367,32 +402,18 @@ function RouteComponent() {
 
   React.useEffect(() => {
     let isCurrent = true
-    const generation = ++buildGenerationRef.current
+    buildGenerationRef.current++
     setPaths(null)
     setLoadError(null)
     setSelectedFile(null)
     setBuildFiles([])
     setBuildArtifacts(new Map())
+    setBuildArtifactsCommitSha(null)
     setBuildMessage('')
     setUploadMessage('')
 
-    buildArtifactStore
-      .get(programId)
-      .then((stored) => {
-        if (!isCurrent || generation !== buildGenerationRef.current || !stored)
-          return
-        setBuildFiles(stored.files)
-        setBuildArtifacts(
-          new Map(stored.artifacts.map(({ path, bytes }) => [path, bytes])),
-        )
-        setBuildMessage('Build restored')
-      })
-      .catch((error: unknown) => {
-        console.error('Could not restore VEX V5 build artifacts:', error)
-      })
-
     getProgramFiles({ programId })
-      .then((nextPaths) => {
+      .then(({ paths: nextPaths }) => {
         if (isCurrent) setPaths(nextPaths)
       })
       .catch((error: unknown) => {
@@ -419,6 +440,47 @@ function RouteComponent() {
     }
   }, [getProgramFiles, programId])
 
+  React.useEffect(() => {
+    const commitSha = program?.currentCommitSha
+    if (!commitSha) return
+
+    let isCurrent = true
+    const generation = ++buildGenerationRef.current
+    setBuildFiles([])
+    setBuildArtifacts(new Map())
+    setBuildArtifactsCommitSha(null)
+    setBuildMessage('')
+
+    buildArtifactStore
+      .get(programId)
+      .then((stored) => {
+        if (!isCurrent || generation !== buildGenerationRef.current || !stored)
+          return
+        if (stored.commitSha !== commitSha) {
+          void buildArtifactStore.delete(programId).catch((error: unknown) => {
+            console.error(
+              'Could not clear stale VEX V5 build artifacts:',
+              error,
+            )
+          })
+          return
+        }
+        setBuildFiles(stored.files)
+        setBuildArtifacts(
+          new Map(stored.artifacts.map(({ path, bytes }) => [path, bytes])),
+        )
+        setBuildArtifactsCommitSha(stored.commitSha)
+        setBuildMessage('Build restored')
+      })
+      .catch((error: unknown) => {
+        console.error('Could not restore VEX V5 build artifacts:', error)
+      })
+
+    return () => {
+      isCurrent = false
+    }
+  }, [program?.currentCommitSha, programId])
+
   const treePaths =
     paths === null ? null : [...new Set([...paths, ...buildFiles])]
   const firstFile = paths?.includes('src/main.cpp')
@@ -430,13 +492,18 @@ function RouteComponent() {
     ? `Building program, ${describeBuildElapsed(buildElapsedSeconds)} elapsed`
     : hasUnsavedChanges || isSaving
       ? 'Commit changes before building'
-      : buildMessage || 'Build program'
+      : !program?.currentCommitSha || buildStatusIsPending
+        ? 'Loading build status'
+        : hasBuildForCurrentCommit
+          ? 'Build already run for this commit'
+          : buildMessage || 'Build program'
   const uploadUnavailableReason =
     hasUnsavedChanges || isSaving
       ? 'Commit changes before uploading.'
       : isBuilding
         ? 'Wait for the build to finish.'
-        : buildArtifacts.size === 0
+        : buildArtifacts.size === 0 ||
+            buildArtifactsCommitSha !== program?.currentCommitSha
           ? 'Build the program before uploading.'
           : ''
 
@@ -519,6 +586,9 @@ function RouteComponent() {
                 onClick={() => void build()}
                 disabled={
                   !program ||
+                  !program.currentCommitSha ||
+                  buildStatusIsPending ||
+                  hasBuildForCurrentCommit ||
                   isBuilding ||
                   isSaving ||
                   hasUnsavedChanges ||
@@ -591,6 +661,7 @@ function RouteComponent() {
                       disabled={
                         !program ||
                         buildArtifacts.size === 0 ||
+                        buildArtifactsCommitSha !== program.currentCommitSha ||
                         isBuilding ||
                         isSaving ||
                         isUploading ||

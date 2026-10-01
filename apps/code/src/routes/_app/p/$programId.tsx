@@ -48,6 +48,7 @@ import {
   SidebarProvider,
 } from '~/components/ui/sidebar'
 import { birdsOfParadiseTheme } from '~/lib/birds-of-paradise-theme'
+import { parseProgramFilePaths } from '~/lib/program-files'
 
 const createFileEditor: EditorFactory<undefined, undefined> = (
   editorType,
@@ -400,8 +401,8 @@ function RouteComponent() {
     setUploadMessage('')
 
     getProgramFiles({ programId })
-      .then(({ paths: nextPaths }) => {
-        if (isCurrent) setPaths(nextPaths)
+      .then((result) => {
+        if (isCurrent) setPaths(parseProgramFilePaths(result))
       })
       .catch((error: unknown) => {
         if (isCurrent) {
@@ -718,12 +719,12 @@ function RouteComponent() {
         </Sidebar>
 
         <SidebarInset className="h-svh min-h-0 overflow-auto">
-          {programIsPending || paths === null ? (
+          {loadError ? (
+            <p className="p-4 text-sm text-muted-foreground">{loadError}</p>
+          ) : programIsPending || paths === null ? (
             <div className="grid h-full place-items-center">
               <Spinner />
             </div>
-          ) : loadError ? (
-            <p className="p-4 text-sm text-muted-foreground">{loadError}</p>
           ) : !program ? (
             <p className="p-4 text-sm text-muted-foreground">
               Program not found.

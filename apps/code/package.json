@@ -4,12 +4,14 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "dev": "convex dev --start 'vite dev'",
+    "dev": "bun run lsp:prepare && convex dev --start 'vite dev'",
     "typecheck": "tsc --noEmit",
-    "build": "bun run typecheck && vite build",
+    "build": "bun run lsp:prepare && bun run typecheck && vite build",
     "start": "node .output/server/index.mjs",
     "format": "prettier --write .",
-    "lint": "bun run typecheck && eslint .  --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+    "lint": "bun run typecheck && eslint .  --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lsp:prepare": "bun browser-lsp/prepare.ts",
+    "lsp:pack-sdk": "bun browser-lsp/pack-sdk.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -47,6 +49,7 @@
     "@tanstack/react-devtools": "^0.10.13",
     "@tanstack/react-query-devtools": "^5.103.2",
     "@tanstack/react-router-devtools": "^1.167.2",
+    "@types/bun": "^1.4.2",
     "@types/node": "^26.6.2",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",

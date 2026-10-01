@@ -6,7 +6,7 @@ import {
   type FileOptions,
 } from '@pierre/diffs'
 import { Editor, type EditorFactory } from '@pierre/diffs/edit'
-import { EditProvider, File } from '@pierre/diffs/react'
+import { EditProvider } from '@pierre/diffs/react'
 import { FileTree, useFileTree } from '@pierre/trees/react'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
@@ -49,6 +49,9 @@ import {
 } from '~/components/ui/sidebar'
 import { birdsOfParadiseTheme } from '~/lib/birds-of-paradise-theme'
 import { parseProgramFilePaths } from '~/lib/program-files'
+import { useLanguageServer } from '~/lib/use-language-server'
+import { LspFile } from '~/components/lsp-file'
+import type { Position } from '@pierre/diffs/edit'
 
 const createFileEditor: EditorFactory<undefined, undefined> = (
   editorType,
@@ -745,6 +748,19 @@ function RouteComponent() {
               onDirtyChange={setHasUnsavedChanges}
               onSavingChange={setIsSaving}
               saveHandlerRef={saveHandlerRef}
+              onSelectFile={(path) => {
+                if (!paths.includes(path) || isSaving || isUploading)
+                  return false
+                if (
+                  path !== activeFile &&
+                  hasUnsavedChanges &&
+                  !window.confirm('Discard unsaved changes and switch files?')
+                )
+                  return false
+                if (path !== activeFile) setHasUnsavedChanges(false)
+                setSelectedFile(path)
+                return true
+              }}
             />
           )}
         </SidebarInset>
@@ -767,6 +783,7 @@ function ProgramFileTree({
   )
   const onSelectRef = React.useRef(onSelect)
   const selectedFileRef = React.useRef(selectedFile)
+  const previousSelectedFileRef = React.useRef(selectedFile)
   const revertingSelectionRef = React.useRef(false)
   onSelectRef.current = onSelect
   selectedFileRef.current = selectedFile
@@ -799,6 +816,18 @@ function ProgramFileTree({
   }).model
   modelRef.current = model
 
+  React.useEffect(() => {
+    if (previousSelectedFileRef.current === selectedFile) return
+    revertingSelectionRef.current = true
+    try {
+      model.getItem(previousSelectedFileRef.current)?.deselect()
+      model.getItem(selectedFile)?.select()
+      previousSelectedFileRef.current = selectedFile
+    } finally {
+      revertingSelectionRef.current = false
+    }
+  }, [model, selectedFile])
+
   return (
     <FileTree
       model={model}
@@ -824,13 +853,20 @@ function ProgramEditor({
   onDirtyChange,
   onSavingChange,
   saveHandlerRef,
+  onSelectFile,
 }: {
   programId: Id<'program'>
   selectedFile: string
   onDirtyChange: (dirty: boolean) => void
   onSavingChange: (saving: boolean) => void
   saveHandlerRef: { current: (() => Promise<void>) | null }
+  onSelectFile: (path: string) => boolean
 }) {
+  const languageServer = useLanguageServer(programId)
+  const definitionTargetRef = React.useRef<{
+    path: string
+    position: Position
+  } | null>(null)
   const getProgramFile = useAction(api.program.getProgramFile)
   const saveProgramFile = useAction(api.program.saveProgramFile)
   const [source, setSource] = React.useState<string | null>(null)
@@ -931,6 +967,9 @@ function ProgramEditor({
 
     try {
       await saveProgramFile({ programId, path, contents })
+      if (languageServer.client) {
+        void languageServer.client.syncSavedFile(path, contents).catch(() => {})
+      }
       if (currentFileRef.current !== path) return
 
       savedContentsRef.current = contents
@@ -948,7 +987,14 @@ function ProgramEditor({
         onSavingChange(false)
       }
     }
-  }, [onDirtyChange, onSavingChange, programId, saveProgramFile, selectedFile])
+  }, [
+    languageServer.client,
+    onDirtyChange,
+    onSavingChange,
+    programId,
+    saveProgramFile,
+    selectedFile,
+  ])
 
   React.useEffect(() => {
     const isReady = source !== null && readyFile === selectedFile
@@ -983,7 +1029,21 @@ function ProgramEditor({
           {saveError}
         </p>
       ) : null}
-      <File
+      <LspFile
+        {...languageServer}
+        onNavigate={(path, position) => {
+          if (!onSelectFile(path)) return false
+          definitionTargetRef.current = { path, position }
+          return true
+        }}
+        initialPosition={
+          definitionTargetRef.current?.path === selectedFile
+            ? definitionTargetRef.current.position
+            : undefined
+        }
+        onNavigationComplete={() => {
+          definitionTargetRef.current = null
+        }}
         file={file}
         edit
         onEditChange={handleEditChange}

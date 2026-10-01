@@ -1,5 +1,6 @@
 import { DetectiveIcon, GoogleLogoIcon } from '@phosphor-icons/react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useState } from 'react'
 import { Button } from '~/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Separator } from '~/components/ui/separator'
@@ -11,6 +12,7 @@ export const Route = createFileRoute('/login')({
 
 function RouteComponent() {
   const navigate = useNavigate()
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   return (
     <div className="w-screen h-screen grid place-items-center">
@@ -26,6 +28,7 @@ function RouteComponent() {
                 provider: 'google',
               })
 
+              setErrorMessage(error?.message ?? null)
               if (!error) navigate({ to: '/' })
             }}
           >
@@ -38,12 +41,18 @@ function RouteComponent() {
             onClick={async () => {
               const { error } = await authClient.signIn.anonymous()
 
+              setErrorMessage(error?.message ?? null)
               if (!error) navigate({ to: '/' })
             }}
           >
             <DetectiveIcon />
             Sign in anonymously
           </Button>
+          {errorMessage && (
+            <p className="text-destructive text-center text-sm" role="alert">
+              {errorMessage}
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

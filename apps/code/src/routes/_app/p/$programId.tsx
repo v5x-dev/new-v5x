@@ -73,6 +73,27 @@ const rejectUncommittedEdit: FileEditCompleteHandler<
   undefined
 > = () => 'reject'
 
+function formatBuildElapsed(seconds: number) {
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`
+}
+
+function describeBuildElapsed(seconds: number) {
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  const minuteLabel = minutes === 1 ? 'minute' : 'minutes'
+  const secondLabel = remainingSeconds === 1 ? 'second' : 'seconds'
+  if (minutes === 0) return `${remainingSeconds} ${secondLabel}`
+
+  const remainingTime =
+    remainingSeconds === 0
+      ? ''
+      : `, ${remainingSeconds} ${secondLabel}`
+
+  return `${minutes} ${minuteLabel}${remainingTime}`
+}
+
 export const Route = createFileRoute('/_app/p/$programId')({
   component: RouteComponent,
 })
@@ -96,6 +117,8 @@ function RouteComponent() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false)
   const [isSaving, setIsSaving] = React.useState(false)
   const [isBuilding, setIsBuilding] = React.useState(false)
+  const [buildStartedAt, setBuildStartedAt] = React.useState<number | null>(null)
+  const [buildElapsedSeconds, setBuildElapsedSeconds] = React.useState(0)
   const [isUploading, setIsUploading] = React.useState(false)
   const [brainSlot, setBrainSlot] = React.useState(1)
   const [buildMessage, setBuildMessage] = React.useState('')
@@ -142,6 +165,8 @@ function RouteComponent() {
     }
 
     buildGenerationRef.current++
+    setBuildStartedAt(started)
+    setBuildElapsedSeconds(0)
     setIsBuilding(true)
     setBuildMessage('')
     setUploadMessage('')
@@ -207,6 +232,7 @@ function RouteComponent() {
       setBuildMessage('Build failed')
       console.error('VEX V5 build failed:', error)
     } finally {
+      setBuildStartedAt(null)
       setIsBuilding(false)
       console.info(`VEX V5 build timings for ${programId}`)
       console.table([
@@ -328,6 +354,18 @@ function RouteComponent() {
   }
 
   React.useEffect(() => {
+    if (!isBuilding || buildStartedAt === null) return
+
+    const updateElapsedTime = () => {
+      setBuildElapsedSeconds(
+        Math.floor((performance.now() - buildStartedAt) / 1000),
+      )
+    }
+    const interval = window.setInterval(updateElapsedTime, 1000)
+    return () => window.clearInterval(interval)
+  }, [buildStartedAt, isBuilding])
+
+  React.useEffect(() => {
     let isCurrent = true
     const generation = ++buildGenerationRef.current
     setPaths(null)
@@ -389,7 +427,7 @@ function RouteComponent() {
   const activeFile =
     selectedFile && treePaths?.includes(selectedFile) ? selectedFile : firstFile
   const buildButtonLabel = isBuilding
-    ? 'Building program'
+    ? `Building program, ${describeBuildElapsed(buildElapsedSeconds)} elapsed`
     : hasUnsavedChanges || isSaving
       ? 'Commit changes before building'
       : buildMessage || 'Build program'
@@ -474,7 +512,7 @@ function RouteComponent() {
                 <GitCommitIcon />
               </Button>
               <Button
-                size="icon-sm"
+                size={isBuilding ? 'sm' : 'icon-sm'}
                 variant="ghost"
                 aria-label={buildButtonLabel}
                 title={buildButtonLabel}
@@ -487,7 +525,19 @@ function RouteComponent() {
                   isUploading
                 }
               >
-                {isBuilding ? <Spinner /> : <HammerIcon />}
+                {isBuilding ? (
+                  <>
+                    <Spinner />
+                    <span
+                      aria-hidden="true"
+                      className="font-mono text-xs tabular-nums"
+                    >
+                      {formatBuildElapsed(buildElapsedSeconds)}
+                    </span>
+                  </>
+                ) : (
+                  <HammerIcon />
+                )}
               </Button>
               <Popover>
                 <PopoverTrigger

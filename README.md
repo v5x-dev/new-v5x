@@ -18,6 +18,15 @@ bun test
 bun run --cwd packages/serial build
 ```
 
+Run the app's end-to-end smoke test from the repository root:
+
+```sh
+bun run --cwd apps/code test:e2e
+```
+
+The e2e runner starts the app with its `dev` script. The app's local Convex
+environment must be configured before running it.
+
 Format the repository or verify its formatting:
 
 ```sh

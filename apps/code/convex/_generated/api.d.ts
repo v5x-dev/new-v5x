@@ -14,6 +14,7 @@ import type * as http from "../http.js";
 import type * as jarTemplate from "../jarTemplate.js";
 import type * as program from "../program.js";
 import type * as programBuild from "../programBuild.js";
+import type * as programBuildCache from "../programBuildCache.js";
 import type * as store from "../store.js";
 import type * as template from "../template.js";
 
@@ -30,6 +31,7 @@ declare const fullApi: ApiFromModules<{
   jarTemplate: typeof jarTemplate;
   program: typeof program;
   programBuild: typeof programBuild;
+  programBuildCache: typeof programBuildCache;
   store: typeof store;
   template: typeof template;
 }>;

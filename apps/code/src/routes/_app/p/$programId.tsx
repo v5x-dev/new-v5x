@@ -27,7 +27,6 @@ import {
   type AdapterSerialPort,
 } from '@v5x/serial'
 import { createBrowserAdapter } from '@v5x/serial/browser'
-import { buildArtifactStore } from '~/lib/build-artifacts'
 import type { Id } from '../../../../convex/_generated/dataModel'
 import { api } from '../../../../convex/_generated/api'
 import { Button } from '~/components/ui/button'
@@ -110,6 +109,12 @@ function RouteComponent() {
         commitSha: program?.currentCommitSha ?? '',
       }),
     )
+  const { data: cachedBuild } = useQuery(
+    convexQuery(api.programBuildCache.getLatest, {
+      programId,
+      commitSha: program?.currentCommitSha ?? '',
+    }),
+  )
   const getProgramFiles = useAction(api.program.getProgramFiles)
   const buildProgram = useAction(api.programBuild.build)
   const [paths, setPaths] = React.useState<string[] | null>(null)
@@ -141,6 +146,7 @@ function RouteComponent() {
   } | null>(null)
   const saveHandlerRef = React.useRef<(() => Promise<void>) | null>(null)
   const buildGenerationRef = React.useRef(0)
+  const restoredBuildCommitRef = React.useRef<string | null>(null)
   const currentCommitShaRef = React.useRef(program?.currentCommitSha)
 
   React.useEffect(() => {
@@ -197,13 +203,6 @@ function RouteComponent() {
     setBuildArtifacts(new Map())
     setBuildArtifactsCommitSha(null)
     try {
-      try {
-        await measure('Clear previous local build', () =>
-          buildArtifactStore.delete(programId),
-        )
-      } catch (error) {
-        console.error('Could not clear previous VEX V5 build artifacts:', error)
-      }
       const result = await measure('Build action round trip', () =>
         buildProgram({ programId }),
       )
@@ -231,18 +230,6 @@ function RouteComponent() {
           if (result.commitSha !== currentCommitShaRef.current) return
           setBuildArtifacts(new Map(artifacts))
           setBuildArtifactsCommitSha(result.commitSha)
-          try {
-            await measure('Cache artifacts in IndexedDB', () =>
-              buildArtifactStore.put({
-                programId,
-                commitSha: result.commitSha,
-                files: result.binFiles,
-                artifacts: artifacts.map(([path, bytes]) => ({ path, bytes })),
-              }),
-            )
-          } catch (error) {
-            console.error('Could not save VEX V5 build artifacts:', error)
-          }
           setBuildMessage(
             result.binFiles.length > 0
               ? 'Build succeeded'
@@ -444,42 +431,71 @@ function RouteComponent() {
     const commitSha = program?.currentCommitSha
     if (!commitSha) return
 
-    let isCurrent = true
-    const generation = ++buildGenerationRef.current
+    buildGenerationRef.current++
+    restoredBuildCommitRef.current = null
     setBuildFiles([])
     setBuildArtifacts(new Map())
     setBuildArtifactsCommitSha(null)
     setBuildMessage('')
+  }, [program?.currentCommitSha, programId])
 
-    buildArtifactStore
-      .get(programId)
-      .then((stored) => {
-        if (!isCurrent || generation !== buildGenerationRef.current || !stored)
-          return
-        if (stored.commitSha !== commitSha) {
-          void buildArtifactStore.delete(programId).catch((error: unknown) => {
-            console.error(
-              'Could not clear stale VEX V5 build artifacts:',
-              error,
-            )
-          })
-          return
-        }
-        setBuildFiles(stored.files)
-        setBuildArtifacts(
-          new Map(stored.artifacts.map(({ path, bytes }) => [path, bytes])),
+  React.useEffect(() => {
+    const commitSha = program?.currentCommitSha
+    if (
+      !commitSha ||
+      isBuilding ||
+      !cachedBuild ||
+      cachedBuild.commitSha !== commitSha ||
+      buildArtifactsCommitSha === commitSha ||
+      restoredBuildCommitRef.current === commitSha
+    ) {
+      return
+    }
+
+    let isCurrent = true
+    const generation = buildGenerationRef.current
+    restoredBuildCommitRef.current = commitSha
+    setBuildFiles(cachedBuild.binFiles)
+    if (cachedBuild.exitCode !== 0) {
+      setBuildArtifacts(new Map())
+      setBuildArtifactsCommitSha(commitSha)
+      setBuildMessage(`Build failed (exit code ${cachedBuild.exitCode})`)
+      return
+    }
+
+    Promise.all(
+      cachedBuild.artifacts.map(async ({ path, url }) => {
+        const response = await fetch(url)
+        if (!response.ok) throw new Error(`Could not download ${path}`)
+        return [path, new Uint8Array(await response.arrayBuffer())] as const
+      }),
+    )
+      .then((artifacts) => {
+        if (!isCurrent || generation !== buildGenerationRef.current) return
+        setBuildArtifacts(new Map(artifacts))
+        setBuildArtifactsCommitSha(commitSha)
+        setBuildMessage(
+          cachedBuild.binFiles.length > 0
+            ? 'Build restored'
+            : 'Build restored, no .bin files found',
         )
-        setBuildArtifactsCommitSha(stored.commitSha)
-        setBuildMessage('Build restored')
       })
       .catch((error: unknown) => {
+        if (!isCurrent || generation !== buildGenerationRef.current) return
+        setBuildArtifactsCommitSha(commitSha)
+        setBuildMessage('Build succeeded, but artifacts could not be loaded')
         console.error('Could not restore VEX V5 build artifacts:', error)
       })
 
     return () => {
       isCurrent = false
     }
-  }, [program?.currentCommitSha, programId])
+  }, [
+    buildArtifactsCommitSha,
+    cachedBuild,
+    isBuilding,
+    program?.currentCommitSha,
+  ])
 
   const treePaths =
     paths === null ? null : [...new Set([...paths, ...buildFiles])]

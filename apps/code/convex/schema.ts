@@ -24,4 +24,15 @@ export default defineSchema({
     programId: v.id('program'),
     commitSha: v.string(),
   }).index('by_program_commit', ['programId', 'commitSha']),
+  programBuildCache: defineTable({
+    programId: v.id('program'),
+    commitSha: v.string(),
+    exitCode: v.number(),
+    stdout: v.string(),
+    stderr: v.string(),
+    artifacts: v.array(
+      v.object({ path: v.string(), storageId: v.id('_storage') }),
+    ),
+    timings: v.array(v.object({ stage: v.string(), ms: v.number() })),
+  }).index('by_program', ['programId']),
 })

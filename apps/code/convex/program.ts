@@ -94,7 +94,7 @@ export const get = query({
   args: {
     programId: v.id('program'),
   },
-  handler: async (ctx, { programId }) => {
+  handler: async (ctx, { programId }): Promise<Doc<'program'> | null> => {
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new Error('Unauthorized')
 
@@ -169,7 +169,10 @@ export const getProgramFiles = action({
   args: {
     programId: v.id('program'),
   },
-  handler: async (ctx, { programId }) => {
+  handler: async (
+    ctx,
+    { programId },
+  ): Promise<{ paths: string[]; commitSha: string }> => {
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new Error('Unauthorized')
 
@@ -195,7 +198,7 @@ export const getProgramFiles = action({
       hasMore = page.hasMore
     }
 
-    let commitSha = program.currentCommitSha
+    let commitSha: string | undefined = program.currentCommitSha
     if (!commitSha) {
       const { commits } = await repo.listCommits({
         branch: repo.defaultBranch,

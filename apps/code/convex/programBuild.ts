@@ -3,12 +3,13 @@
 import { v } from 'convex/values'
 import { Machine } from 'smolmachines'
 import { api, internal } from './_generated/api'
+import type { Doc, Id } from './_generated/dataModel'
 import { action, env, internalAction } from './_generated/server'
 import { store } from './store'
 
 const DEFAULT_SMOL_CLOUD_URL = 'https://api.smolmachines.com'
 const MAX_OUTPUT_BYTES = 400 * 1024
-const BUILD_ARTIFACT_TTL_MS = 15 * 60 * 1000
+const MAX_CACHED_LOG_BYTES = 200 * 1024
 const PROS_KERNEL_URL =
   'https://pros.cs.purdue.edu/v5/_static/releases/kernel@3.8.3.zip'
 const PROS_KERNEL_SHA256 =
@@ -58,15 +59,24 @@ const prepareEzTemplateBuild = [
   'fi',
 ].join('\n')
 
-function limitOutput(output: string) {
+function limitOutput(output: string, maxBytes = MAX_OUTPUT_BYTES) {
   const bytes = new TextEncoder().encode(output)
-  if (bytes.byteLength <= MAX_OUTPUT_BYTES) return output
+  if (bytes.byteLength <= maxBytes) return output
 
-  const tail = new TextDecoder().decode(bytes.slice(-MAX_OUTPUT_BYTES))
-  return `[Output truncated; showing the last ${MAX_OUTPUT_BYTES} bytes]\n${tail}`
+  const tail = new TextDecoder().decode(bytes.slice(-maxBytes))
+  return `[Output truncated; showing the last ${maxBytes} bytes]\n${tail}`
 }
 
 type BuildTiming = { stage: string; ms: number }
+type BuildActionResult = {
+  commitSha: string
+  exitCode: number
+  stdout: string
+  stderr: string
+  binFiles: string[]
+  artifacts: Array<{ path: string; url: string }>
+  timings: BuildTiming[]
+}
 
 function createBuildTimer(programId: string) {
   const timings: BuildTiming[] = []
@@ -102,21 +112,21 @@ export const build = action({
     ),
     timings: v.array(v.object({ stage: v.string(), ms: v.number() })),
   }),
-  handler: async (ctx, { programId }) => {
+  handler: async (ctx, { programId }): Promise<BuildActionResult> => {
     const { timings, measure } = createBuildTimer(programId)
     const identity = await measure('Authenticate', () =>
       ctx.auth.getUserIdentity(),
     )
     if (!identity) throw new Error('Unauthorized')
 
-    const program = await measure('Load program', () =>
+    const program: Doc<'program'> | null = await measure('Load program', () =>
       ctx.runQuery(api.program.get, { programId }),
     )
     if (!program) throw new Error('Program not found')
     if (!program.currentCommitSha) {
       throw new Error('Program commit is still loading')
     }
-    const commitSha = program.currentCommitSha
+    const commitSha: string = program.currentCommitSha
 
     const token = env.SMOL_CLOUD_TOKEN
     if (!token) throw new Error('SMOL_CLOUD_TOKEN is not configured')
@@ -158,6 +168,13 @@ export const build = action({
         { target: 'cloud', apiKey: token, baseUrl: cloudUrl },
       ),
     )
+
+    const storedArtifacts: Array<{
+      path: string
+      storageId: Id<'_storage'>
+      url: string
+    }> = []
+    let keepStoredArtifacts = false
 
     try {
       const repo = store.repo({ id: program.repoId })
@@ -221,7 +238,7 @@ export const build = action({
         setupStdout = setup.stdout
         setupStderr = setup.stderr
         if (setup.exitCode !== 0) {
-          return {
+          const buildResult = {
             commitSha,
             exitCode: setup.exitCode,
             stdout: limitOutput(setup.stdout),
@@ -230,13 +247,25 @@ export const build = action({
             artifacts: [],
             timings,
           }
+          await ctx.runMutation(internal.programBuildCache.cacheLatest, {
+            programId,
+            commitSha,
+            exitCode: buildResult.exitCode,
+            stdout: limitOutput(buildResult.stdout, MAX_CACHED_LOG_BYTES),
+            stderr: limitOutput(buildResult.stderr, MAX_CACHED_LOG_BYTES),
+            artifacts: [],
+            timings,
+          })
+          return buildResult
         }
       }
 
       const makeCommand =
         prosProject.exitCode === 0 ? ['make', '-j2'] : ['make']
       const compileStage =
-        prosProject.exitCode === 0 ? 'Compile with make -j2' : 'Compile with make'
+        prosProject.exitCode === 0
+          ? 'Compile with make -j2'
+          : 'Compile with make'
       const result = await measure(compileStage, () =>
         machine.exec(makeCommand, {
           workdir: '/workspace',
@@ -245,7 +274,6 @@ export const build = action({
         }),
       )
       let binFiles: string[] = []
-      const artifacts: Array<{ path: string; url: string }> = []
       if (result.exitCode === 0) {
         const binaries = await measure('Find build outputs', () =>
           machine.exec(
@@ -294,18 +322,11 @@ export const build = action({
             await ctx.storage.delete(storageId)
             throw new Error(`Unable to load build artifact ${path}`)
           }
-          await measure(`Schedule ${path} cleanup`, () =>
-            ctx.scheduler.runAfter(
-              BUILD_ARTIFACT_TTL_MS,
-              internal.programBuild.deleteArtifact,
-              { storageId },
-            ),
-          )
-          artifacts.push({ path, url })
+          storedArtifacts.push({ path, storageId, url })
         }
       }
 
-      return {
+      const buildResult = {
         commitSha,
         exitCode: result.exitCode,
         stdout: limitOutput(
@@ -315,10 +336,35 @@ export const build = action({
           [setupStderr, result.stderr].filter(Boolean).join('\n'),
         ),
         binFiles,
-        artifacts,
+        artifacts: storedArtifacts.map(({ path, url }) => ({ path, url })),
         timings,
       }
+      const cached = await ctx.runMutation(
+        internal.programBuildCache.cacheLatest,
+        {
+          programId,
+          commitSha,
+          exitCode: buildResult.exitCode,
+          stdout: limitOutput(buildResult.stdout, MAX_CACHED_LOG_BYTES),
+          stderr: limitOutput(buildResult.stderr, MAX_CACHED_LOG_BYTES),
+          artifacts: storedArtifacts.map(({ path, storageId }) => ({
+            path,
+            storageId,
+          })),
+          timings,
+        },
+      )
+      if (cached) {
+        keepStoredArtifacts = true
+      }
+
+      return buildResult
     } finally {
+      if (!keepStoredArtifacts) {
+        await Promise.allSettled(
+          storedArtifacts.map(({ storageId }) => ctx.storage.delete(storageId)),
+        )
+      }
       await measure('Delete build machine', () => machine.delete())
     }
   },

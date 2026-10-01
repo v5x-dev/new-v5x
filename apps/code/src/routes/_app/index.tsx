@@ -29,6 +29,7 @@ const templateInfo = {
   vexcode: { label: 'VEXcode', icon: '/template-icons/vexcode.png' },
   pros: { label: 'PROS', icon: '/template-icons/pros.png' },
   'ez-template': { label: 'EZ', icon: '/template-icons/ez.png' },
+  'jar-template': { label: 'JAR Template', icon: '/template-icons/jar.svg' },
 } as const
 
 export const Route = createFileRoute('/_app/')({
@@ -84,6 +85,19 @@ function RouteComponent() {
                       className="size-4 shrink-0 object-contain"
                     />
                     <span>EZ</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => createProgram({ template: 'jar-template' })}
+                  >
+                    <img
+                      src={templateInfo['jar-template'].icon}
+                      alt=""
+                      aria-hidden="true"
+                      className="size-4 shrink-0 object-contain"
+                    />
+                    <span>JAR Template</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>

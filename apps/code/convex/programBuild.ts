@@ -14,38 +14,48 @@ const PROS_KERNEL_URL =
 const PROS_KERNEL_SHA256 =
   'fa0eddc8c9493ba1fca73ff7648227f8e84ec1784627f22e37a55445e5f2ecc8'
 const PROS_KERNEL_ARCHIVE = '/tmp/pros-kernel-3.8.3.zip'
+const PROS_KERNEL_IMAGE_DIR = '/opt/vex-build/pros-kernel-3.8.3'
 const EZ_TEMPLATE_PROJECT_URL =
   'https://github.com/EZ-Robotics/EZ-Template/releases/download/v3.2.2/EZ-Template-Example-Project.zip'
 const EZ_TEMPLATE_PROJECT_SHA256 =
   '41ec47dc65588cf7efae84771965a4803611f5db88ed5465bbb829a5eb8d7822'
 const EZ_TEMPLATE_PROJECT_ARCHIVE = '/tmp/ez-template-example-project-3.2.2.zip'
+const EZ_TEMPLATE_IMAGE_DIR = '/opt/vex-build/ez-template-3.2.2'
 
 const prepareProsBuild = [
   'set -eu',
   'command -v arm-none-eabi-gcc >/dev/null 2>&1 || { echo "PROS image is missing arm-none-eabi-gcc." >&2; exit 127; }',
   'command -v arm-none-eabi-g++ >/dev/null 2>&1 || { echo "PROS image is missing arm-none-eabi-g++." >&2; exit 127; }',
-  'command -v wget >/dev/null 2>&1 || { echo "PROS image is missing wget." >&2; exit 127; }',
-  'command -v unzip >/dev/null 2>&1 || { echo "PROS image is missing unzip." >&2; exit 127; }',
-  'command -v sha256sum >/dev/null 2>&1 || { echo "PROS image is missing sha256sum." >&2; exit 127; }',
   'stdlib_path=$(arm-none-eabi-g++ -print-file-name=libstdc++.a)',
   '[ -f "$stdlib_path" ] || { echo "PROS image is missing the ARM C++ standard library." >&2; exit 127; }',
-  `wget -q -O '${PROS_KERNEL_ARCHIVE}' '${PROS_KERNEL_URL}'`,
-  `printf '%s  %s\\n' '${PROS_KERNEL_SHA256}' '${PROS_KERNEL_ARCHIVE}' | sha256sum --check -`,
-  `unzip -n -q '${PROS_KERNEL_ARCHIVE}' -d '/workspace'`,
+  `if [ -d '${PROS_KERNEL_IMAGE_DIR}' ]; then`,
+  `  cp -a -n '${PROS_KERNEL_IMAGE_DIR}/.' '/workspace/'`,
+  'else',
+  '  command -v wget >/dev/null 2>&1 || { echo "Build image is missing wget and the baked PROS kernel." >&2; exit 127; }',
+  '  command -v unzip >/dev/null 2>&1 || { echo "Build image is missing unzip." >&2; exit 127; }',
+  '  command -v sha256sum >/dev/null 2>&1 || { echo "Build image is missing sha256sum." >&2; exit 127; }',
+  `  wget -q -O '${PROS_KERNEL_ARCHIVE}' '${PROS_KERNEL_URL}'`,
+  `  printf '%s  %s\\n' '${PROS_KERNEL_SHA256}' '${PROS_KERNEL_ARCHIVE}' | sha256sum --check -`,
+  `  unzip -n -q '${PROS_KERNEL_ARCHIVE}' -d '/workspace'`,
+  'fi',
 ].join('\n')
 
 const prepareEzTemplateBuild = [
   'set -eu',
   'command -v arm-none-eabi-gcc >/dev/null 2>&1 || { echo "PROS image is missing arm-none-eabi-gcc." >&2; exit 127; }',
   'command -v arm-none-eabi-g++ >/dev/null 2>&1 || { echo "PROS image is missing arm-none-eabi-g++." >&2; exit 127; }',
-  'command -v wget >/dev/null 2>&1 || { echo "PROS image is missing wget." >&2; exit 127; }',
-  'command -v unzip >/dev/null 2>&1 || { echo "PROS image is missing unzip." >&2; exit 127; }',
-  'command -v sha256sum >/dev/null 2>&1 || { echo "PROS image is missing sha256sum." >&2; exit 127; }',
   'stdlib_path=$(arm-none-eabi-g++ -print-file-name=libstdc++.a)',
   '[ -f "$stdlib_path" ] || { echo "PROS image is missing the ARM C++ standard library." >&2; exit 127; }',
-  `wget -q -O '${EZ_TEMPLATE_PROJECT_ARCHIVE}' '${EZ_TEMPLATE_PROJECT_URL}'`,
-  `printf '%s  %s\\n' '${EZ_TEMPLATE_PROJECT_SHA256}' '${EZ_TEMPLATE_PROJECT_ARCHIVE}' | sha256sum --check -`,
-  `unzip -n -q '${EZ_TEMPLATE_PROJECT_ARCHIVE}' 'common.mk' 'firmware/*' 'include/*' -d '/workspace'`,
+  `if [ -d '${EZ_TEMPLATE_IMAGE_DIR}' ]; then`,
+  `  cp -a -n '${EZ_TEMPLATE_IMAGE_DIR}/.' '/workspace/'`,
+  'else',
+  '  command -v wget >/dev/null 2>&1 || { echo "Build image is missing wget and the baked EZ Template files." >&2; exit 127; }',
+  '  command -v unzip >/dev/null 2>&1 || { echo "Build image is missing unzip." >&2; exit 127; }',
+  '  command -v sha256sum >/dev/null 2>&1 || { echo "Build image is missing sha256sum." >&2; exit 127; }',
+  `  wget -q -O '${EZ_TEMPLATE_PROJECT_ARCHIVE}' '${EZ_TEMPLATE_PROJECT_URL}'`,
+  `  printf '%s  %s\\n' '${EZ_TEMPLATE_PROJECT_SHA256}' '${EZ_TEMPLATE_PROJECT_ARCHIVE}' | sha256sum --check -`,
+  `  unzip -n -q '${EZ_TEMPLATE_PROJECT_ARCHIVE}' 'common.mk' 'firmware/*' 'include/*' -d '/workspace'`,
+  'fi',
 ].join('\n')
 
 function limitOutput(output: string) {
@@ -223,8 +233,12 @@ export const build = action({
         }
       }
 
-      const result = await measure('Compile with make', () =>
-        machine.exec(['make'], {
+      const makeCommand =
+        prosProject.exitCode === 0 ? ['make', '-j2'] : ['make']
+      const compileStage =
+        prosProject.exitCode === 0 ? 'Compile with make -j2' : 'Compile with make'
+      const result = await measure(compileStage, () =>
+        machine.exec(makeCommand, {
           workdir: '/workspace',
           env: { VEX_SDK_PATH: '/sdk' },
           timeout: 300,

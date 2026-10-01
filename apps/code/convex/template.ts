@@ -1,7 +1,12 @@
 import type { Repo } from "@pierre/storage"
 import { ezTemplateFiles } from "./ezTemplate"
+import { jarTemplateFiles } from "./jarTemplate"
 
-export type ProgramTemplate = "vexcode" | "pros" | "ez-template"
+export type ProgramTemplate =
+  | "vexcode"
+  | "pros"
+  | "ez-template"
+  | "jar-template"
 
 const vexcodeTemplateFiles: Record<string, string> = {
   ".gitignore": "/bin\n/build\ncompile_commands.json\n",
@@ -20,25 +25,29 @@ const prosTemplateFiles: Record<string, string> = {
   "src/main.cpp": "#include \"main.h\"\n\nvoid initialize() {}\n\nvoid disabled() {}\n\nvoid competition_initialize() {}\n\nvoid autonomous() {}\n\nvoid opcontrol() {\n  while (true) {\n    pros::delay(20);\n  }\n}\n",
 }
 
+const templateFiles: Record<ProgramTemplate, Record<string, string>> = {
+  vexcode: vexcodeTemplateFiles,
+  pros: prosTemplateFiles,
+  "ez-template": ezTemplateFiles,
+  "jar-template": jarTemplateFiles,
+}
+
+const templateCommitMessages: Record<ProgramTemplate, string> = {
+  vexcode: "Initialize C++ competition template",
+  pros: "Initialize PROS competition template",
+  "ez-template": "Initialize EZ-Template project",
+  "jar-template": "Initialize JAR Template project",
+}
+
 export async function initializeTemplate(
   repo: Repo,
   template: ProgramTemplate,
   author: { name: string; email: string },
 ) {
-  const files =
-    template === "ez-template"
-      ? ezTemplateFiles
-      : template === "pros"
-        ? prosTemplateFiles
-        : vexcodeTemplateFiles
+  const files = templateFiles[template]
   const commit = repo.createCommit({
     targetBranch: repo.defaultBranch,
-    commitMessage:
-      template === "ez-template"
-        ? "Initialize EZ-Template project"
-        : template === "pros"
-          ? "Initialize PROS competition template"
-          : "Initialize C++ competition template",
+    commitMessage: templateCommitMessages[template],
     author,
   });
 

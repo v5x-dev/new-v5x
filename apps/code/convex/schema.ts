@@ -16,6 +16,7 @@ export default defineSchema({
         v.literal('vexcode'),
         v.literal('pros'),
         v.literal('ez-template'),
+        v.literal('jar-template'),
       ),
     ),
   }).index('by_owner', ['ownerId']),

@@ -11,6 +11,7 @@
 import type * as betterAuth_auth from "../betterAuth/auth.js";
 import type * as ezTemplate from "../ezTemplate.js";
 import type * as http from "../http.js";
+import type * as jarTemplate from "../jarTemplate.js";
 import type * as program from "../program.js";
 import type * as programBuild from "../programBuild.js";
 import type * as store from "../store.js";
@@ -26,6 +27,7 @@ declare const fullApi: ApiFromModules<{
   "betterAuth/auth": typeof betterAuth_auth;
   ezTemplate: typeof ezTemplate;
   http: typeof http;
+  jarTemplate: typeof jarTemplate;
   program: typeof program;
   programBuild: typeof programBuild;
   store: typeof store;

@@ -24,7 +24,7 @@ export const cacheLatest = internalMutation({
     v.object({ previousMachineId: v.union(v.null(), v.string()) }),
   ),
   handler: async (ctx, args) => {
-    const program = await ctx.db.get(args.programId)
+    const program = await ctx.db.get('program', args.programId)
     if (!program || program.currentCommitSha !== args.commitSha) return null
 
     const cached = await ctx.db
@@ -36,7 +36,7 @@ export const cacheLatest = internalMutation({
       for (const artifact of cached.artifacts) {
         await ctx.storage.delete(artifact.storageId)
       }
-      await ctx.db.patch(cached._id, {
+      await ctx.db.patch('programBuildCache', cached._id, {
         commitSha: args.commitSha,
         exitCode: args.exitCode,
         stdout: args.stdout,
@@ -88,6 +88,8 @@ export const getLatest = query({
     v.object({
       commitSha: v.string(),
       exitCode: v.number(),
+      stdout: v.string(),
+      stderr: v.string(),
       binFiles: v.array(v.string()),
       artifacts: v.array(v.object({ path: v.string(), url: v.string() })),
       timings: v.array(timingValidator),
@@ -97,7 +99,7 @@ export const getLatest = query({
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) return null
 
-    const program = await ctx.db.get(programId)
+    const program = await ctx.db.get('program', programId)
     if (
       !program ||
       program.ownerId !== identity.subject ||
@@ -122,6 +124,8 @@ export const getLatest = query({
     return {
       commitSha: cached.commitSha,
       exitCode: cached.exitCode,
+      stdout: cached.stdout,
+      stderr: cached.stderr,
       binFiles: cached.artifacts.map(({ path }) => path),
       artifacts: artifacts.filter((artifact) => artifact !== null),
       timings: cached.timings,

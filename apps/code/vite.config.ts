@@ -8,9 +8,13 @@ import { nitro } from 'nitro/vite'
 export default defineConfig({
   server: {
     port: 3000,
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'credentialless',
+    },
   },
   ssr: {
-    noExternal: ['@convex-dev/better-auth']
+    noExternal: ['@convex-dev/better-auth'],
   },
   plugins: [
     tailwindcss(),
@@ -18,7 +22,16 @@ export default defineConfig({
       projects: ['./tsconfig.json'],
     }),
     tanstackStart(),
-    nitro(),
+    nitro({
+      routeRules: {
+        '/**': {
+          headers: {
+            'Cross-Origin-Opener-Policy': 'same-origin',
+            'Cross-Origin-Embedder-Policy': 'credentialless',
+          },
+        },
+      },
+    }),
     viteReact(),
   ],
 })

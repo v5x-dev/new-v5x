@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "gccVersion": "16.1.0",
+  "bundles": {
+    "vexcode": {
+      "url": "/language/vexcode-6e11719ed0af963c.bundle",
+      "sha256": "6e11719ed0af963cdc746ce0372b86d8839b318c066465b13e49a715e9476a06",
+      "bytes": 2224332,
+      "provenance": {
+        "sdk": "vexv5",
+        "clangHeaders": "8.0.0",
+        "gccHeaders": "4.9.3"
+      }
+    },
+    "arm": {
+      "url": "/language/arm-b4a399a4ae03e23a.bundle",
+      "sha256": "b4a399a4ae03e23ada91afdb22f62fdf2fb411b8437fb2d320411a0af2bcbf62",
+      "bytes": 3207230,
+      "provenance": {
+        "gccHeaders": "16.1.0",
+        "source": "VEX build image",
+        "compatibility": "clang15 normal_iterator hidden friend return type uses equivalent declval expression"
+      }
+    },
+    "pros": {
+      "url": "/language/pros-91168b0f4da7a045.bundle",
+      "sha256": "91168b0f4da7a04559cb99c5dc077bbde99d6c29dcb8e21f16dbacf27cb7b310",
+      "bytes": 161014,
+      "provenance": {
+        "url": "https://pros.cs.purdue.edu/v5/_static/releases/kernel@3.8.3.zip",
+        "archiveSha256": "fa0eddc8c9493ba1fca73ff7648227f8e84ec1784627f22e37a55445e5f2ecc8"
+      }
+    },
+    "ez-template": {
+      "url": "/language/ez-template-2375566a7ef131ae.bundle",
+      "sha256": "2375566a7ef131aeab95589ce11e05864c361f92a072539ace64b7b4cd4684d3",
+      "bytes": 383028,
+      "provenance": {
+        "url": "https://github.com/EZ-Robotics/EZ-Template/releases/download/v3.2.2/EZ-Template-Example-Project.zip",
+        "archiveSha256": "41ec47dc65588cf7efae84771965a4803611f5db88ed5465bbb829a5eb8d7822"
+      }
+    }
+  }
+}

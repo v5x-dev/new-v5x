@@ -38,3 +38,11 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 artifacts
 .vercel
 .env*
+
+# Copied from the pinned clangd dependency by prepare:language
+apps/code/public/language/clangd-15.0.7/
+
+# Generated offline workspace shell (built before Nitro indexes public assets)
+apps/code/public/assets/
+apps/code/public/offline.html
+apps/code/public/offline-assets.json

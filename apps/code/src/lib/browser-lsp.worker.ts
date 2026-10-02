@@ -81,7 +81,7 @@ async function boot({
 }: BrowserLspBoot) {
   const progress = (message: string) =>
     scope.postMessage({ type: 'progress', message })
-  progress('Loading local C++ language server…')
+  progress('Loading C++ tools…')
   const base = new URL(assetBase)
   const assetUrl = (name: keyof typeof artifacts) => {
     const url = new URL(name, base)
@@ -111,7 +111,7 @@ async function boot({
       }),
     ),
   ])
-  progress('Starting local clangd…')
+  progress('Starting C++ tools…')
   let output: number[] = []
   let bodyLength: number | undefined
   let header = ''
@@ -121,7 +121,7 @@ async function boot({
       if (header.endsWith('\r\n\r\n')) {
         const match = /Content-Length:\s*(\d+)/i.exec(header)
         if (!match) {
-          fail(new Error('Invalid clangd output'))
+          fail(new Error('Could not read a C++ tools response'))
           return
         }
         bodyLength = Number(match[1])
@@ -136,7 +136,7 @@ async function boot({
             message: JSON.parse(decoder.decode(new Uint8Array(output))),
           })
         } catch {
-          fail(new Error('Invalid clangd JSON response'))
+          fail(new Error('Could not read a C++ tools response'))
         }
         output = []
         bodyLength = undefined
@@ -172,10 +172,9 @@ async function boot({
     },
     stdout,
     stderr: () => {},
-    onAbort: (message: string) =>
-      fail(new Error(`Local clangd stopped: ${message}`)),
+    onAbort: (_message: string) => fail(new Error(`C++ tools stopped`)),
     onExit: (code: number) => {
-      if (code !== 0) fail(new Error(`Local clangd exited (${code})`))
+      if (code !== 0) fail(new Error(`C++ tools stopped`))
     },
   })) as ClangdModule
   module.FS.mkdirTree('/workspace')
@@ -242,7 +241,37 @@ function receive(value: unknown) {
     method?: string
     params?: { path?: string; contents?: string }
   }
-  if (message.method === 't3/syncFile') {
+  if (message.method === 't3/readSdkFile') {
+    const path = message.params?.path
+    try {
+      if (
+        typeof path !== 'string' ||
+        !path.startsWith('/sdk/') ||
+        !safeWorkspacePath(path.slice(1))
+      )
+        throw new Error('Invalid SDK file')
+      const contents = decoder.decode(module!.FS.readFile(path))
+      scope.postMessage({
+        type: 'rpc',
+        message: {
+          jsonrpc: '2.0',
+          id: message.id,
+          result: contents,
+        },
+      })
+    } catch {
+      scope.postMessage({
+        type: 'rpc',
+        message: {
+          jsonrpc: '2.0',
+          id: message.id,
+          error: { code: -32602, message: 'Could not read SDK definition' },
+        },
+      })
+    }
+    return
+  }
+  if (message.method === 't3/syncFile' || message.method === 't3/updateFile') {
     const { path, contents } = message.params ?? {}
     if (
       typeof path !== 'string' ||

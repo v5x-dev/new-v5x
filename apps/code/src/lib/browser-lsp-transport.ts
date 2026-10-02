@@ -21,9 +21,7 @@ export class BrowserLspTransport {
   start() {
     if (!window.crossOriginIsolated || typeof SharedArrayBuffer === 'undefined')
       return Promise.reject(
-        new Error(
-          'Local C++ tools require cross-origin isolation. Check the server COOP/COEP headers.',
-        ),
+        new Error('C++ tools are unavailable. Reload the page to try again.'),
       )
     const worker = new Worker(
       new URL('./browser-lsp.worker.ts', import.meta.url),
@@ -35,7 +33,7 @@ export class BrowserLspTransport {
         this.close()
         reject(
           new Error(
-            'Local clangd startup timed out. Retry after the compiler finishes downloading.',
+            'C++ tools took too long to start. Reload the page to try again.',
           ),
         )
       }, 180_000)
@@ -52,7 +50,12 @@ export class BrowserLspTransport {
       worker.onmessage = ({ data }: MessageEvent<BrowserLspOutput>) => {
         if (data.type === 'progress') this.onProgress(data.message)
         else if (data.type === 'rpc') this.onMessage(data.message)
-        else if (data.type === 'error') fail(new Error(data.message))
+        else if (data.type === 'error')
+          fail(
+            new Error(
+              'C++ tools could not start. Reload the page to try again.',
+            ),
+          )
         else if (data.type === 'ready') {
           window.clearTimeout(timeout)
           this.rejectStart = undefined
@@ -60,10 +63,9 @@ export class BrowserLspTransport {
           resolve()
         }
       }
-      worker.onerror = (event) =>
-        fail(new Error(event.message || 'Local clangd worker failed'))
+      worker.onerror = () => fail(new Error('C++ tools could not start'))
       worker.onmessageerror = () =>
-        fail(new Error('Could not read local clangd response'))
+        fail(new Error('Could not read a C++ tools response'))
       worker.postMessage({
         type: 'boot',
         projectKey: this.projectKey,
@@ -75,8 +77,7 @@ export class BrowserLspTransport {
   }
 
   send(message: unknown) {
-    if (!this.ready || !this.worker)
-      throw new Error('Local clangd is not ready')
+    if (!this.ready || !this.worker) throw new Error('C++ tools are not ready')
     this.worker.postMessage({ type: 'rpc', message })
   }
 
@@ -84,7 +85,7 @@ export class BrowserLspTransport {
     this.ready = false
     this.worker?.terminate()
     this.worker = null
-    this.rejectStart?.(new Error('Local clangd was closed'))
+    this.rejectStart?.(new Error('C++ tools were closed'))
     this.rejectStart = undefined
   }
 }

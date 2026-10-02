@@ -96,13 +96,27 @@ function describeBuildElapsed(seconds: number) {
 }
 
 export const Route = createFileRoute('/_app/p/$programId')({
+  validateSearch: (search: Record<string, unknown>): { file?: string } => ({
+    file: typeof search.file === 'string' ? search.file : undefined,
+  }),
   component: RouteComponent,
 })
 
 function RouteComponent() {
   const { programId: rawProgramId } = Route.useParams()
   const navigate = useNavigate()
+  const { file: selectedFile } = Route.useSearch()
+  const setSelectedFile = (file: string) => {
+    void navigate({
+      to: '/p/$programId',
+      params: { programId: rawProgramId },
+      search: (previous) => ({ ...previous, file }),
+      replace: true,
+      resetScroll: false,
+    })
+  }
   const programId = rawProgramId as Id<'program'>
+  const languageServer = useLanguageServer(programId, selectedFile)
   const { data: program, isPending: programIsPending } = useQuery(
     convexQuery(api.program.get, { programId }),
   )
@@ -123,7 +137,6 @@ function RouteComponent() {
   const buildProgram = useAction(api.programBuild.build)
   const [paths, setPaths] = React.useState<string[] | null>(null)
   const [loadError, setLoadError] = React.useState<string | null>(null)
-  const [selectedFile, setSelectedFile] = React.useState<string | null>(null)
   const [buildFiles, setBuildFiles] = React.useState<string[]>([])
   const [buildArtifacts, setBuildArtifacts] = React.useState<
     Map<string, Uint8Array>
@@ -396,7 +409,6 @@ function RouteComponent() {
     buildGenerationRef.current++
     setPaths(null)
     setLoadError(null)
-    setSelectedFile(null)
     setBuildFiles([])
     setBuildArtifacts(new Map())
     setBuildArtifactsCommitSha(null)
@@ -532,10 +544,25 @@ function RouteComponent() {
       <SidebarProvider className="h-svh min-h-0 overflow-hidden">
         <Sidebar variant="floating">
           {program ? (
-            <SidebarHeader className="gap-0 pb-0 px-4">
-              <span className="truncate text-xs text-muted-foreground py-1">
-                {program.name}
-              </span>
+            <SidebarHeader className="gap-0 px-4 pb-0">
+              <div className="flex min-w-0 items-center justify-between gap-2 py-1">
+                <span className="truncate text-xs text-muted-foreground">
+                  {program.name}
+                </span>
+                <span
+                  role="img"
+                  aria-label={`Language server: ${languageServer.status}`}
+                  title={`Language server: ${languageServer.status}`}
+                  data-state={languageServer.state}
+                  className={`size-2 shrink-0 rounded-full ${
+                    languageServer.state === 'ready'
+                      ? 'bg-emerald-500'
+                      : languageServer.state === 'error'
+                        ? 'bg-destructive'
+                        : 'bg-amber-500'
+                  }`}
+                />
+              </div>
             </SidebarHeader>
           ) : null}
           <SidebarContent className="min-h-0 p-0">
@@ -546,14 +573,6 @@ function RouteComponent() {
                 selectedFile={activeFile}
                 onSelect={(path) => {
                   if (isSaving || isUploading) return false
-                  if (
-                    path !== activeFile &&
-                    hasUnsavedChanges &&
-                    !window.confirm('Discard unsaved changes and switch files?')
-                  ) {
-                    return false
-                  }
-                  if (path !== activeFile) setHasUnsavedChanges(false)
                   setSelectedFile(path)
                   return true
                 }}
@@ -744,6 +763,7 @@ function RouteComponent() {
             <ProgramEditor
               key={programId}
               programId={programId}
+              languageServer={languageServer}
               selectedFile={activeFile}
               onDirtyChange={setHasUnsavedChanges}
               onSavingChange={setIsSaving}
@@ -751,13 +771,6 @@ function RouteComponent() {
               onSelectFile={(path) => {
                 if (!paths.includes(path) || isSaving || isUploading)
                   return false
-                if (
-                  path !== activeFile &&
-                  hasUnsavedChanges &&
-                  !window.confirm('Discard unsaved changes and switch files?')
-                )
-                  return false
-                if (path !== activeFile) setHasUnsavedChanges(false)
                 setSelectedFile(path)
                 return true
               }}
@@ -849,6 +862,7 @@ function ProgramFileTree({
 
 function ProgramEditor({
   programId,
+  languageServer,
   selectedFile,
   onDirtyChange,
   onSavingChange,
@@ -856,13 +870,14 @@ function ProgramEditor({
   onSelectFile,
 }: {
   programId: Id<'program'>
+  languageServer: ReturnType<typeof useLanguageServer>
   selectedFile: string
   onDirtyChange: (dirty: boolean) => void
   onSavingChange: (saving: boolean) => void
   saveHandlerRef: { current: (() => Promise<void>) | null }
   onSelectFile: (path: string) => boolean
 }) {
-  const languageServer = useLanguageServer(programId)
+  const workspace = languageServer.workspace
   const definitionTargetRef = React.useRef<{
     path: string
     position: Position
@@ -881,6 +896,12 @@ function ProgramEditor({
   currentFileRef.current = selectedFile
 
   React.useEffect(() => {
+    const update = () => onDirtyChange(workspace.dirty().length > 0)
+    update()
+    return workspace.onChange(update)
+  }, [workspace, onDirtyChange])
+
+  React.useEffect(() => {
     let isCurrent = true
     savedContentsRef.current = null
     setSource(null)
@@ -889,14 +910,18 @@ function ProgramEditor({
     isSavingRef.current = false
     onSavingChange(false)
     draftRef.current = ''
-    onDirtyChange(false)
 
-    getProgramFile({ programId, path: selectedFile })
+    const cached = workspace.get(selectedFile)
+    ;(cached
+      ? Promise.resolve(cached.savedContents)
+      : getProgramFile({ programId, path: selectedFile })
+    )
       .then((contents) => {
         if (isCurrent) {
+          workspace.seed([{ path: selectedFile, contents }])
           savedContentsRef.current = contents
-          draftRef.current = contents
-          setSource(contents)
+          draftRef.current = workspace.get(selectedFile)!.contents
+          setSource(draftRef.current)
         }
       })
       .catch((error: unknown) => {
@@ -912,7 +937,7 @@ function ProgramEditor({
     return () => {
       isCurrent = false
     }
-  }, [getProgramFile, onDirtyChange, onSavingChange, programId, selectedFile])
+  }, [getProgramFile, onSavingChange, programId, selectedFile, workspace])
 
   React.useEffect(() => {
     let isCurrent = true
@@ -944,48 +969,38 @@ function ProgramEditor({
   const handleEditChange = React.useCallback(
     (event: { file: { contents: string } }) => {
       draftRef.current = event.file.contents
-      const dirty = event.file.contents !== savedContentsRef.current
-      onDirtyChange(dirty)
+      workspace.change(selectedFile, event.file.contents)
     },
-    [onDirtyChange],
+    [workspace, selectedFile],
   )
 
   const saveChanges = React.useCallback(async () => {
-    if (
-      isSavingRef.current ||
-      savedContentsRef.current === null ||
-      draftRef.current === savedContentsRef.current
-    ) {
+    if (isSavingRef.current || !workspace.dirty().length) {
       return
     }
 
-    const path = selectedFile
-    const contents = draftRef.current
     isSavingRef.current = true
     onSavingChange(true)
     setSaveError(null)
 
     try {
-      await saveProgramFile({ programId, path, contents })
-      if (languageServer.client) {
-        void languageServer.client.syncSavedFile(path, contents).catch(() => {})
+      for (const { path, contents } of workspace.dirty()) {
+        await saveProgramFile({ programId, path, contents })
+        workspace.markSaved(path, contents)
+        if (languageServer.client) {
+          await languageServer.client.syncSavedFile(path, contents)
+        }
       }
-      if (currentFileRef.current !== path) return
-
-      savedContentsRef.current = contents
-      const dirty = draftRef.current !== contents
-      onDirtyChange(dirty)
+      savedContentsRef.current =
+        workspace.get(selectedFile)?.savedContents ?? null
+      onDirtyChange(workspace.dirty().length > 0)
     } catch (error) {
-      if (currentFileRef.current === path) {
-        setSaveError(
-          error instanceof Error ? error.message : 'Could not save this file.',
-        )
-      }
+      setSaveError(
+        error instanceof Error ? error.message : 'Could not save this file.',
+      )
     } finally {
-      if (currentFileRef.current === path) {
-        isSavingRef.current = false
-        onSavingChange(false)
-      }
+      isSavingRef.current = false
+      onSavingChange(false)
     }
   }, [
     languageServer.client,
@@ -994,6 +1009,7 @@ function ProgramEditor({
     programId,
     saveProgramFile,
     selectedFile,
+    workspace,
   ])
 
   React.useEffect(() => {
@@ -1030,7 +1046,7 @@ function ProgramEditor({
         </p>
       ) : null}
       <LspFile
-        {...languageServer}
+        client={languageServer.client}
         onNavigate={(path, position) => {
           if (!onSelectFile(path)) return false
           definitionTargetRef.current = { path, position }
@@ -1045,6 +1061,7 @@ function ProgramEditor({
           definitionTargetRef.current = null
         }}
         file={file}
+        editStateKey={`${programId}:${selectedFile}`}
         edit
         onEditChange={handleEditChange}
         onEditComplete={rejectUncommittedEdit}

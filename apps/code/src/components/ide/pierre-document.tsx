@@ -2,7 +2,7 @@ import * as React from 'react'
 import { EditProvider, File } from '@pierre/diffs/react'
 import { getFiletypeFromFileName, preloadHighlighter } from '@pierre/diffs'
 import { Editor } from '@pierre/diffs/edit'
-import type { FileOptions } from '@pierre/diffs'
+import type { FileOptions, PostRenderPhase } from '@pierre/diffs'
 import type { EditorFactory, Position } from '@pierre/diffs/edit'
 import type {
   Diagnostic,
@@ -11,6 +11,38 @@ import type {
 } from 'vscode-languageserver-protocol'
 import type { SemanticColor } from '~/lib/ide/semantic-tokens'
 import { birdsOfParadiseTheme } from '~/lib/birds-of-paradise-theme'
+
+const bracketPairs = new Map([
+  ['(', ')'],
+  ['[', ']'],
+  ['{', '}'],
+])
+const closingBrackets = new Set(bracketPairs.values())
+
+function getTextOffsetAtPosition(
+  text: string,
+  position: { line: number; character: number },
+) {
+  const lineBreaks = /\r\n|\r|\n/g
+  let offset = 0
+
+  for (let line = 0; line < position.line; line++) {
+    const lineBreak = lineBreaks.exec(text)
+    if (!lineBreak) return text.length
+    offset = lineBreak.index + lineBreak[0].length
+    lineBreaks.lastIndex = offset
+  }
+
+  return Math.min(offset + position.character, text.length)
+}
+
+function getPositionAtTextOffset(text: string, offset: number) {
+  const lines = text.slice(0, offset).split(/\r\n|\r|\n/)
+  return {
+    line: lines.length - 1,
+    character: lines.at(-1)?.length ?? 0,
+  }
+}
 
 export type PierreEditor = Editor<'file', undefined, undefined>
 export function PierreDocument({
@@ -54,6 +86,11 @@ export function PierreDocument({
   const [ready, setReady] = React.useState(false)
   const [error, setError] = React.useState('')
   const editorRef = React.useRef<PierreEditor | null>(null)
+  const bracketInputListenerRef = React.useRef<{
+    host: HTMLElement
+    target: HTMLElement
+    listener: (event: InputEvent) => void
+  } | null>(null)
   const nativeChanges = React.useRef<Array<string>>([])
   const applyingExternal = React.useRef(false)
   const callbacks = React.useRef({
@@ -78,6 +115,119 @@ export function PierreDocument({
     foldingRanges,
     focusPosition,
   }
+  const handleBracketInput = React.useCallback((event: InputEvent) => {
+    const editor = editorRef.current
+    const input = event.data
+    if (
+      !editor ||
+      callbacks.current.readOnly ||
+      event.isComposing ||
+      event.inputType !== 'insertText' ||
+      !input ||
+      (bracketPairs.get(input) === undefined && !closingBrackets.has(input))
+    ) {
+      return
+    }
+
+    const text = editor.getText()
+    const selections = editor.getViewState().selections ?? []
+    if (selections.length === 0) return
+
+    const selectionOffsets = selections.map((selection) => {
+      const start = getTextOffsetAtPosition(text, selection.start)
+      const end = getTextOffsetAtPosition(text, selection.end)
+      return start === end ? start : null
+    })
+    if (selectionOffsets.some((offset) => offset === null)) return
+
+    const offsets = selectionOffsets as number[]
+    const uniqueOffsets = [...new Set(offsets)].sort(
+      (left, right) => left - right,
+    )
+    let replacements: Array<{ offset: number; text: string }>
+
+    if (bracketPairs.has(input)) {
+      const closing = bracketPairs.get(input)
+      replacements = uniqueOffsets.map((offset) => ({
+        offset,
+        text: text[offset] === closing ? input : input + closing,
+      }))
+    } else {
+      if (!uniqueOffsets.some((offset) => text[offset] === input)) return
+      replacements = uniqueOffsets
+        .filter((offset) => text[offset] !== input)
+        .map((offset) => ({ offset, text: input }))
+    }
+
+    event.preventDefault()
+    event.stopImmediatePropagation()
+
+    if (replacements.length > 0) {
+      editor.applyEdits(
+        replacements.map(({ offset, text: replacement }) => {
+          const position = getPositionAtTextOffset(text, offset)
+          return {
+            range: { start: position, end: position },
+            newText: replacement,
+          }
+        }),
+      )
+    }
+
+    const updatedText = editor.getText()
+    editor.setSelections(
+      offsets.map((offset) => {
+        const insertedBefore = replacements
+          .filter((replacement) => replacement.offset < offset)
+          .reduce((length, replacement) => length + replacement.text.length, 0)
+        const position = getPositionAtTextOffset(
+          updatedText,
+          offset + insertedBefore + 1,
+        )
+        return { start: position, end: position, direction: 'none' }
+      }),
+    )
+  }, [])
+
+  const onFilePostRender = React.useCallback<
+    NonNullable<FileOptions<undefined, undefined>['onPostRender']>
+  >(
+    (node, _instance, phase: PostRenderPhase) => {
+      const attached = bracketInputListenerRef.current
+      if (phase === 'unmount') {
+        if (attached?.host === node) {
+          attached.target.removeEventListener(
+            'beforeinput',
+            attached.listener,
+            true,
+          )
+          bracketInputListenerRef.current = null
+          editorRef.current = null
+        }
+        return
+      }
+
+      const target =
+        node.shadowRoot?.querySelector<HTMLElement>('[data-content]')
+      if (!target || (attached?.host === node && attached.target === target)) {
+        return
+      }
+
+      attached?.target.removeEventListener(
+        'beforeinput',
+        attached.listener,
+        true,
+      )
+      target.addEventListener('beforeinput', handleBracketInput, true)
+      bracketInputListenerRef.current = {
+        host: node,
+        target,
+        listener: handleBracketInput,
+      }
+    },
+    [handleBracketInput],
+  )
+
   const initial = React.useRef({ name: path, contents })
   const createEditor = React.useCallback<EditorFactory<undefined, undefined>>(
     (type, options, key) => new Editor(type, options, key),
@@ -108,6 +258,7 @@ export function PierreDocument({
   }
   const options = React.useMemo(
     () => ({
+      matchBrackets: true,
       onAttach(editor: PierreEditor) {
         editorRef.current = editor
         markers(editor, callbacks.current.diagnostics)
@@ -179,6 +330,14 @@ export function PierreDocument({
       })
     return () => {
       active = false
+      const attached = bracketInputListenerRef.current
+      attached?.target.removeEventListener(
+        'beforeinput',
+        attached.listener,
+        true,
+      )
+      bracketInputListenerRef.current = null
+      editorRef.current = null
       callbacks.current.onEditor(null)
     }
   }, [path])
@@ -237,6 +396,7 @@ export function PierreDocument({
   const fileOptions = React.useMemo(
     () =>
       ({
+        onPostRender: onFilePostRender,
         theme: birdsOfParadiseTheme,
         themeType: 'dark',
         preferredHighlighter: 'shiki-js',
@@ -244,7 +404,7 @@ export function PierreDocument({
         disableLineNumbers: false,
         enableGutterUtility: true,
       }) satisfies FileOptions<undefined, undefined>,
-    [],
+    [onFilePostRender],
   )
   if (error)
     return (

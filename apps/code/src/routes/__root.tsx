@@ -7,15 +7,13 @@ import {
   useRouteContext,
 } from '@tanstack/react-router'
 import * as React from 'react'
-import type { QueryClient } from '@tanstack/react-query'
-import appCss from '~/styles/app.css?url'
-import type { ConvexQueryClient } from '@convex-dev/react-query'
 import { createServerFn } from '@tanstack/react-start'
+import { ConvexBetterAuthProvider } from '@convex-dev/better-auth/react'
+import type { AuthClient } from '@convex-dev/better-auth/react'
+import type { QueryClient } from '@tanstack/react-query'
+import type { ConvexQueryClient } from '@convex-dev/react-query'
+import appCss from '~/styles/app.css?url'
 import { getToken } from '~/lib/auth-server'
-import {
-  ConvexBetterAuthProvider,
-  type AuthClient,
-} from '@convex-dev/better-auth/react'
 import { authClient } from '~/lib/auth-client'
 
 const getAuth = createServerFn({ method: 'GET' }).handler(async () => {
@@ -46,7 +44,12 @@ export const Route = createRootRouteWithContext<{
         sizes: '180x180',
         href: '/apple-touch-icon.png',
       },
-      { rel: 'manifest', href: '/site.webmanifest', color: '#fffff' },
+      {
+        rel: 'manifest',
+        href: '/site.webmanifest',
+        crossOrigin: 'use-credentials',
+        color: '#fffff',
+      },
       { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
     ],
   }),

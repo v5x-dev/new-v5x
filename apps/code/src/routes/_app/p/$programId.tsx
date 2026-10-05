@@ -1,14 +1,4 @@
 import { convexQuery } from '@convex-dev/react-query'
-import {
-  getFiletypeFromFileName,
-  preloadHighlighter,
-  type FileEditCompleteHandler,
-  type FileOptions,
-  type PostRenderPhase,
-} from '@pierre/diffs'
-import { Editor, type EditorFactory } from '@pierre/diffs/edit'
-import { EditProvider, File } from '@pierre/diffs/react'
-import { FileTree, useFileTree } from '@pierre/trees/react'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useAction } from 'convex/react'
@@ -19,17 +9,18 @@ import {
   UploadSimpleIcon,
 } from '@phosphor-icons/react'
 import * as React from 'react'
-import type { CSSProperties } from 'react'
 import {
   FileExitAction,
   ProgramIniConfig,
   V5SerialConnection,
   V5SerialDevice,
-  type AdapterSerialPort,
 } from '@v5x/serial'
 import { createBrowserAdapter } from '@v5x/serial/browser'
-import type { Id } from '../../../../convex/_generated/dataModel'
 import { api } from '../../../../convex/_generated/api'
+import type { AdapterSerialPort } from '@v5x/serial'
+import type { Id } from '../../../../convex/_generated/dataModel'
+import { WorkspaceEditor } from '~/components/ide/workspace-editor'
+import { ProgramFileTree } from '~/components/ide/program-file-tree'
 import { Button } from '~/components/ui/button'
 import {
   Popover,
@@ -48,31 +39,7 @@ import {
   SidebarInset,
   SidebarProvider,
 } from '~/components/ui/sidebar'
-import { birdsOfParadiseTheme } from '~/lib/birds-of-paradise-theme'
 import { parseProgramFilePaths } from '~/lib/program-files'
-
-const createFileEditor: EditorFactory<undefined, undefined> = (
-  editorType,
-  options,
-  editStateKey,
-) => new Editor(editorType, options, editStateKey)
-
-const programFileOptions = {
-  theme: birdsOfParadiseTheme,
-  themeType: 'dark',
-  preferredHighlighter: 'shiki-js',
-  disableFileHeader: true,
-  disableLineNumbers: false,
-} satisfies FileOptions<undefined, undefined>
-
-const programFileStyle = {
-  '--diffs-font-family': 'var(--font-mono)',
-} as CSSProperties
-
-const rejectUncommittedEdit: FileEditCompleteHandler<
-  undefined,
-  undefined
-> = () => 'reject'
 
 function formatBuildElapsed(seconds: number) {
   const minutes = Math.floor(seconds / 60)
@@ -91,38 +58,6 @@ function describeBuildElapsed(seconds: number) {
     remainingSeconds === 0 ? '' : `, ${remainingSeconds} ${secondLabel}`
 
   return `${minutes} ${minuteLabel}${remainingTime}`
-}
-
-const bracketPairs = new Map([
-  ['(', ')'],
-  ['[', ']'],
-  ['{', '}'],
-])
-const closingBrackets = new Set(bracketPairs.values())
-
-function getTextOffsetAtPosition(
-  text: string,
-  position: { line: number; character: number },
-) {
-  const lineBreaks = /\r\n|\r|\n/g
-  let offset = 0
-
-  for (let line = 0; line < position.line; line++) {
-    const lineBreak = lineBreaks.exec(text)
-    if (!lineBreak) return text.length
-    offset = lineBreak.index + lineBreak[0].length
-    lineBreaks.lastIndex = offset
-  }
-
-  return Math.min(offset + position.character, text.length)
-}
-
-function getPositionAtTextOffset(text: string, offset: number) {
-  const lines = text.slice(0, offset).split(/\r\n|\r|\n/)
-  return {
-    line: lines.length - 1,
-    character: lines.at(-1)?.length ?? 0,
-  }
 }
 
 export const Route = createFileRoute('/_app/p/$programId')({
@@ -151,10 +86,12 @@ function RouteComponent() {
   )
   const getProgramFiles = useAction(api.program.getProgramFiles)
   const buildProgram = useAction(api.programBuild.build)
-  const [paths, setPaths] = React.useState<string[] | null>(null)
+  const loadWorkspace = useAction(api.program.getWorkspaceSnapshot)
+  const commitWorkspace = useAction(api.program.commitWorkspace)
+  const [paths, setPaths] = React.useState<Array<string> | null>(null)
   const [loadError, setLoadError] = React.useState<string | null>(null)
   const [selectedFile, setSelectedFile] = React.useState<string | null>(null)
-  const [buildFiles, setBuildFiles] = React.useState<string[]>([])
+  const [buildFiles, setBuildFiles] = React.useState<Array<string>>([])
   const [buildArtifacts, setBuildArtifacts] = React.useState<
     Map<string, Uint8Array>
   >(() => new Map())
@@ -171,6 +108,7 @@ function RouteComponent() {
   const [isUploading, setIsUploading] = React.useState(false)
   const [brainSlot, setBrainSlot] = React.useState(1)
   const [buildMessage, setBuildMessage] = React.useState('')
+  const [buildOutput, setBuildOutput] = React.useState('')
   const [uploadMessage, setUploadMessage] = React.useState('')
   const [isBrainConnected, setIsBrainConnected] = React.useState(false)
   const brainConnectionRef = React.useRef<{
@@ -241,6 +179,7 @@ function RouteComponent() {
         buildProgram({ programId }),
       )
       serverTimings = result.timings
+      setBuildOutput([result.stdout, result.stderr].filter(Boolean).join('\n'))
       if (result.commitSha !== currentCommitShaRef.current) return
       if (result.exitCode === 0) {
         setBuildFiles(result.binFiles)
@@ -335,14 +274,14 @@ function RouteComponent() {
         })
         const device = new V5SerialDevice(
           {
-            getPorts: async () => [port],
-            requestPort: async () => port,
+            getPorts: () => Promise.resolve([port]),
+            requestPort: () => Promise.resolve(port),
           },
           { autoRefresh: false },
         )
         const serialConnection = new V5SerialConnection({
-          getPorts: async () => [port],
-          requestPort: async () => port,
+          getPorts: () => Promise.resolve([port]),
+          requestPort: () => Promise.resolve(port),
         })
         device.autoReconnect = false
         try {
@@ -490,6 +429,9 @@ function RouteComponent() {
     const generation = buildGenerationRef.current
     restoredBuildCommitRef.current = commitSha
     setBuildFiles(cachedBuild.binFiles)
+    setBuildOutput(
+      [cachedBuild.stdout, cachedBuild.stderr].filter(Boolean).join('\n'),
+    )
     if (cachedBuild.exitCode !== 0) {
       setBuildArtifacts(new Map())
       setBuildArtifactsCommitSha(commitSha)
@@ -535,7 +477,7 @@ function RouteComponent() {
     paths === null ? null : [...new Set([...paths, ...buildFiles])]
   const firstFile = paths?.includes('src/main.cpp')
     ? 'src/main.cpp'
-    : (paths?.[0] ?? buildFiles[0] ?? '')
+    : (paths?.[0] ?? buildFiles[0])
   const activeFile =
     selectedFile && treePaths?.includes(selectedFile) ? selectedFile : firstFile
   const buildButtonLabel = isBuilding
@@ -558,7 +500,7 @@ function RouteComponent() {
           : ''
 
   return (
-    <EditProvider createEditor={createFileEditor}>
+    <>
       <SidebarProvider className="h-svh min-h-0 overflow-hidden">
         <Sidebar variant="floating">
           {program ? (
@@ -572,18 +514,10 @@ function RouteComponent() {
             {treePaths?.length ? (
               <ProgramFileTree
                 key={JSON.stringify(treePaths)}
-                paths={treePaths ?? paths}
+                paths={treePaths}
                 selectedFile={activeFile}
                 onSelect={(path) => {
                   if (isSaving || isUploading) return false
-                  if (
-                    path !== activeFile &&
-                    hasUnsavedChanges &&
-                    !window.confirm('Discard unsaved changes and switch files?')
-                  ) {
-                    return false
-                  }
-                  if (path !== activeFile) setHasUnsavedChanges(false)
                   setSelectedFile(path)
                   return true
                 }}
@@ -599,12 +533,6 @@ function RouteComponent() {
               disabled={isSaving || isUploading}
               onClick={() => {
                 if (isSaving || isUploading) return
-                if (
-                  hasUnsavedChanges &&
-                  !window.confirm('Discard unsaved changes and go back?')
-                ) {
-                  return
-                }
                 void navigate({ to: '/' })
               }}
             >
@@ -751,7 +679,7 @@ function RouteComponent() {
           </SidebarFooter>
         </Sidebar>
 
-        <SidebarInset className="h-svh min-h-0 overflow-auto">
+        <SidebarInset className="relative h-svh min-h-0 overflow-hidden">
           {loadError ? (
             <p className="p-4 text-sm text-muted-foreground">{loadError}</p>
           ) : programIsPending || paths === null ? (
@@ -762,8 +690,6 @@ function RouteComponent() {
             <p className="p-4 text-sm text-muted-foreground">
               Program not found.
             </p>
-          ) : paths.length === 0 && buildFiles.length === 0 ? (
-            <p className="p-4 text-sm text-muted-foreground">No files.</p>
           ) : buildFiles.includes(activeFile) ? (
             <div className="p-4 text-sm text-muted-foreground">
               <p className="font-medium text-foreground">Build artifact</p>
@@ -771,9 +697,23 @@ function RouteComponent() {
               <p className="mt-2">Temporary output; not committed to Git.</p>
             </div>
           ) : (
-            <ProgramEditor
+            <WorkspaceEditor
               key={programId}
-              programId={programId}
+              workspaceId={programId}
+              template={program.template ?? 'vexcode'}
+              commitSha={program.currentCommitSha}
+              buildOutput={buildOutput}
+              loadSnapshot={() => loadWorkspace({ programId })}
+              commitChanges={(changes, expectedCommitSha, message) =>
+                commitWorkspace({
+                  programId,
+                  changes,
+                  expectedCommitSha,
+                  message,
+                })
+              }
+              onSelect={setSelectedFile}
+              onPathsChange={setPaths}
               selectedFile={activeFile}
               onDirtyChange={setHasUnsavedChanges}
               onSavingChange={setIsSaving}
@@ -782,396 +722,6 @@ function RouteComponent() {
           )}
         </SidebarInset>
       </SidebarProvider>
-    </EditProvider>
-  )
-}
-
-function ProgramFileTree({
-  paths,
-  selectedFile,
-  onSelect,
-}: {
-  paths: string[]
-  selectedFile: string
-  onSelect: (path: string) => boolean
-}) {
-  const modelRef = React.useRef<ReturnType<typeof useFileTree>['model'] | null>(
-    null,
-  )
-  const onSelectRef = React.useRef(onSelect)
-  const selectedFileRef = React.useRef(selectedFile)
-  const revertingSelectionRef = React.useRef(false)
-  onSelectRef.current = onSelect
-  selectedFileRef.current = selectedFile
-  const model = useFileTree({
-    paths,
-    initialExpansion: 'open',
-    initialSelectedPaths: [selectedFile],
-    unsafeCSS: `
-      [data-type='item'][data-item-path^='build/'] {
-        color: var(--trees-fg-muted);
-      }
-    `,
-    onSelectionChange: (selectedPaths) => {
-      if (revertingSelectionRef.current) return
-      const path = [...selectedPaths]
-        .reverse()
-        .find((selected) => paths.includes(selected))
-      if (path && !onSelectRef.current(path)) {
-        revertingSelectionRef.current = true
-        try {
-          for (const selectedPath of selectedPaths) {
-            modelRef.current?.getItem(selectedPath)?.deselect()
-          }
-          modelRef.current?.getItem(selectedFileRef.current)?.select()
-        } finally {
-          revertingSelectionRef.current = false
-        }
-      }
-    },
-  }).model
-  modelRef.current = model
-
-  return (
-    <FileTree
-      model={model}
-      className="min-h-0 flex-1 rounded-lg py-1"
-      style={
-        {
-          display: 'block',
-          height: '100%',
-          minHeight: 240,
-          '--trees-font-family': 'var(--font-serif)',
-          '--trees-padding-inline-override': 'var(--spacing)',
-          '--trees-focus-ring-color-override': 'var(--ring)',
-          '--trees-selected-focused-border-color-override': 'var(--ring)',
-        } as React.CSSProperties
-      }
-    />
-  )
-}
-
-function ProgramEditor({
-  programId,
-  selectedFile,
-  onDirtyChange,
-  onSavingChange,
-  saveHandlerRef,
-}: {
-  programId: Id<'program'>
-  selectedFile: string
-  onDirtyChange: (dirty: boolean) => void
-  onSavingChange: (saving: boolean) => void
-  saveHandlerRef: { current: (() => Promise<void>) | null }
-}) {
-  const getProgramFile = useAction(api.program.getProgramFile)
-  const saveProgramFile = useAction(api.program.saveProgramFile)
-  const editorRef = React.useRef<Editor<'file'> | null>(null)
-  const bracketInputListenerRef = React.useRef<{
-    host: HTMLElement
-    target: HTMLElement
-    listener: (event: InputEvent) => void
-  } | null>(null)
-  const [source, setSource] = React.useState<string | null>(null)
-  const [loadError, setLoadError] = React.useState<string | null>(null)
-  const [readyFile, setReadyFile] = React.useState<string | null>(null)
-  const [saveError, setSaveError] = React.useState<string | null>(null)
-  const savedContentsRef = React.useRef<string | null>(null)
-  const draftRef = React.useRef('')
-  const currentFileRef = React.useRef(selectedFile)
-  const isSavingRef = React.useRef(false)
-
-  const handleBracketInput = React.useCallback((event: InputEvent) => {
-    const editor = editorRef.current
-    const input = event.data
-    if (
-      !editor ||
-      event.isComposing ||
-      event.inputType !== 'insertText' ||
-      !input ||
-      (bracketPairs.get(input) === undefined && !closingBrackets.has(input))
-    ) {
-      return
-    }
-
-    const text = editor.getText()
-    const selections = editor.getViewState().selections ?? []
-    if (selections.length === 0) return
-
-    const selectionOffsets = selections.map((selection) => {
-      const start = getTextOffsetAtPosition(text, selection.start)
-      const end = getTextOffsetAtPosition(text, selection.end)
-      return start === end ? start : null
-    })
-    if (selectionOffsets.some((offset) => offset === null)) return
-
-    const offsets = selectionOffsets as number[]
-    const uniqueOffsets = [...new Set(offsets)].sort(
-      (left, right) => left - right,
-    )
-    let replacements: Array<{ offset: number; text: string }>
-
-    if (bracketPairs.has(input)) {
-      const closing = bracketPairs.get(input)
-      replacements = uniqueOffsets.map((offset) => ({
-        offset,
-        text: text[offset] === closing ? input : input + closing,
-      }))
-    } else {
-      if (!uniqueOffsets.some((offset) => text[offset] === input)) return
-      replacements = uniqueOffsets
-        .filter((offset) => text[offset] !== input)
-        .map((offset) => ({ offset, text: input }))
-    }
-
-    event.preventDefault()
-    event.stopImmediatePropagation()
-
-    if (replacements.length > 0) {
-      editor.applyEdits(
-        replacements.map(({ offset, text: replacement }) => {
-          const position = getPositionAtTextOffset(text, offset)
-          return {
-            range: { start: position, end: position },
-            newText: replacement,
-          }
-        }),
-      )
-    }
-
-    const updatedText = editor.getText()
-    editor.setSelections(
-      offsets.map((offset) => {
-        const insertedBefore = replacements
-          .filter((replacement) => replacement.offset < offset)
-          .reduce((length, replacement) => length + replacement.text.length, 0)
-        const position = getPositionAtTextOffset(
-          updatedText,
-          offset + insertedBefore + 1,
-        )
-        return { start: position, end: position, direction: 'none' }
-      }),
-    )
-  }, [])
-
-  const onFilePostRender = React.useCallback<
-    NonNullable<FileOptions<undefined, undefined>['onPostRender']>
-  >(
-    (node, _instance, phase: PostRenderPhase) => {
-      const attached = bracketInputListenerRef.current
-      if (phase === 'unmount') {
-        if (attached?.host === node) {
-          attached.target.removeEventListener(
-            'beforeinput',
-            attached.listener,
-            true,
-          )
-          bracketInputListenerRef.current = null
-          editorRef.current = null
-        }
-        return
-      }
-
-      const target =
-        node.shadowRoot?.querySelector<HTMLElement>('[data-content]')
-      if (!target || (attached?.host === node && attached.target === target)) {
-        return
-      }
-
-      attached?.target.removeEventListener(
-        'beforeinput',
-        attached.listener,
-        true,
-      )
-      target.addEventListener('beforeinput', handleBracketInput, true)
-      bracketInputListenerRef.current = {
-        host: node,
-        target,
-        listener: handleBracketInput,
-      }
-    },
-    [handleBracketInput],
-  )
-
-  const editorOptions = React.useMemo(
-    () => ({
-      matchBrackets: true,
-      onAttach: (editor: Editor<'file'>) => {
-        editorRef.current = editor
-      },
-    }),
-    [],
-  )
-  const fileOptions = React.useMemo(
-    () => ({ ...programFileOptions, onPostRender: onFilePostRender }),
-    [onFilePostRender],
-  )
-
-  React.useEffect(
-    () => () => {
-      const attached = bracketInputListenerRef.current
-      attached?.target.removeEventListener(
-        'beforeinput',
-        attached.listener,
-        true,
-      )
-      bracketInputListenerRef.current = null
-      editorRef.current = null
-    },
-    [],
-  )
-
-  currentFileRef.current = selectedFile
-
-  React.useEffect(() => {
-    let isCurrent = true
-    savedContentsRef.current = null
-    setSource(null)
-    setLoadError(null)
-    setSaveError(null)
-    isSavingRef.current = false
-    onSavingChange(false)
-    draftRef.current = ''
-    onDirtyChange(false)
-
-    getProgramFile({ programId, path: selectedFile })
-      .then((contents) => {
-        if (isCurrent) {
-          savedContentsRef.current = contents
-          draftRef.current = contents
-          setSource(contents)
-        }
-      })
-      .catch((error: unknown) => {
-        if (isCurrent) {
-          setLoadError(
-            error instanceof Error
-              ? error.message
-              : 'Could not load this file.',
-          )
-        }
-      })
-
-    return () => {
-      isCurrent = false
-    }
-  }, [getProgramFile, onDirtyChange, onSavingChange, programId, selectedFile])
-
-  React.useEffect(() => {
-    let isCurrent = true
-    setReadyFile(null)
-
-    preloadHighlighter({
-      langs: [getFiletypeFromFileName(selectedFile)],
-      themes: [birdsOfParadiseTheme],
-      preferredHighlighter: 'shiki-js',
-    })
-      .then(() => {
-        if (isCurrent) setReadyFile(selectedFile)
-      })
-      .catch((error: unknown) => {
-        if (isCurrent) {
-          setLoadError(
-            error instanceof Error
-              ? error.message
-              : 'Could not prepare the code viewer.',
-          )
-        }
-      })
-
-    return () => {
-      isCurrent = false
-    }
-  }, [selectedFile])
-
-  const handleEditChange = React.useCallback(
-    (event: { file: { contents: string } }) => {
-      draftRef.current = event.file.contents
-      const dirty = event.file.contents !== savedContentsRef.current
-      onDirtyChange(dirty)
-    },
-    [onDirtyChange],
-  )
-
-  const saveChanges = React.useCallback(async () => {
-    if (
-      isSavingRef.current ||
-      savedContentsRef.current === null ||
-      draftRef.current === savedContentsRef.current
-    ) {
-      return
-    }
-
-    const path = selectedFile
-    const contents = draftRef.current
-    isSavingRef.current = true
-    onSavingChange(true)
-    setSaveError(null)
-
-    try {
-      await saveProgramFile({ programId, path, contents })
-      if (currentFileRef.current !== path) return
-
-      savedContentsRef.current = contents
-      const dirty = draftRef.current !== contents
-      onDirtyChange(dirty)
-    } catch (error) {
-      if (currentFileRef.current === path) {
-        setSaveError(
-          error instanceof Error ? error.message : 'Could not save this file.',
-        )
-      }
-    } finally {
-      if (currentFileRef.current === path) {
-        isSavingRef.current = false
-        onSavingChange(false)
-      }
-    }
-  }, [onDirtyChange, onSavingChange, programId, saveProgramFile, selectedFile])
-
-  React.useEffect(() => {
-    const isReady = source !== null && readyFile === selectedFile
-    saveHandlerRef.current = isReady ? saveChanges : null
-
-    return () => {
-      if (saveHandlerRef.current === saveChanges) saveHandlerRef.current = null
-    }
-  }, [readyFile, saveChanges, saveHandlerRef, selectedFile, source])
-
-  const file = React.useMemo(
-    () => ({ name: selectedFile, contents: source ?? '' }),
-    [selectedFile, source],
-  )
-
-  if (loadError) {
-    return <p className="p-4 text-sm text-muted-foreground">{loadError}</p>
-  }
-
-  if (source === null || readyFile !== selectedFile) {
-    return (
-      <div className="grid h-full place-items-center">
-        <Spinner />
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex h-full min-h-0 flex-col">
-      {saveError ? (
-        <p className="px-3 py-2 text-sm text-destructive" role="alert">
-          {saveError}
-        </p>
-      ) : null}
-      <File
-        file={file}
-        edit
-        editorOptions={editorOptions}
-        onEditChange={handleEditChange}
-        onEditComplete={rejectUncommittedEdit}
-        options={fileOptions}
-        className="block min-h-0 flex-1"
-        style={programFileStyle}
-      />
-    </div>
+    </>
   )
 }

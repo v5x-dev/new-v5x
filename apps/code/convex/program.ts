@@ -1,4 +1,5 @@
 import { v } from 'convex/values'
+import boring from 'boring-name-generator'
 import {
   action,
   internalMutation,
@@ -6,12 +7,12 @@ import {
   mutation,
   query,
 } from './_generated/server'
-import type { Doc, Id } from './_generated/dataModel'
-import boring from 'boring-name-generator'
 import { store } from './store'
 import { api, internal } from './_generated/api'
-import { initializeTemplate, type ProgramTemplate } from './template'
+import { initializeTemplate } from './template'
 import { authComponent } from './betterAuth/auth'
+import type { ProgramTemplate } from './template'
+import type { Doc, Id } from './_generated/dataModel'
 
 export const createProgram = action({
   args: {
@@ -79,6 +80,7 @@ export const create = mutation({
 })
 
 export const list = query({
+  args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new Error('Unauthorized')
@@ -98,7 +100,7 @@ export const get = query({
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new Error('Unauthorized')
 
-    const program = await ctx.db.get(programId)
+    const program = await ctx.db.get('program', programId)
     if (!program || program.ownerId !== identity.subject) return null
 
     return program
@@ -111,7 +113,7 @@ export const getOwned = internalQuery({
     ownerId: v.string(),
   },
   handler: async (ctx, { programId, ownerId }) => {
-    const program = await ctx.db.get(programId)
+    const program = await ctx.db.get('program', programId)
     if (!program || program.ownerId !== ownerId) return null
 
     return program
@@ -124,7 +126,7 @@ export const setCurrentCommitSha = internalMutation({
     commitSha: v.string(),
   },
   handler: async (ctx, { programId, commitSha }) => {
-    await ctx.db.patch(programId, { currentCommitSha: commitSha })
+    await ctx.db.patch('program', programId, { currentCommitSha: commitSha })
     return null
   },
 })
@@ -135,7 +137,7 @@ export const hasRunForCommit = query({
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) return false
 
-    const program = await ctx.db.get(programId)
+    const program = await ctx.db.get('program', programId)
     if (!program || program.ownerId !== identity.subject) return false
 
     return Boolean(
@@ -172,7 +174,7 @@ export const getProgramFiles = action({
   handler: async (
     ctx,
     { programId },
-  ): Promise<{ paths: string[]; commitSha: string }> => {
+  ): Promise<{ paths: Array<string>; commitSha: string }> => {
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new Error('Unauthorized')
 
@@ -183,7 +185,7 @@ export const getProgramFiles = action({
     if (!program) throw new Error('Program not found')
 
     const repo = store.repo({ id: program.repoId })
-    const paths: string[] = []
+    const paths: Array<string> = []
     let cursor: string | undefined
     let hasMore = true
 
@@ -279,6 +281,134 @@ export const saveProgramFile = action({
     })
     commit.addFileFromString(path, contents)
 
+    const result = await commit.send()
+    await ctx.runMutation(internal.program.setCurrentCommitSha, {
+      programId,
+      commitSha: result.commitSha,
+    })
+    return result.commitSha
+  },
+})
+
+/** One immutable source snapshot for local language analysis and project search. */
+export const getWorkspaceSnapshot = action({
+  args: { programId: v.id('program') },
+  handler: async (
+    ctx,
+    { programId },
+  ): Promise<{ files: Record<string, string>; commitSha: string }> => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Unauthorized')
+    const program: Doc<'program'> | null = await ctx.runQuery(
+      internal.program.getOwned,
+      { programId, ownerId: identity.subject },
+    )
+    if (!program?.currentCommitSha)
+      throw new Error('Program commit is still loading')
+    const commitSha = program.currentCommitSha
+    const repo = store.repo({ id: program.repoId })
+    const paths: Array<string> = []
+    let cursor: string | undefined
+    do {
+      const page = await repo.listFiles({
+        ref: commitSha,
+        recursive: true,
+        limit: 1000,
+        cursor,
+      })
+      paths.push(
+        ...page.paths.filter(
+          (path) =>
+            !/^(build|bin|\.git)\//.test(path) &&
+            !/\.(a|o|bin|png|jpg|jpeg|gif|ico|woff2?|zip|pdf)$/i.test(path),
+        ),
+      )
+      if (paths.length > 2000)
+        throw new Error('Workspace exceeds the 2000 source file limit')
+      cursor = page.hasMore ? page.nextCursor : undefined
+    } while (cursor)
+    const files: Record<string, string> = {}
+    let bytes = 0
+    // Bound parallel reads and total snapshot size to Convex action limits.
+    for (let index = 0; index < paths.length; index += 8) {
+      const batch = await Promise.all(
+        paths.slice(index, index + 8).map(async (path) => {
+          const response = await repo.getFileStream({ path, ref: commitSha })
+          if (!response.ok) throw new Error(`Unable to load ${path}`)
+          const contents = await response.text()
+          if (contents.includes('\0')) return null
+          bytes += new TextEncoder().encode(contents).byteLength
+          if (bytes > 8 * 1024 * 1024)
+            throw new Error('Workspace exceeds the 8 MiB source snapshot limit')
+          return { path, contents }
+        }),
+      )
+      for (const entry of batch) if (entry) files[entry.path] = entry.contents
+    }
+    return { files, commitSha }
+  },
+})
+
+/** Commit a reviewed multi-file change against the exact snapshot the user edited. */
+export const commitWorkspace = action({
+  args: {
+    programId: v.id('program'),
+    expectedCommitSha: v.string(),
+    message: v.string(),
+    changes: v.array(
+      v.object({ path: v.string(), contents: v.union(v.string(), v.null()) }),
+    ),
+  },
+  handler: async (
+    ctx,
+    { programId, expectedCommitSha, message, changes },
+  ): Promise<string> => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Unauthorized')
+    const user = await authComponent.getAuthUser(ctx)
+    const program: Doc<'program'> | null = await ctx.runQuery(
+      internal.program.getOwned,
+      { programId, ownerId: identity.subject },
+    )
+    if (!program) throw new Error('Program not found')
+    if (program.currentCommitSha !== expectedCommitSha)
+      throw new Error(
+        'The project changed. Refresh and resolve incoming changes before committing.',
+      )
+    if (!changes.length || changes.length > 2000)
+      throw new Error('Invalid number of changed files')
+    const seen = new Set<string>()
+    let bytes = 0
+    for (const change of changes) {
+      if (
+        !change.path ||
+        change.path.startsWith('/') ||
+        change.path.includes('\\') ||
+        change.path.includes('\0') ||
+        change.path
+          .split('/')
+          .some(
+            (part) => !part || part === '.' || part === '..' || part === '.git',
+          )
+      )
+        throw new Error('Invalid file path')
+      if (seen.has(change.path)) throw new Error('Duplicate changed path')
+      seen.add(change.path)
+      bytes += new TextEncoder().encode(change.contents ?? '').byteLength
+      if (bytes > 8 * 1024 * 1024)
+        throw new Error('Commit exceeds the 8 MiB source limit')
+    }
+    const repo = store.repo({ id: program.repoId })
+    const commit = repo.createCommit({
+      targetBranch: repo.defaultBranch,
+      expectedHeadSha: expectedCommitSha,
+      commitMessage: message.trim().slice(0, 2000) || 'Update project',
+      author: { name: user.name, email: user.email },
+    })
+    for (const change of changes) {
+      if (change.contents === null) commit.deletePath(change.path)
+      else commit.addFileFromString(change.path, change.contents)
+    }
     const result = await commit.send()
     await ctx.runMutation(internal.program.setCurrentCommitSha, {
       programId,

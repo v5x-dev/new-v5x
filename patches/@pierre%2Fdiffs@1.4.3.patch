@@ -1,0 +1,295 @@
+diff --git a/node_modules/@pierre/diffs/.bun-tag-aa93144697669998 b/.bun-tag-aa93144697669998
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/dist/editor/editor.d.ts b/dist/editor/editor.d.ts
+index 82e6804b3326e4cf0caafec8ae29b33309720ff8..93f4ca11260e8287475ba19a6efd2ae66096b54e 100644
+--- a/dist/editor/editor.d.ts
++++ b/dist/editor/editor.d.ts
+@@ -1,5 +1,5 @@
+ import { DiffLineAnnotation, DiffsHighlighter, FileContents, FileDiffMetadata, LineAnnotation, RenderRange } from "../types.js";
+-import { EditState, EditorCaret, EditorChangeEvent, EditorEditCompleteEvent, EditorInitialState, EditorType, EditorViewState, Range, RetainedDiffSessionSnapshot, TextEdit } from "./types.js";
++import { EditState, EditorSelection, EditorCaret, EditorChangeEvent, EditorEditCompleteEvent, EditorInitialState, EditorType, EditorViewState, Range, RetainedDiffSessionSnapshot, TextEdit } from "./types.js";
+ import { File } from "../components/File.js";
+ import { FileDiff } from "../components/FileDiff.js";
+ import { EditorKeymap } from "./command.js";
+@@ -31,6 +31,7 @@ interface SyncDiffRenderViewProps<LAnnotation> extends SyncRenderViewBaseProps {
+ type SyncRenderViewProps<EType extends EditorType, LAnnotation> = EType extends 'file' ? SyncFileRenderViewProps<LAnnotation> : SyncDiffRenderViewProps<LAnnotation>;
+ type EditorComponent<EType extends EditorType, LAnnotation, Caret> = EType extends 'file' ? File<LAnnotation, Caret> : FileDiff<LAnnotation, Caret>;
+ interface EditorOptions<EType extends EditorType, LAnnotation, Caret> {
++  readOnly?: boolean;
+   /** The maximum number of entries to keep in the undo stack. */
+   historyMaxEntries?: number;
+   /**
+@@ -119,6 +120,8 @@ interface EditorOptions<EType extends EditorType, LAnnotation, Caret> {
+    * missing. There is no way to accept or reject from this API.
+    */
+   onComplete?: (event: EditorEditCompleteEvent<EType, LAnnotation, Caret>) => void;
++  /** Observe normalized document selections without reading editor DOM. */
++  onSelectionChange?: (selections: EditorSelection[]) => void;
+   /** Callback when the editor gains focus. */
+   onFocus?: () => void;
+   /** Callback when the editor loses focus. */
+@@ -180,6 +183,11 @@ declare class Editor<EType extends EditorType = EditorType, LAnnotation = undefi
+    */
+   getEditState(): EditState<EType, LAnnotation> | undefined;
+   setViewState({ selections, view }: EditorViewState): void;
++  setReadOnly(readOnly: boolean): void;
++  setFoldingRanges(ranges: Array<{ startLine: number; endLine: number }>): void;
++  toggleFold(line: number): void;
++  getPositionRect(position: { line: number; character: number }): DOMRect | undefined;
++  setSemanticTokens(tokens: Array<{ range: Range; color: string }>): void;
+   setSelections(selections: (Range & {
+     direction: 'none' | 'backward' | 'forward';
+   })[]): void;
+diff --git a/dist/editor/editor.js b/dist/editor/editor.js
+index d11f1c700251c318405e03404d01e7a596a14564..bc904740df7a7741d1a0444141c78a72e310ce10 100644
+--- a/dist/editor/editor.js
++++ b/dist/editor/editor.js
+@@ -75,6 +75,10 @@ var Editor = class {
+ 	#editSession;
+ 	#metrics = new Metrics();
+ 	#tokenizer;
++	#languageTokens = new Map();
++	#semanticTokens = new Map();
++	#foldingRanges = [];
++	#foldedLines = new Set();
+ 	#popoverManager;
+ 	#editorEventDisposes;
+ 	#globalEventDisposes;
+@@ -163,7 +167,7 @@ var Editor = class {
+ 			for (const [line, tokens] of lines) if (line >= startingLine && line < endLine) {
+ 				const lineElement = this.#getLineElement(line);
+ 				if (lineElement !== void 0) {
+-					lineElement.replaceChildren(...renderLineTokens(tokens));
++					lineElement.replaceChildren(...this.#renderLanguageTokens(tokens, line));
+ 					refreshPrediction ||= predictionLines?.has(line) === true;
+ 				}
+ 			}
+@@ -410,6 +414,107 @@ var Editor = class {
+ 		} else if (this.#ownsVerticalViewport) this.#scrollToPrimaryCaret();
+ 		this.#checkpointEditSessionState();
+ 	}
++
++	/** Viewport coordinates for app-owned language popovers. */
++	setReadOnly(readOnly) {
++		this.#options.readOnly = readOnly;
++		if (this.#contentElement != null) {
++			this.#contentElement.contentEditable = String(!readOnly);
++			this.#contentElement.setAttribute("aria-readonly", String(readOnly));
++			this.#contentElement.tabIndex = 0;
++		}
++	}
++	setFoldingRanges(ranges) {
++		this.#foldingRanges = ranges;
++		this.#foldedLines = new Set([...this.#foldedLines].filter(line => ranges.some(range => range.startLine === line)));
++		this.#applyFolding();
++	}
++	toggleFold(line) {
++		const range = this.#foldingRanges.find(range => range.startLine === line);
++		if (range == null) return;
++		if (this.#foldedLines.has(line)) this.#foldedLines.delete(line);
++		else {
++			this.focus({ lineNumber: line + 1, character: 0 });
++			this.#foldedLines.add(line);
++		}
++		this.#applyFolding();
++		this.#updateSelections(this.#selections ?? []);
++	}
++	#applyFolding() {
++		if (this.#isDiff) return;
++		const ranges = this.#foldingRanges.filter(range => this.#foldedLines.has(range.startLine));
++		const hidden = line => ranges.some(range => line > range.startLine && line <= range.endLine);
++		for (const column of [this.#contentElement, this.#gutterElement]) {
++			if (column == null) continue;
++			for (const row of column.children) {
++				const number = getLineNumberAttr(row) ?? getLineNumberAttr(row, "columnNumber");
++				if (number == null) continue;
++				if (hidden(number - 1)) { row.style.display = "none"; row.dataset.languageFolded = ""; }
++				else if (row.hasAttribute("data-language-folded")) { row.style.removeProperty("display"); delete row.dataset.languageFolded; }
++			}
++		}
++		this.#lineYCache.clear();
++	}
++	getPositionRect(position) {
++		if (!this.#isLineVisible(position.line) || this.#overlayElement == null) return;
++		const [left, wrapLine] = this.#getCharX(position.line, position.character);
++		const rect = this.#overlayElement.getBoundingClientRect();
++		return new DOMRect(rect.left + left, rect.top + this.#getLineY(position.line) + wrapLine * this.#metrics.lineHeight, this.#metrics.ch, this.#metrics.lineHeight);
++	}
++	/** Semantic colors augment Pierre's syntax tokens without editing document text. */
++	setSemanticTokens(tokens) {
++		this.#semanticTokens.clear();
++		for (const token of tokens) {
++			const line = token.range.start.line;
++			if (token.range.end.line !== line) continue;
++			const entries = this.#semanticTokens.get(line) ?? [];
++			entries.push(token); this.#semanticTokens.set(line, entries);
++		}
++		const document = this.#editSession?.document;
++		if (document == null) return;
++		for (let line = 0; line < document.lineCount; line++) {
++			const element = this.#getLineElement(line);
++			if (element == null) continue;
++			let base = this.#languageTokens.get(line);
++			if (base == null) {
++				let offset = 0;
++				base = Array.from(element.childNodes).map(node => {
++					const text = node.textContent ?? "";
++					const token = [offset, node.nodeType === 1 ? node.style?.color ?? "" : "", text];
++					offset += text.length; return token;
++				});
++			}
++			element.replaceChildren(...this.#renderLanguageTokens(base, line));
++		}
++		const primary = this.#selections?.at(-1);
++		if (primary != null && this.#contentHasFocus) {
++			this.#shouldIgnoreSelectionChange = true;
++			this.#setWindowSelection(primary);
++			queueMicrotask(() => { this.#shouldIgnoreSelectionChange = false; });
++		}
++	}
++	#renderLanguageTokens(tokens, line) {
++		this.#languageTokens.set(line, tokens);
++		const semantic = this.#semanticTokens.get(line);
++		if (semantic == null || semantic.length === 0) return renderLineTokens(tokens);
++		const result = [];
++		for (const [start, color, text] of tokens) {
++			const end = start + text.length;
++			const boundaries = new Set([start, end]);
++			for (const token of semantic) {
++				if (token.range.start.character > start && token.range.start.character < end) boundaries.add(token.range.start.character);
++				if (token.range.end.character > start && token.range.end.character < end) boundaries.add(token.range.end.character);
++			}
++			const offsets = Array.from(boundaries).sort((a, b) => a - b);
++			if (text.length === 0) result.push([start, color, text]);
++			for (let i = 0; i + 1 < offsets.length; i++) {
++				const a = offsets[i], b = offsets[i + 1];
++				const token = semantic.find(token => token.range.start.character <= a && token.range.end.character >= b);
++				result.push([a, token?.color ?? color, text.slice(a - start, b - start)]);
++			}
++		}
++		return renderLineTokens(result);
++	}
+ 	setSelections(selections) {
+ 		const textDocument = this.#editSession?.document;
+ 		if (textDocument === void 0) throw new Error("Editor.setSelections: Text document is not initialized");
+@@ -499,6 +604,8 @@ var Editor = class {
+ 		dequeueRender(this.#handleCustomPasteEvent);
+ 		this.#tokenizer?.cleanUp();
+ 		this.#tokenizer = void 0;
++		this.#semanticTokens.clear();
++		this.#languageTokens.clear();
+ 		this.#globalEventDisposes?.forEach((dispose) => dispose());
+ 		this.#globalEventDisposes = void 0;
+ 		this.#editorEventDisposes?.forEach((dispose) => dispose());
+@@ -827,6 +934,9 @@ var Editor = class {
+ 		};
+ 	}
+ 	#revealLineIfCollapsed(line) {
++		let revealed = false;
++		for (const range of this.#foldingRanges) if (line > range.startLine && line <= range.endLine && this.#foldedLines.has(range.startLine)) { this.#foldedLines.delete(range.startLine); revealed = true; }
++		if (revealed) this.#applyFolding();
+ 		if (!this.#isLineRenderable(line)) this.#fileDiffInstance?.revealLine?.(line + 1);
+ 	}
+ 	get #diffSyle() {
+@@ -1331,6 +1441,7 @@ var Editor = class {
+ 		if (this.#isDiff && this.#diffSyle === "split" && this.#isWrap) return this.#contentOffset;
+ 	}
+ 	#runCommand(command) {
++		if (this.#options.readOnly && !["selectAll", "openSearchPanel", "findNextMatch", "simplifySelection", "moveCursorToDocStart", "moveCursorToDocEnd", "expandSelectionDocStart", "expandSelectionDocEnd"].includes(command)) return;
+ 		const textDocument = this.#editSession?.document;
+ 		if (textDocument == null) return;
+ 		switch (command) {
+@@ -1808,6 +1919,10 @@ var Editor = class {
+ 		if (tokenizer == null || fileInstance == null || applyDocumentChange == null || textDocument == null || contentEl == null) return;
+ 		tokenizer.stopBackgroundTokenize();
+ 		const t = performance.now();
++		this.#semanticTokens.clear();
++		this.#languageTokens.clear();
++		this.#foldedLines.clear();
++		this.#applyFolding();
+ 		const dirtyLines = tokenizer.tokenize(change, renderRange, !this.#isDiff && this.#virtualizedInstance != null);
+ 		const t2 = performance.now();
+ 		if (dirtyLines.size > 0) {
+@@ -1823,7 +1938,7 @@ var Editor = class {
+ 					const lineIndex = lineNumber - 1;
+ 					if (dirtyLineIndexes.has(lineIndex)) {
+ 						const tokens = dirtyLines.get(lineIndex);
+-						child.replaceChildren(...renderLineTokens(tokens));
++						child.replaceChildren(...this.#renderLanguageTokens(tokens, lineIndex));
+ 						dirtyLineIndexes.delete(lineIndex);
+ 						if (dirtyLineIndexes.size === 0) break;
+ 					}
+@@ -1849,7 +1964,7 @@ var Editor = class {
+ 							lineType: "context",
+ 							lineIndex: lineIndex.toString()
+ 						},
+-						children: renderLineTokens(tokens)
++						children: this.#renderLanguageTokens(tokens, lineIndex)
+ 					}, contentEl);
+ 					if (gutterEl !== void 0) h("div", {
+ 						dataset: {
+@@ -1897,6 +2012,7 @@ var Editor = class {
+ 		if (this.#options.__debug === true) console.log(`[diffs/editor] re-render in: ${round(performance.now() - t2)}ms,`, `tokenize in: ${round(t2 - t)}ms (${dirtyLines.size} dirty lines)`);
+ 	}
+ 	#handleInput(inputType, data) {
++		if (this.#options.readOnly) return;
+ 		switch (inputType) {
+ 			case "insertText": {
+ 				const text = data ?? "";
+@@ -2750,7 +2866,10 @@ var Editor = class {
+ 				break;
+ 			}
+ 		}
+-		if (selectionsChanged) this.#cancelEditPrediction(true);
++		if (selectionsChanged) {
++			this.#cancelEditPrediction(true);
++			this.#options.onSelectionChange?.(selections.map(selection => ({ ...selection, start: { ...selection.start }, end: { ...selection.end } })));
++		}
+ 		this.#syncEditPredictionSpacers();
+ 		this.#primaryCaretElement = void 0;
+ 		this.#setEditorActiveLineSafe(null);
+@@ -2836,6 +2955,7 @@ var Editor = class {
+ 		this.#overlayElements?.forEach((el) => el.remove());
+ 		this.#overlayElements?.clear();
+ 		this.#overlayElements = renderCtx.elements;
++		this.#applyFolding();
+ 		this.#updateSelectionActionPopover();
+ 		if (selectionsChanged) this.#scheduleEditPrediction();
+ 	}
+@@ -3287,6 +3407,7 @@ var Editor = class {
+ 		if (selectionTexts.length > 1) clipboardData.setData(MULTI_SELECTION_CLIPBOARD_TYPE, JSON.stringify(selectionTexts));
+ 	}
+ 	#cutSelectionText() {
++		if (this.#options.readOnly) return this.#getSelectionText();
+ 		const textDocument = this.#editSession?.document;
+ 		const selections = this.#selections;
+ 		if (textDocument === void 0 || selections === void 0 || selections.length === 0) return "";
+@@ -3317,6 +3438,7 @@ var Editor = class {
+ 		this.#applyChange(change, nextSelections, this.#applyChangeToLineAnnotations(change));
+ 	}
+ 	#replaceSelectionText(text, selections = this.#selections, undoBoundary = false, textOrder = "selection") {
++		if (this.#options.readOnly) return;
+ 		if (selections === void 0) return;
+ 		const textDocument = this.#editSession?.document;
+ 		const primarySelection = selections.at(-1);
+@@ -3329,6 +3451,7 @@ var Editor = class {
+ 		if (change !== void 0) this.#applyChange(change, nextSelections, this.#applyChangeToLineAnnotations(change));
+ 	}
+ 	#deleteSelectionText(forward = false) {
++		if (this.#options.readOnly) return;
+ 		const selections = this.#selections;
+ 		const textDocument = this.#editSession?.document;
+ 		if (selections === void 0 || textDocument === void 0) return;
+diff --git a/dist/node_modules/.pnpm/@types_hast@3.0.4/node_modules/@types/hast/index.d.ts b/home/pingu/.cache/.bun/install/cache/@pierre/diffs@1.4.3@@@1/dist/node_modules/.pnpm/@types_hast@3.0.4/node_modules/@types/hast/index.d.ts
+deleted file mode 100644
+index 1816597e1f4af3b308de4b0e2be4567e2708cbf2..0000000000000000000000000000000000000000
+diff --git a/dist/node_modules/.pnpm/@types_hast@3.0.4/node_modules/@types/hast/index.d.ts.map b/home/pingu/.cache/.bun/install/cache/@pierre/diffs@1.4.3@@@1/dist/node_modules/.pnpm/@types_hast@3.0.4/node_modules/@types/hast/index.d.ts.map
+deleted file mode 100644
+index 8582fd3ae0fb63d16294c45889d20056da9101bd..0000000000000000000000000000000000000000
+diff --git a/dist/node_modules/.pnpm/@types_unist@3.0.3/node_modules/@types/unist/index.d.ts b/home/pingu/.cache/.bun/install/cache/@pierre/diffs@1.4.3@@@1/dist/node_modules/.pnpm/@types_unist@3.0.3/node_modules/@types/unist/index.d.ts
+deleted file mode 100644
+index 2585a93cda92ee9cd970e141061914ce25d62890..0000000000000000000000000000000000000000
+diff --git a/dist/node_modules/.pnpm/@types_unist@3.0.3/node_modules/@types/unist/index.d.ts.map b/home/pingu/.cache/.bun/install/cache/@pierre/diffs@1.4.3@@@1/dist/node_modules/.pnpm/@types_unist@3.0.3/node_modules/@types/unist/index.d.ts.map
+deleted file mode 100644
+index ed62f9a073e6c6911b7b8d35adfc8eaaebb345e9..0000000000000000000000000000000000000000

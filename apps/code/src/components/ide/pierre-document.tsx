@@ -85,6 +85,7 @@ export function PierreDocument({
 }) {
   const [ready, setReady] = React.useState(false)
   const [error, setError] = React.useState('')
+  const [hoveredLine, setHoveredLine] = React.useState<number | null>(null)
   const editorRef = React.useRef<PierreEditor | null>(null)
   const bracketInputListenerRef = React.useRef<{
     host: HTMLElement
@@ -418,6 +419,23 @@ export function PierreDocument({
     <div
       className="min-h-0 flex-1 overflow-auto"
       onKeyDownCapture={onCommand}
+      onPointerMove={(event) => {
+        const row = event.nativeEvent
+          .composedPath()
+          .find(
+            (node): node is HTMLElement =>
+              node instanceof HTMLElement &&
+              (node.hasAttribute('data-line') ||
+                node.hasAttribute('data-line-index')),
+          )
+        if (row)
+          setHoveredLine(
+            row.hasAttribute('data-line')
+              ? Number(row.getAttribute('data-line')) - 1
+              : Number(row.getAttribute('data-line-index')),
+          )
+      }}
+      onPointerLeave={() => setHoveredLine(null)}
       onClickCapture={(event) => {
         if (!(event.ctrlKey || event.metaKey) || !onNavigate) return
         const root = event.nativeEvent
@@ -460,8 +478,8 @@ export function PierreDocument({
           editStateKey={sessionKey}
           editorOptions={options}
           onEditComplete={() => 'accept'}
-          renderGutterUtility={(getHoveredLine) => {
-            const line = getHoveredLine()?.lineNumber
+          renderGutterUtility={() => {
+            const line = hoveredLine === null ? undefined : hoveredLine + 1
             if (
               line === undefined ||
               !foldingRanges.some((range) => range.startLine === line - 1)
@@ -470,7 +488,9 @@ export function PierreDocument({
             return (
               <button
                 aria-label={`Toggle fold at line ${line}`}
-                onClick={() => editorRef.current?.toggleFold(line - 1)}
+                onClick={() => {
+                  editorRef.current?.toggleFold(line - 1)
+                }}
                 className="px-1 text-xs"
               >
                 ⌄

@@ -5,21 +5,29 @@ import type {
   CompletionItem,
   CompletionList,
   Diagnostic,
+  DocumentSymbol,
+  FoldingRange,
   Location,
   LocationLink,
   Position,
+  SemanticTokens,
+  SymbolInformation,
   TextEdit,
 } from 'vscode-languageserver-protocol'
 import type { ProjectTemplate } from '~/lib/ide/compile-commands'
 import type { Documents } from '~/lib/ide/workspace'
+import type { SemanticColor } from '~/lib/ide/semantic-tokens'
 import type { SnippetStop } from '~/lib/ide/snippets'
+import { decodeSemanticTokens } from '~/lib/ide/semantic-tokens'
 import { ClangdClient } from '~/lib/ide/clangd-client'
+import { symbolFoldingRanges } from '~/lib/ide/folding'
 import { compileCommands } from '~/lib/ide/compile-commands'
 import {
   applyTextEdits,
   fileUri,
   isDirty,
   positionOffset,
+  recoverDocuments,
   updateDocument,
   uriPath,
   workspaceDocuments,
@@ -64,9 +72,18 @@ export function WorkspaceEditor(props: Props) {
   const [documents, setDocuments] = React.useState<Documents>({})
   const documentsRef = React.useRef(documents)
   const commitRef = React.useRef('')
+  const conflictsRef = React.useRef<Array<string>>([])
+  const [conflicts, setConflicts] = React.useState<Array<string>>([])
+  const [analysis, setAnalysis] = React.useState<{
+    path: string
+    version: number
+    tokens: Array<SemanticColor>
+    folds: Array<FoldingRange>
+  } | null>(null)
   const clientRef = React.useRef<ClangdClient | null>(null)
   const editorRef = React.useRef<PierreEditor | null>(null)
   const [ready, setReady] = React.useState(false)
+  const [editorRevision, setEditorRevision] = React.useState(0)
   const [error, setError] = React.useState('')
   const [diagnostics, setDiagnostics] = React.useState<
     Record<string, Array<Diagnostic>>
@@ -116,6 +133,8 @@ export function WorkspaceEditor(props: Props) {
 
   React.useEffect(() => {
     let active = true
+    setReady(false)
+    setAnalysis(null)
     const isActive = () => active
     const client = new ClangdClient({
       status: () => {},
@@ -139,36 +158,34 @@ export function WorkspaceEditor(props: Props) {
     })
     clientRef.current = client
     void run(async () => {
-      const remote = await propsRef.current
+      const cached = await readWorkspace(props.workspaceId)
+      const loaded = await propsRef.current
         .loadSnapshot()
-        .catch(async (reason) => {
-          const cached = await readWorkspace(props.workspaceId)
+        .then((remote) => ({
+          commitSha: remote.commitSha,
+          recovered: recoverDocuments(remote.files, cached),
+        }))
+        .catch((reason) => {
           if (!cached) throw reason
           return {
-            files: Object.fromEntries(
-              workspaceDocuments(cached.documents).map((doc) => [
-                doc.path,
-                doc.contents,
-              ]),
-            ),
             commitSha: cached.commitSha,
+            recovered: {
+              documents: cached.documents,
+              conflicts: cached.conflicts ?? [],
+            },
           }
         })
-      const cached = await readWorkspace(props.workspaceId)
       if (!isActive()) return
-      const next: Documents = Object.fromEntries(
-        Object.entries(remote.files).map(([path, contents]) => [
-          path,
-          { path, contents, baseline: contents, version: 1 },
-        ]),
-      )
-      if (cached?.commitSha === remote.commitSha)
-        for (const doc of workspaceDocuments(cached.documents))
-          if (isDirty(doc)) next[doc.path] = doc
-      commitRef.current = remote.commitSha
+      const recovered = loaded.recovered
+      const next = recovered.documents
+      conflictsRef.current = recovered.conflicts
+      setConflicts(recovered.conflicts)
+      commitRef.current = loaded.commitSha
       publish(next)
       const files = Object.fromEntries(
-        workspaceDocuments(next).map((doc) => [doc.path, doc.contents]),
+        workspaceDocuments(next)
+          .filter((doc) => !doc.deleted)
+          .map((doc) => [doc.path, doc.contents]),
       )
       const response = await fetch('/language/sdk-manifest.json')
       if (!response.ok) throw new Error('Language SDK manifest is missing')
@@ -191,6 +208,10 @@ export function WorkspaceEditor(props: Props) {
   React.useEffect(() => {
     if (!ready) return
     for (const doc of workspaceDocuments(documents)) {
+      if (doc.deleted) {
+        clientRef.current?.remove(doc.path)
+        continue
+      }
       if (
         /\.(c|cc|cpp|cxx)$/.test(doc.path) ||
         (/\.(h|hpp|hxx)$/.test(doc.path) &&
@@ -201,6 +222,69 @@ export function WorkspaceEditor(props: Props) {
     }
   }, [documents, props.selectedFile, ready])
   React.useEffect(() => {
+    setAnalysis(null)
+    const client = clientRef.current
+    if (
+      !ready ||
+      !client?.ready ||
+      !selected ||
+      selected.deleted ||
+      sdkHeader ||
+      !/\.(c|cc|cpp|cxx|h|hpp|hxx)$/.test(selected.path)
+    )
+      return
+    const controller = new AbortController()
+    const { path, version } = selected
+    const params = { textDocument: { uri: fileUri(path) } }
+    const timer = setTimeout(() => {
+      const provider = client.capabilities.semanticTokensProvider
+      const tokens =
+        provider && provider.full
+          ? client
+              .request<SemanticTokens | null>(
+                'textDocument/semanticTokens/full',
+                params,
+                controller.signal,
+              )
+              .then((result) =>
+                result ? decodeSemanticTokens(result, provider.legend) : [],
+              )
+          : Promise.resolve([])
+      const folds = client.capabilities.foldingRangeProvider
+        ? client
+            .request<Array<FoldingRange> | null>(
+              'textDocument/foldingRange',
+              params,
+              controller.signal,
+            )
+            .then((result) => result ?? [])
+        : client.capabilities.documentSymbolProvider
+          ? client
+              .request<Array<DocumentSymbol> | Array<SymbolInformation> | null>(
+                'textDocument/documentSymbol',
+                params,
+                controller.signal,
+              )
+              .then((symbols) => symbolFoldingRanges(symbols ?? []))
+          : Promise.resolve([])
+      void Promise.all([tokens, folds])
+        .then(([colors, ranges]) => {
+          if (
+            !controller.signal.aborted &&
+            documentsRef.current[path]?.version === version
+          )
+            setAnalysis({ path, version, tokens: colors, folds: ranges })
+        })
+        .catch((reason) => {
+          if (!controller.signal.aborted) setError(String(reason))
+        })
+    }, 180)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [ready, selected?.path, selected?.version, sdkHeader])
+  React.useEffect(() => {
     props.onDirtyChange(workspaceDocuments(documents).some(isDirty))
     if (Object.keys(documents).length)
       props.onPathsChange(Object.keys(documents).sort())
@@ -208,6 +292,7 @@ export function WorkspaceEditor(props: Props) {
     const timer = setTimeout(() => {
       void writeWorkspace(props.workspaceId, {
         documents,
+        conflicts,
         commitSha: commitRef.current,
         tabs: [],
         selectedFile: props.selectedFile,
@@ -215,7 +300,7 @@ export function WorkspaceEditor(props: Props) {
       }).catch(() => {})
     }, 250)
     return () => clearTimeout(timer)
-  }, [documents, props.selectedFile])
+  }, [documents, props.selectedFile, conflicts])
   React.useEffect(() => {
     setSdkHeader(null)
     setCompletions([])
@@ -224,20 +309,26 @@ export function WorkspaceEditor(props: Props) {
   React.useEffect(() => {
     const save = async () => {
       if (saving.current) return
+      if (conflictsRef.current.length)
+        throw new Error('Review recovered drafts before committing.')
       const changed = workspaceDocuments(documentsRef.current).filter(isDirty)
       if (!changed.length) return
       saving.current = true
       propsRef.current.onSavingChange(true)
       try {
         const sha = await propsRef.current.commitChanges(
-          changed.map((doc) => ({ path: doc.path, contents: doc.contents })),
+          changed.map((doc) => ({
+            path: doc.path,
+            contents: doc.deleted ? null : doc.contents,
+          })),
           commitRef.current,
           'Update project',
         )
         commitRef.current = sha
         const next = { ...documentsRef.current }
         for (const doc of changed)
-          if (next[doc.path])
+          if (doc.deleted) delete next[doc.path]
+          else if (next[doc.path])
             next[doc.path] = { ...next[doc.path]!, baseline: doc.contents }
         publish(next)
       } finally {
@@ -458,16 +549,91 @@ export function WorkspaceEditor(props: Props) {
           {error}
         </p>
       )}
-      {shown && (
+      {conflicts.map((path) => (
+        <div
+          key={path}
+          role="alert"
+          className="flex flex-wrap items-center gap-2 px-3 py-2 text-xs"
+        >
+          <span>
+            {path} changed remotely. Your draft is preserved. Review it before
+            committing.
+          </span>
+          <button className="underline" onClick={() => props.onSelect(path)}>
+            Review draft
+          </button>
+          {['Keep draft', 'Use incoming'].map((label) => (
+            <button
+              key={label}
+              className="underline"
+              onClick={() => {
+                if (label === 'Use incoming') {
+                  const next = { ...documentsRef.current }
+                  const doc = next[path]!
+                  if (doc.baseline === null) delete next[path]
+                  else
+                    next[path] = {
+                      ...doc,
+                      contents: doc.baseline,
+                      deleted: false,
+                      version: doc.version + 1,
+                    }
+                  const editor = editorRef.current
+                  if (
+                    props.selectedFile === path &&
+                    editor &&
+                    !sdkHeader &&
+                    doc.baseline !== null
+                  ) {
+                    const text = editor.getText()
+                    editor.applyEdits([
+                      {
+                        range: {
+                          start: { line: 0, character: 0 },
+                          end: offsetPosition(text, text.length),
+                        },
+                        newText: doc.baseline,
+                      },
+                    ])
+                  }
+                  publish(next)
+                  setEditorRevision((revision) => revision + 1)
+                }
+                conflictsRef.current = conflictsRef.current.filter(
+                  (entry) => entry !== path,
+                )
+                setConflicts(conflictsRef.current)
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      ))}
+      {shown && !('deleted' in shown && shown.deleted) && (
         <PierreDocument
-          key={shown.path}
+          key={`${shown.path}:${editorRevision}`}
           path={shown.path}
           contents={shown.contents}
-          sessionKey={`${props.workspaceId}:${shown.path}`}
+          sessionKey={`${props.workspaceId}:${shown.path}:${editorRevision}`}
           diagnostics={
             sdkHeader
               ? emptyDiagnostics
               : (diagnostics[shown.path] ?? emptyDiagnostics)
+          }
+          semanticTokens={
+            analysis?.path === shown.path &&
+            analysis.version === selected?.version &&
+            !sdkHeader
+              ? analysis.tokens
+              : []
+          }
+          foldingRanges={
+            analysis?.path === shown.path &&
+            analysis.version === selected?.version &&
+            !sdkHeader
+              ? analysis.folds
+              : []
           }
           readOnly={!!sdkHeader}
           focusPosition={

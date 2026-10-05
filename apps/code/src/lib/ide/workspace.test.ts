@@ -5,10 +5,12 @@ import {
   fileUri,
   isDirty,
   positionOffset,
+  recoverDocuments,
   searchWorkspace,
   uriPath,
 } from './workspace'
 import { compileCommands } from './compile-commands'
+import { symbolFoldingRanges } from './folding'
 import { decodeSemanticTokens } from './semantic-tokens'
 import type { Documents } from './workspace'
 
@@ -162,4 +164,84 @@ describe('language configuration', () => {
       ),
     ).toThrow()
   })
+})
+
+describe('draft recovery', () => {
+  test('preserves drafts while loading unrelated incoming changes', () => {
+    const result = recoverDocuments(
+      { 'a.cpp': 'old', 'b.cpp': 'incoming' },
+      {
+        documents: { 'a.cpp': { ...doc('a.cpp', 'old'), contents: 'draft' } },
+      },
+    )
+    expect(result.documents['a.cpp']?.contents).toBe('draft')
+    expect(result.documents['b.cpp']?.contents).toBe('incoming')
+    expect(result.conflicts).toEqual([])
+  })
+  test('retains both versions when incoming changes overlap a draft', () => {
+    const result = recoverDocuments(
+      { 'a.cpp': 'incoming' },
+      {
+        documents: { 'a.cpp': { ...doc('a.cpp', 'old'), contents: 'draft' } },
+      },
+    )
+    expect(result.documents['a.cpp']?.contents).toBe('draft')
+    expect(result.documents['a.cpp']?.baseline).toBe('incoming')
+    expect(result.conflicts).toEqual(['a.cpp'])
+    expect(recoverDocuments({ 'a.cpp': 'incoming' }, result).conflicts).toEqual(
+      ['a.cpp'],
+    )
+  })
+  test('preserves drafts for remotely deleted files and detects addition collisions', () => {
+    const result = recoverDocuments(
+      { 'new.cpp': 'incoming' },
+      {
+        documents: {
+          'a.cpp': { ...doc('a.cpp', 'old'), contents: 'draft' },
+          'new.cpp': { ...doc('new.cpp', 'draft'), baseline: null },
+        },
+      },
+    )
+    expect(result.documents['a.cpp']?.baseline).toBeNull()
+    expect(result.documents['a.cpp']?.contents).toBe('draft')
+    expect(result.conflicts).toEqual(['a.cpp', 'new.cpp'])
+  })
+  test('recognizes already committed drafts and retains local deletions', () => {
+    const result = recoverDocuments(
+      { 'a.cpp': 'draft', 'b.cpp': 'old' },
+      {
+        documents: {
+          'a.cpp': { ...doc('a.cpp', 'old'), contents: 'draft' },
+          'b.cpp': { ...doc('b.cpp', 'old'), deleted: true },
+        },
+      },
+    )
+    expect(isDirty(result.documents['a.cpp']!)).toBe(false)
+    expect(isDirty(result.documents['b.cpp']!)).toBe(true)
+    expect(result.conflicts).toEqual([])
+  })
+})
+
+test('folding includes nested multiline symbols and skips single-line declarations', () => {
+  const symbol = (start: number, end: number) => ({
+    name: 'symbol',
+    kind: 12 as const,
+    range: {
+      start: { line: start, character: 0 },
+      end: { line: end, character: 1 },
+    },
+    selectionRange: {
+      start: { line: start, character: 0 },
+      end: { line: start, character: 1 },
+    },
+  })
+  expect(
+    symbolFoldingRanges([
+      { ...symbol(0, 10), children: [symbol(2, 5), symbol(6, 6)] },
+      symbol(0, 8),
+    ]),
+  ).toEqual([
+    { startLine: 0, endLine: 10 },
+    { startLine: 2, endLine: 5 },
+  ])
 })

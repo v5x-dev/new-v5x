@@ -10,6 +10,7 @@ const database = () =>
     request.onerror = () => reject(request.error)
   })
 export interface SavedWorkspace {
+  conflicts?: Array<string>
   template?: ProjectTemplate
   documents: Documents
   commitSha: string

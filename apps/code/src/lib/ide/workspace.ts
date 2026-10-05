@@ -205,3 +205,33 @@ export function searchWorkspace(
   }
   return results
 }
+
+/** Rebase drafts only when the incoming file still matches their baseline. */
+export function recoverDocuments(
+  files: Record<string, string>,
+  cached?: { documents: Documents; conflicts?: Array<string> },
+) {
+  const documents: Documents = Object.fromEntries(
+    Object.entries(files).map(([path, contents]) => [
+      path,
+      { path, contents, baseline: contents, version: 1 },
+    ]),
+  )
+  const conflicts = new Set<string>()
+  for (const draft of workspaceDocuments(cached?.documents ?? {})) {
+    if (!isDirty(draft) && !cached?.conflicts?.includes(draft.path)) continue
+    const incoming = files[draft.path] ?? null
+    documents[draft.path] = {
+      ...draft,
+      baseline: incoming,
+      version: draft.version + 1,
+    }
+    if (
+      cached?.conflicts?.includes(draft.path) ||
+      (incoming !== draft.baseline &&
+        incoming !== (draft.deleted ? null : draft.contents))
+    )
+      conflicts.add(draft.path)
+  }
+  return { documents, conflicts: [...conflicts] }
+}

@@ -203,7 +203,6 @@ export function PierreDocument({
             true,
           )
           bracketInputListenerRef.current = null
-          editorRef.current = null
         }
         return
       }
@@ -231,7 +230,14 @@ export function PierreDocument({
 
   const initial = React.useRef({ name: path, contents })
   const createEditor = React.useCallback<EditorFactory<undefined, undefined>>(
-    (type, options, key) => new Editor(type, options, key),
+    (type, options, key) => {
+      const editor = new Editor(type, options, key)
+      if (type === 'file') {
+        editorRef.current = editor as PierreEditor
+        callbacks.current.onEditor(editor as PierreEditor)
+      }
+      return editor
+    },
     [],
   )
   const markers = (editor: PierreEditor, entries: Array<Diagnostic>) =>

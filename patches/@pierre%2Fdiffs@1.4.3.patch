@@ -102,7 +102,7 @@ index d11f1c700251c318405e03404d01e7a596a14564..bc904740df7a7741d1a0444141c78a72
 +		for (const column of [this.#contentElement, this.#gutterElement]) {
 +			if (column == null) continue;
 +			for (const row of column.children) {
-+				const number = getLineNumberAttr(row);
++				const number = getLineNumberAttr(row) ?? getLineNumberAttr(row, "columnNumber");
 +				if (number == null) continue;
 +				if (hidden(number - 1)) { row.style.display = "none"; row.dataset.languageFolded = ""; }
 +				else if (row.hasAttribute("data-language-folded")) { row.style.removeProperty("display"); delete row.dataset.languageFolded; }

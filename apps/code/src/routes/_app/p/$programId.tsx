@@ -17,6 +17,7 @@ import {
 } from '@v5x/serial'
 import { createBrowserAdapter } from '@v5x/serial/browser'
 import { api } from '../../../../convex/_generated/api'
+import type { FileOperations } from '~/lib/ide/file-operations'
 import type { AdapterSerialPort } from '@v5x/serial'
 import type { Id } from '../../../../convex/_generated/dataModel'
 import { WorkspaceEditor } from '~/components/ide/workspace-editor'
@@ -116,6 +117,7 @@ function RouteComponent() {
     port: AdapterSerialPort
     onDisconnect: () => void
   } | null>(null)
+  const fileOperationsRef = React.useRef<FileOperations | null>(null)
   const saveHandlerRef = React.useRef<(() => Promise<void>) | null>(null)
   const buildGenerationRef = React.useRef(0)
   const restoredBuildCommitRef = React.useRef<string | null>(null)
@@ -477,7 +479,7 @@ function RouteComponent() {
     paths === null ? null : [...new Set([...paths, ...buildFiles])]
   const firstFile = paths?.includes('src/main.cpp')
     ? 'src/main.cpp'
-    : (paths?.[0] ?? buildFiles[0])
+    : (paths?.at(0) ?? buildFiles.at(0))
   const activeFile =
     selectedFile && treePaths?.includes(selectedFile) ? selectedFile : firstFile
   const buildButtonLabel = isBuilding
@@ -511,11 +513,13 @@ function RouteComponent() {
             </SidebarHeader>
           ) : null}
           <SidebarContent className="min-h-0 p-0">
-            {treePaths?.length ? (
+            {treePaths ? (
               <ProgramFileTree
-                key={JSON.stringify(treePaths)}
+                fileOperationsRef={fileOperationsRef}
+                disabled={isSaving || isUploading || isBuilding}
+                readOnlyPaths={buildFiles}
                 paths={treePaths}
-                selectedFile={activeFile}
+                selectedFile={activeFile ?? ''}
                 onSelect={(path) => {
                   if (isSaving || isUploading) return false
                   setSelectedFile(path)
@@ -690,35 +694,49 @@ function RouteComponent() {
             <p className="p-4 text-sm text-muted-foreground">
               Program not found.
             </p>
-          ) : buildFiles.includes(activeFile) ? (
-            <div className="p-4 text-sm text-muted-foreground">
-              <p className="font-medium text-foreground">Build artifact</p>
-              <p className="mt-1">{activeFile}</p>
-              <p className="mt-2">Temporary output; not committed to Git.</p>
-            </div>
           ) : (
-            <WorkspaceEditor
-              key={programId}
-              workspaceId={programId}
-              template={program.template ?? 'vexcode'}
-              commitSha={program.currentCommitSha}
-              buildOutput={buildOutput}
-              loadSnapshot={() => loadWorkspace({ programId })}
-              commitChanges={(changes, expectedCommitSha, message) =>
-                commitWorkspace({
-                  programId,
-                  changes,
-                  expectedCommitSha,
-                  message,
-                })
-              }
-              onSelect={setSelectedFile}
-              onPathsChange={setPaths}
-              selectedFile={activeFile}
-              onDirtyChange={setHasUnsavedChanges}
-              onSavingChange={setIsSaving}
-              saveHandlerRef={saveHandlerRef}
-            />
+            <>
+              {activeFile && buildFiles.includes(activeFile) && (
+                <div className="p-4 text-sm text-muted-foreground">
+                  <p className="font-medium text-foreground">Build artifact</p>
+                  <p className="mt-1">{activeFile}</p>
+                  <p className="mt-2">
+                    Temporary output; not committed to Git.
+                  </p>
+                </div>
+              )}
+              <div
+                className={
+                  activeFile && buildFiles.includes(activeFile)
+                    ? 'hidden'
+                    : 'h-full min-h-0'
+                }
+              >
+                <WorkspaceEditor
+                  key={programId}
+                  workspaceId={programId}
+                  template={program.template ?? 'vexcode'}
+                  commitSha={program.currentCommitSha}
+                  buildOutput={buildOutput}
+                  loadSnapshot={() => loadWorkspace({ programId })}
+                  commitChanges={(changes, expectedCommitSha, message) =>
+                    commitWorkspace({
+                      programId,
+                      changes,
+                      expectedCommitSha,
+                      message,
+                    })
+                  }
+                  onSelect={setSelectedFile}
+                  onPathsChange={setPaths}
+                  selectedFile={activeFile ?? ''}
+                  onDirtyChange={setHasUnsavedChanges}
+                  onSavingChange={setIsSaving}
+                  saveHandlerRef={saveHandlerRef}
+                  fileOperationsRef={fileOperationsRef}
+                />
+              </div>
+            </>
           )}
         </SidebarInset>
       </SidebarProvider>

@@ -12,6 +12,7 @@ import {
   SidebarInset,
   SidebarProvider,
 } from './components/ui/sidebar'
+import type { FileOperations } from '~/lib/ide/file-operations'
 import type { ProjectTemplate } from './lib/ide/compile-commands'
 import './styles/app.css'
 
@@ -44,13 +45,14 @@ function ValidationWorkspace() {
   const [paths, setPaths] = React.useState<Array<string>>([])
   const [sha, setSha] = React.useState('validation-initial')
   const repository = React.useRef({ ...templates[template] })
+  const fileOperationsRef = React.useRef<FileOperations | null>(null)
   const saveHandlerRef = React.useRef<(() => Promise<void>) | null>(null)
   return (
     <SidebarProvider className="h-svh min-h-0 overflow-hidden">
       <Sidebar variant="floating">
         <SidebarContent className="min-h-0 p-0">
           <ProgramFileTree
-            key={JSON.stringify(paths)}
+            fileOperationsRef={fileOperationsRef}
             paths={paths}
             selectedFile={path}
             onSelect={(file) => {
@@ -107,6 +109,7 @@ function ValidationWorkspace() {
           onDirtyChange={() => {}}
           onSavingChange={() => {}}
           saveHandlerRef={saveHandlerRef}
+          fileOperationsRef={fileOperationsRef}
         />
       </SidebarInset>
     </SidebarProvider>

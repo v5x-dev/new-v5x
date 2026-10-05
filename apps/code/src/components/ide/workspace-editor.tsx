@@ -18,6 +18,7 @@ import type { ProjectTemplate } from '~/lib/ide/compile-commands'
 import type { Documents } from '~/lib/ide/workspace'
 import type { SemanticColor } from '~/lib/ide/semantic-tokens'
 import type { SnippetStop } from '~/lib/ide/snippets'
+import type { FileOperations } from '~/lib/ide/file-operations'
 import { decodeSemanticTokens } from '~/lib/ide/semantic-tokens'
 import { ClangdClient } from '~/lib/ide/clangd-client'
 import { symbolFoldingRanges } from '~/lib/ide/folding'
@@ -37,6 +38,11 @@ import {
   offsetPosition,
   remapSnippetStops,
 } from '~/lib/ide/snippets'
+import {
+  applyFileOperation,
+  readFiles,
+  withinPath,
+} from '~/lib/ide/file-operations'
 import { readWorkspace, writeWorkspace } from '~/lib/ide/persistence'
 
 export interface ProjectSnapshot {
@@ -63,6 +69,7 @@ interface Props {
   onDirtyChange: (dirty: boolean) => void
   onSavingChange: (saving: boolean) => void
   buildOutput?: string
+  fileOperationsRef?: { current: FileOperations | null }
   saveHandlerRef: { current: (() => Promise<void>) | null }
 }
 const emptyDiagnostics: Array<Diagnostic> = []
@@ -80,6 +87,7 @@ export function WorkspaceEditor(props: Props) {
     tokens: Array<SemanticColor>
     folds: Array<FoldingRange>
   } | null>(null)
+  const syncedPathsRef = React.useRef(new Set<string>())
   const clientRef = React.useRef<ClangdClient | null>(null)
   const editorRef = React.useRef<PierreEditor | null>(null)
   const [ready, setReady] = React.useState(false)
@@ -119,6 +127,10 @@ export function WorkspaceEditor(props: Props) {
   const suppressCompletion = React.useRef(false)
   const selected = documents[props.selectedFile]
   const publish = (next: Documents) => {
+    for (const doc of workspaceDocuments(documentsRef.current)) {
+      if (!doc.deleted && (!next[doc.path] || next[doc.path]?.deleted))
+        clientRef.current?.remove(doc.path)
+    }
     documentsRef.current = next
     setDocuments(next)
   }
@@ -191,6 +203,7 @@ export function WorkspaceEditor(props: Props) {
       if (!response.ok) throw new Error('Language SDK manifest is missing')
       const manifest = (await response.json()) as { gccVersion: string }
       if (!isActive()) return
+      syncedPathsRef.current = new Set(Object.keys(files))
       await client.start(
         files,
         props.template,
@@ -207,6 +220,14 @@ export function WorkspaceEditor(props: Props) {
 
   React.useEffect(() => {
     if (!ready) return
+    const livePaths = new Set(
+      workspaceDocuments(documents)
+        .filter((doc) => !doc.deleted)
+        .map((doc) => doc.path),
+    )
+    for (const path of syncedPathsRef.current)
+      if (!livePaths.has(path)) clientRef.current?.remove(path)
+    syncedPathsRef.current = livePaths
     for (const doc of workspaceDocuments(documents)) {
       if (doc.deleted) {
         clientRef.current?.remove(doc.path)
@@ -286,8 +307,13 @@ export function WorkspaceEditor(props: Props) {
   }, [ready, selected?.path, selected?.version, sdkHeader])
   React.useEffect(() => {
     props.onDirtyChange(workspaceDocuments(documents).some(isDirty))
-    if (Object.keys(documents).length)
-      props.onPathsChange(Object.keys(documents).sort())
+    if (commitRef.current)
+      props.onPathsChange(
+        workspaceDocuments(documents)
+          .filter((doc) => !doc.deleted)
+          .map((doc) => doc.path)
+          .sort(),
+      )
     if (!commitRef.current) return
     const timer = setTimeout(() => {
       void writeWorkspace(props.workspaceId, {
@@ -339,6 +365,38 @@ export function WorkspaceEditor(props: Props) {
     props.saveHandlerRef.current = save
     return () => {
       props.saveHandlerRef.current = null
+    }
+  }, [])
+
+  React.useEffect(() => {
+    const ref = props.fileOperationsRef
+    if (!ref) return
+    ref.current = {
+      read: (path) => readFiles(documentsRef.current, path.replace(/\/$/, '')),
+      apply: (operation) => {
+        if (saving.current) throw new Error('Wait for the commit to finish.')
+        if (!commitRef.current)
+          throw new Error('Wait for the workspace to load.')
+        if (conflictsRef.current.length)
+          throw new Error('Resolve recovered draft conflicts first.')
+        const next = applyFileOperation(documentsRef.current, operation)
+        publish(next)
+        const current = propsRef.current.selectedFile
+        const source = operation.path.replace(/\/$/, '')
+        if (operation.kind === 'move' && withinPath(current, source))
+          propsRef.current.onSelect(
+            operation.to.replace(/\/$/, '') + current.slice(source.length),
+          )
+        else if (!next[current] || next[current].deleted) {
+          propsRef.current.onSelect(
+            workspaceDocuments(next).find((doc) => !doc.deleted)?.path ?? '',
+          )
+        } else if (operation.kind === 'create' && !operation.folder)
+          propsRef.current.onSelect(operation.path)
+      },
+    }
+    return () => {
+      ref.current = null
     }
   }, [])
 

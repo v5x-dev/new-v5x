@@ -4,6 +4,7 @@ import {
   preloadHighlighter,
   type FileEditCompleteHandler,
   type FileOptions,
+  type PostRenderPhase,
 } from '@pierre/diffs'
 import { Editor, type EditorFactory } from '@pierre/diffs/edit'
 import { EditProvider, File } from '@pierre/diffs/react'
@@ -90,6 +91,38 @@ function describeBuildElapsed(seconds: number) {
     remainingSeconds === 0 ? '' : `, ${remainingSeconds} ${secondLabel}`
 
   return `${minutes} ${minuteLabel}${remainingTime}`
+}
+
+const bracketPairs = new Map([
+  ['(', ')'],
+  ['[', ']'],
+  ['{', '}'],
+])
+const closingBrackets = new Set(bracketPairs.values())
+
+function getTextOffsetAtPosition(
+  text: string,
+  position: { line: number; character: number },
+) {
+  const lineBreaks = /\r\n|\r|\n/g
+  let offset = 0
+
+  for (let line = 0; line < position.line; line++) {
+    const lineBreak = lineBreaks.exec(text)
+    if (!lineBreak) return text.length
+    offset = lineBreak.index + lineBreak[0].length
+    lineBreaks.lastIndex = offset
+  }
+
+  return Math.min(offset + position.character, text.length)
+}
+
+function getPositionAtTextOffset(text: string, offset: number) {
+  const lines = text.slice(0, offset).split(/\r\n|\r|\n/)
+  return {
+    line: lines.length - 1,
+    character: lines.at(-1)?.length ?? 0,
+  }
 }
 
 export const Route = createFileRoute('/_app/p/$programId')({
@@ -833,6 +866,12 @@ function ProgramEditor({
 }) {
   const getProgramFile = useAction(api.program.getProgramFile)
   const saveProgramFile = useAction(api.program.saveProgramFile)
+  const editorRef = React.useRef<Editor<'file'> | null>(null)
+  const bracketInputListenerRef = React.useRef<{
+    host: HTMLElement
+    target: HTMLElement
+    listener: (event: InputEvent) => void
+  } | null>(null)
   const [source, setSource] = React.useState<string | null>(null)
   const [loadError, setLoadError] = React.useState<string | null>(null)
   const [readyFile, setReadyFile] = React.useState<string | null>(null)
@@ -841,6 +880,146 @@ function ProgramEditor({
   const draftRef = React.useRef('')
   const currentFileRef = React.useRef(selectedFile)
   const isSavingRef = React.useRef(false)
+
+  const handleBracketInput = React.useCallback((event: InputEvent) => {
+    const editor = editorRef.current
+    const input = event.data
+    if (
+      !editor ||
+      event.isComposing ||
+      event.inputType !== 'insertText' ||
+      !input ||
+      (bracketPairs.get(input) === undefined && !closingBrackets.has(input))
+    ) {
+      return
+    }
+
+    const text = editor.getText()
+    const selections = editor.getViewState().selections ?? []
+    if (selections.length === 0) return
+
+    const selectionOffsets = selections.map((selection) => {
+      const start = getTextOffsetAtPosition(text, selection.start)
+      const end = getTextOffsetAtPosition(text, selection.end)
+      return start === end ? start : null
+    })
+    if (selectionOffsets.some((offset) => offset === null)) return
+
+    const offsets = selectionOffsets as number[]
+    const uniqueOffsets = [...new Set(offsets)].sort(
+      (left, right) => left - right,
+    )
+    let replacements: Array<{ offset: number; text: string }>
+
+    if (bracketPairs.has(input)) {
+      const closing = bracketPairs.get(input)
+      replacements = uniqueOffsets.map((offset) => ({
+        offset,
+        text: text[offset] === closing ? input : input + closing,
+      }))
+    } else {
+      if (!uniqueOffsets.some((offset) => text[offset] === input)) return
+      replacements = uniqueOffsets
+        .filter((offset) => text[offset] !== input)
+        .map((offset) => ({ offset, text: input }))
+    }
+
+    event.preventDefault()
+    event.stopImmediatePropagation()
+
+    if (replacements.length > 0) {
+      editor.applyEdits(
+        replacements.map(({ offset, text: replacement }) => {
+          const position = getPositionAtTextOffset(text, offset)
+          return {
+            range: { start: position, end: position },
+            newText: replacement,
+          }
+        }),
+      )
+    }
+
+    const updatedText = editor.getText()
+    editor.setSelections(
+      offsets.map((offset) => {
+        const insertedBefore = replacements
+          .filter((replacement) => replacement.offset < offset)
+          .reduce((length, replacement) => length + replacement.text.length, 0)
+        const position = getPositionAtTextOffset(
+          updatedText,
+          offset + insertedBefore + 1,
+        )
+        return { start: position, end: position, direction: 'none' }
+      }),
+    )
+  }, [])
+
+  const onFilePostRender = React.useCallback<
+    NonNullable<FileOptions<undefined, undefined>['onPostRender']>
+  >(
+    (node, _instance, phase: PostRenderPhase) => {
+      const attached = bracketInputListenerRef.current
+      if (phase === 'unmount') {
+        if (attached?.host === node) {
+          attached.target.removeEventListener(
+            'beforeinput',
+            attached.listener,
+            true,
+          )
+          bracketInputListenerRef.current = null
+          editorRef.current = null
+        }
+        return
+      }
+
+      const target =
+        node.shadowRoot?.querySelector<HTMLElement>('[data-content]')
+      if (!target || (attached?.host === node && attached.target === target)) {
+        return
+      }
+
+      attached?.target.removeEventListener(
+        'beforeinput',
+        attached.listener,
+        true,
+      )
+      target.addEventListener('beforeinput', handleBracketInput, true)
+      bracketInputListenerRef.current = {
+        host: node,
+        target,
+        listener: handleBracketInput,
+      }
+    },
+    [handleBracketInput],
+  )
+
+  const editorOptions = React.useMemo(
+    () => ({
+      matchBrackets: true,
+      onAttach: (editor: Editor<'file'>) => {
+        editorRef.current = editor
+      },
+    }),
+    [],
+  )
+  const fileOptions = React.useMemo(
+    () => ({ ...programFileOptions, onPostRender: onFilePostRender }),
+    [onFilePostRender],
+  )
+
+  React.useEffect(
+    () => () => {
+      const attached = bracketInputListenerRef.current
+      attached?.target.removeEventListener(
+        'beforeinput',
+        attached.listener,
+        true,
+      )
+      bracketInputListenerRef.current = null
+      editorRef.current = null
+    },
+    [],
+  )
 
   currentFileRef.current = selectedFile
 
@@ -986,9 +1165,10 @@ function ProgramEditor({
       <File
         file={file}
         edit
+        editorOptions={editorOptions}
         onEditChange={handleEditChange}
         onEditComplete={rejectUncommittedEdit}
-        options={programFileOptions}
+        options={fileOptions}
         className="block min-h-0 flex-1"
         style={programFileStyle}
       />

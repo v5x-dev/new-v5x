@@ -140,7 +140,7 @@ export function PierreDocument({
     })
     if (selectionOffsets.some((offset) => offset === null)) return
 
-    const offsets = selectionOffsets as number[]
+    const offsets = selectionOffsets as Array<number>
     const uniqueOffsets = [...new Set(offsets)].sort(
       (left, right) => left - right,
     )

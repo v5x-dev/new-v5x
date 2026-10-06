@@ -31,6 +31,7 @@ import { Button } from '~/components/ui/button'
 import { Spinner } from '~/components/ui/spinner'
 import { decodeSemanticTokens } from '~/lib/ide/semantic-tokens'
 import { ClangdClient } from '~/lib/ide/clangd-client'
+import { formatWorkspace } from '~/lib/ide/format-workspace'
 import { symbolFoldingRanges } from '~/lib/ide/folding'
 import { compileCommands } from '~/lib/ide/compile-commands'
 import {
@@ -528,12 +529,21 @@ export function WorkspaceEditor(props: Props) {
       if (conflictsRef.current.length)
         throw new Error('Review recovered drafts before committing.')
 
-      const changed = workspaceDocuments(documentsRef.current).filter(isDirty)
-      if (!changed.length) return
+      if (!workspaceDocuments(documentsRef.current).some(isDirty)) return
       saving.current = true
       propsRef.current.onSavingChange(true)
 
       try {
+        const snapshot = documentsRef.current
+        const formatted = await formatWorkspace(snapshot, clientRef.current)
+
+        if (documentsRef.current !== snapshot)
+          throw new Error('The program changed while formatting. Commit again.')
+
+        publish(formatted)
+        const changed = workspaceDocuments(formatted).filter(isDirty)
+        if (!changed.length) return
+
         const sha = await propsRef.current.commitChanges(
           changed.map((doc) => ({
             path: doc.path,

@@ -33,7 +33,7 @@ export function WorkspaceEditorToolbar({
   onFormat,
 }: Props) {
   return (
-    <div className="absolute bottom-3 right-3 z-20 flex flex-col items-end gap-2 text-muted-foreground">
+    <div className="absolute bottom-2 right-2 z-20 flex flex-col items-end gap-2 text-muted-foreground">
       <div className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card p-1 shadow-sm backdrop-blur-sm">
         {problems.some(
           ({ diagnostic }) =>

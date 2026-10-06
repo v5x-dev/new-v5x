@@ -173,7 +173,8 @@ export function ProgramFileTree({
       onError: setError,
     },
     unsafeCSS: `
-      [data-type='item'][data-item-path^='build/'] {
+      [data-type='item'][data-item-path^='build/'],
+      [data-type='item'][data-item-path^='bin/'] {
         color: var(--trees-fg-muted);
       }
     `,

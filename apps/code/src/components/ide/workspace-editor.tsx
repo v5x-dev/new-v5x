@@ -35,6 +35,7 @@ import { Tabs as EditorTabs, TabsList, TabsTrigger } from '~/components/ui/tabs'
 import { Spinner } from '~/components/ui/spinner'
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
   SheetHeader,
@@ -970,13 +971,9 @@ export function WorkspaceEditor(props: Props) {
             side="right"
             className="gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-xl"
             initialFocus={searchInputRef}
+            showCloseButton={false}
           >
-            <SheetHeader>
-              <SheetTitle>Search project</SheetTitle>
-              <SheetDescription>
-                Search across project files, including unsaved changes.
-              </SheetDescription>
-            </SheetHeader>
+            <SheetTitle className="sr-only">Search project</SheetTitle>
             <div className="flex shrink-0 items-center gap-2 border-b p-3">
               <Input
                 ref={searchInputRef}
@@ -995,18 +992,24 @@ export function WorkspaceEditor(props: Props) {
               >
                 Aa
               </Toggle>
+              <SheetClose
+                render={<Button variant="ghost" size="icon" />}
+                aria-label="Close search"
+              >
+                <XIcon />
+              </SheetClose>
             </div>
             <div className="min-h-0 flex-1 overflow-auto">
-              <p
-                role="status"
-                className="px-4 py-3 text-xs text-muted-foreground"
-              >
-                {!searchQuery
-                  ? 'Search across project files, including unsaved changes.'
-                  : searchResults.length
+              {searchQuery && (
+                <p
+                  role="status"
+                  className="px-4 py-3 text-xs text-muted-foreground"
+                >
+                  {searchResults.length
                     ? `${searchResults.length === 2000 ? 'First ' : ''}${searchResults.length} matches in ${searchGroups.size} files`
                     : 'No matches.'}
-              </p>
+                </p>
+              )}
               {Array.from(searchGroups, ([path, results]) => (
                 <div key={path} className="mb-4">
                   <div className="sticky top-0 flex items-center gap-3 border-y bg-muted px-4 py-2 font-mono text-xs">
@@ -1256,68 +1259,70 @@ export function WorkspaceEditor(props: Props) {
           </SheetContent>
         </Sheet>
       ))}
-      <div className="absolute bottom-3 right-3 z-20 flex flex-col items-center gap-1 rounded-lg border border-border bg-card p-1 text-[11px] text-muted-foreground shadow-sm backdrop-blur-sm">
-        {problems.some(
-          ({ diagnostic }) =>
-            diagnostic.severity === 1 || diagnostic.severity === 2,
-        ) && (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            title={`${problems.filter(({ diagnostic }) => diagnostic.severity === 1).length} errors, ${problems.filter(({ diagnostic }) => diagnostic.severity === 2).length} warnings (Ctrl+J)`}
-            aria-label="Toggle problems panel"
-            onClick={() => setPanel(panel ? null : 'problems')}
-          >
-            <WarningCircleIcon />
-          </Button>
-        )}
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label="Output"
-          title="Output"
-          onClick={() => setPanel(panel === 'output' ? null : 'output')}
-        >
-          <TerminalIcon />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="Search project (Ctrl+Shift+F)"
-          aria-label="Search project"
-          aria-pressed={searchOpen}
-          className={searchOpen ? 'bg-muted text-foreground' : undefined}
-          onClick={openSearch}
-        >
-          <MagnifyingGlassIcon />
-        </Button>
-        {!sdkHeader && (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            disabled={!ready || !selected}
-            title="Format document (Shift+Alt+F)"
-            aria-label="Format document"
-            onClick={() => void run(formatDocument)}
-          >
-            <TextAlignLeftIcon />
-          </Button>
-        )}
-        <span
-          role="status"
-          className="inline-flex size-7 shrink-0 items-center justify-center"
-          title={ready ? 'C++ ready' : 'Starting C++'}
-          aria-label={ready ? 'C++ ready' : 'Starting C++'}
-        >
-          {ready ? (
-            <CheckIcon className="size-4 text-emerald-500" aria-hidden="true" />
-          ) : (
-            <Spinner aria-hidden="true" />
+      <div className="absolute bottom-3 right-3 z-20 flex flex-col items-end gap-2 text-muted-foreground">
+        <div className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card p-1 shadow-sm backdrop-blur-sm">
+          {problems.some(
+            ({ diagnostic }) =>
+              diagnostic.severity === 1 || diagnostic.severity === 2,
+          ) && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              title={`${problems.filter(({ diagnostic }) => diagnostic.severity === 1).length} errors, ${problems.filter(({ diagnostic }) => diagnostic.severity === 2).length} warnings (Ctrl+J)`}
+              aria-label="Toggle problems panel"
+              onClick={() => setPanel(panel ? null : 'problems')}
+            >
+              <WarningCircleIcon />
+            </Button>
           )}
-        </span>
-        <span className="shrink-0 font-mono">
-          {position.line + 1}:{position.character + 1}
-        </span>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Output"
+            title="Output"
+            onClick={() => setPanel(panel === 'output' ? null : 'output')}
+          >
+            <TerminalIcon />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            title="Search project (Ctrl+Shift+F)"
+            aria-label="Search project"
+            aria-pressed={searchOpen}
+            className={searchOpen ? 'bg-muted text-foreground' : undefined}
+            onClick={openSearch}
+          >
+            <MagnifyingGlassIcon />
+          </Button>
+          {!sdkHeader && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              disabled={!ready || !selected}
+              title="Format document (Shift+Alt+F)"
+              aria-label="Format document"
+              onClick={() => void run(formatDocument)}
+            >
+              <TextAlignLeftIcon />
+            </Button>
+          )}
+          <span
+            role="status"
+            className="inline-flex size-7 shrink-0 items-center justify-center"
+            title={ready ? 'C++ ready' : 'Starting C++'}
+            aria-label={ready ? 'C++ ready' : 'Starting C++'}
+          >
+            {ready ? (
+              <CheckIcon
+                className="size-4 text-emerald-500"
+                aria-hidden="true"
+              />
+            ) : (
+              <Spinner aria-hidden="true" />
+            )}
+          </span>
+        </div>
       </div>
       {completions.length > 0 && (
         <div

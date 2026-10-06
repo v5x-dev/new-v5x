@@ -36,6 +36,17 @@ export class ClangdClient {
   private nextId = 0
   private fileVersions = new Map<string, number>()
   private opened = new Map<string, number>()
+  private queuedSyncs = new Map<string, { contents: string; version: number }>()
+  private syncTimer: ReturnType<typeof setTimeout> | undefined
+
+  private flushSyncs() {
+    clearTimeout(this.syncTimer)
+    this.syncTimer = undefined
+    const queued = this.queuedSyncs
+    this.queuedSyncs = new Map()
+    for (const [path, { contents, version }] of queued)
+      this.sendDocument(path, contents, version)
+  }
   private startResolve: (() => void) | undefined
   private startReject: ((error: Error) => void) | undefined
   capabilities: InitializeResult['capabilities'] = {}
@@ -308,6 +319,8 @@ export class ClangdClient {
     params: unknown,
     signal?: AbortSignal,
   ): Promise<T> {
+    // Commands must see the latest text even during a burst of typing.
+    this.flushSyncs()
     return new Promise<T>((resolve, reject) => {
       const id = ++this.nextId
       const cancel = () => {
@@ -340,6 +353,17 @@ export class ClangdClient {
     this.send({ jsonrpc: '2.0', method, params })
   }
   sync(path: string, contents: string, version: number) {
+    if (!this.ready || this.opened.get(path) === version) return
+    if (!this.opened.has(path)) {
+      this.sendDocument(path, contents, version)
+      return
+    }
+    this.queuedSyncs.set(path, { contents, version })
+    // Bound the delay while coalescing full-document copies and clangd reparses.
+    if (this.syncTimer === undefined)
+      this.syncTimer = setTimeout(() => this.flushSyncs(), 120)
+  }
+  private sendDocument(path: string, contents: string, version: number) {
     if (!this.ready) return
     if (this.opened.get(path) === version) return
     const uri = fileUri(path)
@@ -370,6 +394,7 @@ export class ClangdClient {
     })
   }
   remove(path: string) {
+    this.queuedSyncs.delete(path)
     if (!this.ready || (!this.opened.has(path) && !this.fileVersions.has(path)))
       return
     this.fileVersions.delete(path)
@@ -405,6 +430,9 @@ export class ClangdClient {
     })
   }
   stop() {
+    clearTimeout(this.syncTimer)
+    this.syncTimer = undefined
+    this.queuedSyncs.clear()
     this.ready = false
     this.startReject?.(new Error('Language worker stopped'))
     this.worker?.postMessage({ kind: 'stop' })

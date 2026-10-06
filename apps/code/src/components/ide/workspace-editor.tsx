@@ -5,6 +5,7 @@ import {
   MagnifyingGlassIcon,
   TerminalIcon,
   TextAlignLeftIcon,
+  WarningCircleIcon,
   XIcon,
 } from '@phosphor-icons/react'
 import { PierreDocument } from './pierre-document'
@@ -220,7 +221,7 @@ export function WorkspaceEditor(props: Props) {
         clientRef.current?.remove(doc.path)
     }
     documentsRef.current = next
-    setDocuments(next)
+    React.startTransition(() => setDocuments(next))
   }
   const run = async (task: () => Promise<void>) => {
     try {
@@ -571,12 +572,16 @@ export function WorkspaceEditor(props: Props) {
       suppressCompletion.current = false
       return
     }
-    const prefix = selected.contents.slice(
-      0,
-      positionOffset(selected.contents, position),
-    )
-    if (!/(?:[A-Za-z_]\w{1,}|\.|->|::)$/.test(prefix)) return
-    const timer = setTimeout(() => void run(complete), 180)
+    const timer = setTimeout(() => {
+      const doc = documentsRef.current[propsRef.current.selectedFile]
+      const selection = editorRef.current?.getViewState().selections?.at(-1)
+      if (!doc || !selection) return
+      const cursor =
+        selection.direction === -1 ? selection.start : selection.end
+      const offset = positionOffset(doc.contents, cursor)
+      const prefix = doc.contents.slice(Math.max(0, offset - 128), offset)
+      if (/(?:[A-Za-z_]\w{1,}|\.|->|::)$/.test(prefix)) void run(complete)
+    }, 180)
     return () => clearTimeout(timer)
   }, [selected?.version, ready])
   const selectStop = (index: number) => {
@@ -1280,20 +1285,12 @@ export function WorkspaceEditor(props: Props) {
         ) && (
           <Button
             variant="ghost"
-            size="sm"
-            title="Toggle panel (Ctrl+J)"
+            size="icon-sm"
+            title={`${problems.filter(({ diagnostic }) => diagnostic.severity === 1).length} errors, ${problems.filter(({ diagnostic }) => diagnostic.severity === 2).length} warnings (Ctrl+J)`}
+            aria-label="Toggle problems panel"
             onClick={() => setPanel(panel ? null : 'problems')}
           >
-            {
-              problems.filter(({ diagnostic }) => diagnostic.severity === 1)
-                .length
-            }{' '}
-            errors ·{' '}
-            {
-              problems.filter(({ diagnostic }) => diagnostic.severity === 2)
-                .length
-            }{' '}
-            warnings
+            <WarningCircleIcon />
           </Button>
         )}
         <Button
@@ -1328,19 +1325,20 @@ export function WorkspaceEditor(props: Props) {
             <TextAlignLeftIcon />
           </Button>
         )}
-        <span role="status" title={ready ? 'C++ ready' : undefined}>
+        <span
+          role="status"
+          className="inline-flex size-7 shrink-0 items-center justify-center"
+          title={ready ? 'C++ ready' : 'Starting C++'}
+          aria-label={ready ? 'C++ ready' : 'Starting C++'}
+        >
           {ready ? (
-            <>
-              <HugeiconsIcon
-                icon={CheckmarkCircle01Icon}
-                size={16}
-                className="text-emerald-500"
-                aria-hidden="true"
-              />
-              <span className="sr-only">C++ ready</span>
-            </>
+            <HugeiconsIcon
+              icon={CheckmarkCircle01Icon}
+              className="size-4 text-emerald-500"
+              aria-hidden="true"
+            />
           ) : (
-            'Starting C++'
+            <Spinner className="size-4" aria-hidden="true" />
           )}
         </span>
         <span className="shrink-0 font-mono">

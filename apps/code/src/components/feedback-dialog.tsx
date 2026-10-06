@@ -171,7 +171,7 @@ export function FeedbackDialog() {
                 disabled={pending || !title.trim() || !description.trim()}
               >
                 {pending && <Spinner />}
-                {pending ? 'Sending...' : 'Send feedback'}
+                {pending ? 'Sending...' : 'Send'}
               </Button>
             </DialogFooter>
           </form>

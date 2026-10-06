@@ -1,7 +1,7 @@
 import { v } from 'convex/values'
 import { internal } from './_generated/api'
 import { internalMutation } from './_generated/server'
-import type { Doc } from './_generated/dataModel'
+import type { Doc, Id } from './_generated/dataModel'
 
 // Keep this transaction separate from program.ts, whose repository/auth imports
 // add cold-start work to every build. Authorization, the commit claim, and worker
@@ -22,6 +22,11 @@ export const acquire = internalMutation({
       machineId: string
       commitSha: string
       expiresAt: number
+      artifacts: Array<{
+        path: string
+        storageId: Id<'_storage'>
+        sha256?: string
+      }>
     } | null
   }> => {
     const program = await ctx.db.get('program', programId)

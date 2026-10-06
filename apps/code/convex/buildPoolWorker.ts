@@ -4,6 +4,7 @@ import { internal } from './_generated/api'
 import { env, internalAction } from './_generated/server'
 import { templateFiles } from './template'
 import { prepareBuildSdk, preparePrecompiledHeader } from './lib/buildSdk'
+import { prepareClangPch } from './lib/buildClangPch'
 import {
   BUILD_GIT_ENV,
   BUILD_MACHINE_TTL_SECONDS,
@@ -74,7 +75,8 @@ export const replenish = internalAction({
                 'git remote add origin https://invalid.invalid/v5x-build-cache',
                 prepareBuildSdk,
                 preparePrecompiledHeader,
-                'make -j8 P=workspace',
+                prepareClangPch,
+                'make -j8 P=workspace $build_makefile_args',
                 'git rev-parse HEAD',
               ].join('\n'),
             ],

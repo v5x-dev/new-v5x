@@ -79,6 +79,7 @@ export const take = internalMutation({
       machineId: slot.machineId,
       commitSha: slot.commitSha,
       expiresAt: slot.expiresAt,
+      artifacts: [],
     }
   },
 })

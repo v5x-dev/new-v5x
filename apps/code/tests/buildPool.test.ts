@@ -1,16 +1,22 @@
+import { createHash } from 'node:crypto'
 import { describe, expect, test } from 'bun:test'
 import { convexTest } from 'convex-test'
+import { v } from 'convex/values'
 import { internalAction } from '../convex/_generated/server'
 import { internal } from '../convex/_generated/api'
 import schema from '../convex/schema'
 
 const noop = internalAction({ args: {}, handler: () => null })
+const deleteMachine = internalAction({
+  args: { machineId: v.string() },
+  handler: () => null,
+})
 const modules = {
   '../convex/_generated/api.ts': () => import('../convex/_generated/api'),
   '../convex/buildPool.ts': () => import('../convex/buildPool'),
   '../convex/programBuildCache.ts': () => import('../convex/programBuildCache'),
   '../convex/buildPoolWorker.ts': () => Promise.resolve({ replenish: noop }),
-  '../convex/programBuild.ts': () => Promise.resolve({ deleteMachine: noop }),
+  '../convex/programBuild.ts': () => Promise.resolve({ deleteMachine }),
 }
 
 const slot = { template: 'ez-template', imageTag: 'test-image' }
@@ -42,12 +48,10 @@ describe('build worker ownership', () => {
       t.mutation(internal.buildPool.take, slot),
     ])
     expect(
-      workers
-        .filter(Boolean)
-        .map((worker) => ({
-          machineId: worker!.machineId,
-          commitSha: worker!.commitSha,
-        })),
+      workers.filter(Boolean).map((worker) => ({
+        machineId: worker!.machineId,
+        commitSha: worker!.commitSha,
+      })),
     ).toEqual([{ machineId: 'seed-machine', commitSha: 'seed-commit' }])
     await t.finishInProgressScheduledFunctions()
   })
@@ -121,17 +125,74 @@ describe('build worker ownership', () => {
       }),
     ])
     expect(
-      workers
-        .filter(Boolean)
-        .map((worker) => ({
-          machineId: worker!.machineId,
-          commitSha: worker!.commitSha,
-        })),
+      workers.filter(Boolean).map((worker) => ({
+        machineId: worker!.machineId,
+        commitSha: worker!.commitSha,
+      })),
     ).toEqual([{ machineId: 'incremental-machine', commitSha: 'commit' }])
     const cached = await t.run((ctx) =>
       ctx.db.query('programBuildCache').unique(),
     )
     expect(cached?.stdout).toBe('cached output')
     expect(cached?.warmMachineId).toBeUndefined()
+  })
+  test('reused artifacts survive replacement and stale results cannot delete them', async () => {
+    const t = convexTest(schema, modules)
+    const { programId, storageId } = await t.run(async (ctx) => {
+      const programId = await ctx.db.insert('program', {
+        name: 'reuse',
+        repoId: 'reuse',
+        ownerId: 'test',
+        currentCommitSha: 'next',
+      })
+      const storageId = await ctx.storage.store(
+        new Blob(['unchanged cold package']),
+      )
+      await ctx.db.insert('programBuildCache', {
+        programId,
+        commitSha: 'previous',
+        exitCode: 0,
+        stdout: '',
+        stderr: '',
+        timings: [],
+        artifacts: [
+          {
+            path: 'bin/cold.package.bin',
+            storageId,
+            sha256: createHash('sha256')
+              .update('unchanged cold package')
+              .digest('hex'),
+          },
+        ],
+      })
+      return { programId, storageId }
+    })
+    const result = {
+      programId,
+      commitSha: 'next',
+      exitCode: 0,
+      stdout: '',
+      stderr: '',
+      timings: [],
+      artifacts: [
+        {
+          path: 'bin/cold.package.bin',
+          storageId,
+          sha256: createHash('sha256')
+            .update('unchanged cold package')
+            .digest('hex'),
+        },
+      ],
+    }
+    expect(
+      await t.mutation(internal.programBuildCache.cacheLatest, result),
+    ).not.toBeNull()
+    expect(
+      await t.mutation(internal.programBuildCache.cacheLatest, {
+        ...result,
+        commitSha: 'stale',
+      }),
+    ).toBeNull()
+    expect(await t.run((ctx) => ctx.db.system.get(storageId))).not.toBeNull()
   })
 })

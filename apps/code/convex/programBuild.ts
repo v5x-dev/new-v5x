@@ -1,19 +1,24 @@
-'use node'
-
 import { v } from 'convex/values'
-import { Machine } from 'smolmachines'
+import { CloudBuildMachine } from './lib/cloudBuildMachine'
+import { decodeBase64, sha256 as hashBytes } from './lib/buildBytes'
 import { internal } from './_generated/api'
 import { action, env, internalAction } from './_generated/server'
 import { store } from './store'
+import {
+  BUILD_OUTPUTS_MARKER,
+  collectBuildOutputs,
+  parseBuildOutputs,
+} from './lib/buildArtifacts'
+import { fetchSourcePack, syncBuildWorkspace } from './lib/buildWorkspace'
 import { prepareBuildSdk, preparePrecompiledHeader } from './lib/buildSdk'
+import { prepareClangPch } from './lib/buildClangPch'
 
 import {
   BUILD_GIT_ENV,
   DEFAULT_BUILD_IMAGE_TAG,
   DEFAULT_SMOL_CLOUD_URL,
-  createBuildMachine,
   resolveBuildCloud,
-} from './lib/buildCloud'
+} from './lib/buildCloudSettings'
 import type { Id } from './_generated/dataModel'
 
 const MAX_OUTPUT_BYTES = 400 * 1024
@@ -63,52 +68,84 @@ function createBuildTimer(programId: string) {
 
 type BuildMeasure = <T>(stage: string, work: () => Promise<T>) => Promise<T>
 
-async function prepareBuildWorkspace(args: {
-  machine: Machine
+const WORKSPACE_READY = '__V5X_WORKSPACE_READY__\n'
+
+async function buildWorkspace(args: {
+  machine: CloudBuildMachine
   remoteUrl: string
   commitSha: string
   previousCommitSha: string | null
   measure: BuildMeasure
+  sourcePack: Awaited<ReturnType<typeof fetchSourcePack>> | null
 }) {
-  const { machine, remoteUrl, commitSha, previousCommitSha, measure } = args
-
-  // Pass credentials as an argument, never interpolate them into shell source.
-  // A trap clears them on checkout/fetch failures as well as on success.
-  const result = await measure('Sync program workspace', () =>
+  const {
+    machine,
+    remoteUrl,
+    commitSha,
+    previousCommitSha,
+    measure,
+    sourcePack,
+  } = args
+  const result = await measure('Sync and compile with make -j8', () =>
     machine.exec(
       [
         'sh',
         '-c',
         [
-          'set -eu',
-          'remote_url="$1"',
-          'commit_sha="$2"',
-          'previous_sha="$3"',
-          'clear_credentials() { git -C /workspace remote set-url origin https://invalid.invalid/v5x-build-cache 2>/dev/null || true; }',
-          'trap clear_credentials EXIT',
+          syncBuildWorkspace,
+          'clear_credentials',
+          `printf '${WORKSPACE_READY}'`,
+          'cd /workspace',
+          prepareBuildSdk,
+          // A changed build configuration invalidates both hot and cold objects.
+          // Header removals also invalidate the PCH, even though find -newer cannot
+          // observe a file that no longer exists.
           'if [ -n "$previous_sha" ]; then',
-          '  git -C /workspace remote set-url origin "$remote_url"',
-          '  if [ "$previous_sha" != "$commit_sha" ]; then',
-          '    git -C /workspace fetch --no-tags --depth=1 origin "$commit_sha"',
+          '  changed_headers="$(git diff --name-only "$previous_sha" "$commit_sha" | grep -E \'\\.(h|hh|hpp|hxx|inc)$\' || true)"',
+          '  if [ -n "$changed_headers" ]; then',
+          "    find ./build ./bin -type f \\( -name '*.o' -o -name '*.pch' \\) -delete 2>/dev/null || true",
+          '    rm -f include/main.h.gch',
           '  fi',
-          'else',
-          '  git clone --no-checkout --depth=1 "$remote_url" /workspace',
-          '  git -C /workspace cat-file -e "$commit_sha^{commit}" 2>/dev/null || git -C /workspace fetch --no-tags --depth=1 origin "$commit_sha"',
+          '  if ! git diff --quiet "$previous_sha" "$commit_sha" -- makefile Makefile common.mk vex firmware project.pros .ez-template; then',
+          "    find ./build ./bin -type f \\( -name '*.o' -o -name '*.elf' -o -name '*.bin' -o -name '*.pch' \\) -delete 2>/dev/null || true",
+          '    rm -f include/main.h.gch',
+          '  fi',
           'fi',
-          'git -C /workspace checkout --force --detach "$commit_sha"',
+          'reuse=0',
+          'if [ -n "$previous_sha" ] && git diff --quiet "$previous_sha" "$commit_sha"; then',
+          '  existing_bin="$(find ./build ./bin -type f -name \'*.bin\' -print -quit 2>/dev/null || true)"',
+          '  if [ -n "$existing_bin" ]; then reuse=1; fi',
+          'fi',
+          'if [ "$reuse" -eq 1 ]; then',
+          '  echo "Reusing prebuilt template binaries"',
+          'else',
+          // Preserve cold packages until make detects a library/configuration change.
+          // Always relink after edits, including source deletions.
+          "  find ./build ./bin -type f \\( -name '*.bin' -o -name '*.elf' \\) ! -name 'cold.package.bin' ! -name 'cold.package.elf' -delete 2>/dev/null || true",
+          preparePrecompiledHeader,
+          prepareClangPch,
+          '  make -j8 P=workspace $build_makefile_args',
+          'fi',
+          collectBuildOutputs,
         ].join('\n'),
-        'sync-workspace',
-        remoteUrl,
+        'build-workspace',
+        // The fast transport never passes repository credentials to the guest.
+        sourcePack ? '-' : remoteUrl,
         commitSha,
-        previousCommitSha ?? '',
+        previousCommitSha ?? '-',
+        sourcePack ? 'pack' : '-',
+        sourcePack?.shallow || '-',
+        ...(sourcePack?.chunks ?? []),
       ],
-      { timeout: 120, env: BUILD_GIT_ENV },
+      { timeout: 300, env: { ...BUILD_GIT_ENV, VEX_SDK_PATH: '/sdk' } },
     ),
   )
-
-  if (result.exitCode !== 0) {
-    // Git errors can contain the short-lived credential.
+  const ready = result.stdout.indexOf(WORKSPACE_READY)
+  if (ready < 0)
     throw new Error(`Unable to sync program repository (${result.exitCode})`)
+  return {
+    ...result,
+    stdout: result.stdout.slice(ready + WORKSPACE_READY.length),
   }
 }
 
@@ -148,7 +185,6 @@ export const build = action({
     const imageTag = env.VEXCODE_IMAGE_TAG ?? DEFAULT_BUILD_IMAGE_TAG
 
     const cloudConnection = {
-      target: 'cloud' as const,
       apiKey: token,
       baseUrl: cloudUrl,
     }
@@ -178,25 +214,47 @@ export const build = action({
         throw error
       }
 
+      const sourcePackPromise = measure('Fetch source pack', () =>
+        fetchSourcePack(
+          remoteUrl,
+          commitSha,
+          warmBuild?.artifacts.length ? warmBuild.commitSha : undefined,
+        ),
+      ).catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : ''
+        console.warn(
+          /^Source pack |^Invalid Git |^Incomplete Git |^Unexpected Git |^Missing Git /.test(
+            message,
+          )
+            ? message
+            : 'Source pack transport failed',
+        )
+        return null
+      })
+
       let machineExpiresAt = warmBuild?.expiresAt ?? 0
 
       const startCleanMachine = async () => {
         machineExpiresAt = Date.now() + 840_000
         const namespace = await resolveBuildCloud(token, cloudUrl)
-        return createBuildMachine(namespace, imageTag, token, cloudUrl)
+        return CloudBuildMachine.create(
+          `registry.smolmachines.com/${namespace}/vexcode:${imageTag}`,
+          cloudConnection,
+        )
       }
 
-      let machine: Machine | null = null
+      let machine: CloudBuildMachine | null = null
       let usingWarmBuild = false
 
       if (warmBuild) {
         try {
           machine = await measure('Resume warm build machine', async () => {
-            const warm = await Machine.connect(
+            // Ownership is transferred atomically from a ready worker. The build
+            // exec itself validates availability; stale workers take the fallback.
+            const warm = new CloudBuildMachine(
               warmBuild.machineId,
               cloudConnection,
             )
-            await warm.waitUntilReady({ timeoutMs: 15_000 })
             return warm
           })
           usingWarmBuild = true
@@ -213,14 +271,16 @@ export const build = action({
         machine = await measure('Start build machine', startCleanMachine)
       }
 
-      let buildMachine: Machine = machine
+      let buildMachine: CloudBuildMachine = machine
 
       const storedArtifacts: Array<{
         path: string
         storageId: Id<'_storage'>
         url: string
+        sha256: string
       }> = []
 
+      const ownedStorageIds = new Set<Id<'_storage'>>()
       let keepStoredArtifacts = false
       // takeWarmMachine atomically transfers ownership to this request.
       // Overlapping builds get a separate machine.
@@ -228,13 +288,15 @@ export const build = action({
       let replacedMachineId: string | null = null
 
       try {
+        let result: Awaited<ReturnType<CloudBuildMachine['exec']>>
         try {
-          await prepareBuildWorkspace({
+          result = await buildWorkspace({
             machine: buildMachine,
             remoteUrl,
             commitSha,
             previousCommitSha: usingWarmBuild ? warmBuild!.commitSha : null,
             measure,
+            sourcePack: await sourcePackPromise,
           })
         } catch (error) {
           if (!usingWarmBuild) throw error
@@ -262,105 +324,77 @@ export const build = action({
 
           machine = buildMachine
 
-          await prepareBuildWorkspace({
+          result = await buildWorkspace({
             machine: buildMachine,
             remoteUrl,
             commitSha,
             previousCommitSha: null,
             measure,
+            sourcePack: await sourcePackPromise,
           })
         }
 
-        const outputsMarker = '\n__V5X_BUILD_OUTPUTS__\n'
-        const result = await measure(
-          'Prepare SDK and compile with make -j8',
-          () =>
-            buildMachine.exec(
-              [
-                'sh',
-                '-c',
-                [
-                  prepareBuildSdk,
-                  'previous_sha="$1"',
-                  'commit_sha="$2"',
-                  // A fresh template matches the worker that already compiled it.
-                  // Keep those binaries. Any content change still relinks, including
-                  // when sources were deleted, while object files stay for make.
-                  'reuse=0',
-                  'if [ -n "$previous_sha" ] && git diff --quiet "$previous_sha" "$commit_sha"; then',
-                  '  existing_bin="$(find ./build ./bin -type f -name \'*.bin\' -print -quit 2>/dev/null || true)"',
-                  '  if [ -n "$existing_bin" ]; then reuse=1; fi',
-                  'fi',
-                  'if [ "$reuse" -eq 1 ]; then',
-                  '  echo "Reusing prebuilt template binaries"',
-                  'else',
-                  "  find ./build ./bin -type f \\( -name '*.bin' -o -name '*.elf' \\) ! -name 'cold.package.bin' ! -name 'cold.package.elf' -delete 2>/dev/null || true",
-                  preparePrecompiledHeader,
-                  '  make -j8 P=workspace',
-                  'fi',
-                  "printf '\\n__V5X_BUILD_OUTPUTS__\\n'",
-                  "find ./build ./bin -type f -name '*.bin' 2>/dev/null || true",
-                ].join('\n'),
-                'build-workspace',
-                usingWarmBuild ? warmBuild!.commitSha : '',
-                commitSha,
-              ],
-              {
-                workdir: '/workspace',
-                env: { ...BUILD_GIT_ENV, VEX_SDK_PATH: '/sdk' },
-                timeout: 300,
-              },
-            ),
-        )
+        const outputsMarker = BUILD_OUTPUTS_MARKER
+        const manifest =
+          result.exitCode === 0 ? parseBuildOutputs(result.stdout) : null
         const outputsStart = result.stdout.lastIndexOf(outputsMarker)
         const buildStdout =
-          outputsStart < 0
+          manifest?.stdout ??
+          (outputsStart < 0
             ? result.stdout
-            : result.stdout.slice(0, outputsStart)
-        let binFiles: Array<string> = []
+            : result.stdout.slice(0, outputsStart))
+        const binFiles = manifest?.outputs.map(({ path }) => path) ?? []
 
-        if (result.exitCode === 0) {
-          if (outputsStart >= 0) {
-            binFiles = result.stdout
-              .slice(outputsStart + outputsMarker.length)
-              .split(/\r?\n/)
-              .filter(
-                (path) =>
-                  (path.startsWith('./build/') || path.startsWith('./bin/')) &&
-                  path.endsWith('.bin') &&
-                  !path.split('/').some((segment) => segment === '..'),
-              )
-              .map((path) => path.slice(2))
-              .slice(0, 100)
-          }
-
+        if (manifest) {
           const uploads = await Promise.allSettled(
-            binFiles.map(async (path) => {
-              const file = await measure(`Read ${path}`, () =>
-                buildMachine.readFile(`/workspace/${path}`),
+            manifest.outputs.map(async ({ path, sha256, size, base64 }) => {
+              const previous = warmBuild?.artifacts.find(
+                (artifact) => artifact.sha256 === sha256,
               )
-
-              const bytes = new Uint8Array(file.byteLength)
-              bytes.set(file)
-
-              const storageId = await measure(`Store ${path}`, () =>
-                ctx.storage.store(
-                  new Blob([bytes.buffer], {
-                    type: 'application/octet-stream',
-                  }),
-                ),
-              )
+              let storageId = previous?.storageId
+              if (!storageId) {
+                const file =
+                  base64 || size === 0
+                    ? decodeBase64(base64)
+                    : await measure(`Read ${path}`, () =>
+                        buildMachine.readFile(`/workspace/${path}`),
+                      )
+                if (
+                  file.byteLength !== size ||
+                  (await hashBytes(file)) !== sha256
+                ) {
+                  throw new Error(
+                    `Build artifact failed integrity check: ${path}`,
+                  )
+                }
+                const bytes = new Uint8Array(file.byteLength)
+                bytes.set(file)
+                storageId = await measure(`Store ${path}`, () =>
+                  ctx.storage.store(
+                    new Blob([bytes.buffer], {
+                      type: 'application/octet-stream',
+                    }),
+                  ),
+                )
+                ownedStorageIds.add(storageId)
+              } else {
+                timings.push({ stage: `Reuse ${path}`, ms: 0 })
+              }
 
               const url = await measure(`Sign ${path} URL`, () =>
                 ctx.storage.getUrl(storageId),
               )
 
               if (url === null) {
-                await ctx.storage.delete(storageId)
                 throw new Error(`Unable to load build artifact ${path}`)
               }
 
-              storedArtifacts.push({ path, storageId, url })
+              storedArtifacts.push({
+                path,
+                storageId,
+                url,
+                sha256,
+              })
             }),
           )
           const failedUpload = uploads.find(
@@ -388,9 +422,10 @@ export const build = action({
             exitCode: buildResult.exitCode,
             stdout: limitOutput(buildResult.stdout, MAX_CACHED_LOG_BYTES),
             stderr: limitOutput(buildResult.stderr, MAX_CACHED_LOG_BYTES),
-            artifacts: storedArtifacts.map(({ path, storageId }) => ({
+            artifacts: storedArtifacts.map(({ path, storageId, sha256 }) => ({
               path,
               storageId,
+              sha256,
             })),
             timings,
             warmMachineId: buildMachine.id,
@@ -409,7 +444,7 @@ export const build = action({
       } finally {
         if (!keepStoredArtifacts) {
           await Promise.allSettled(
-            storedArtifacts.map(({ storageId }) =>
+            [...ownedStorageIds].map((storageId) =>
               ctx.storage.delete(storageId),
             ),
           )
@@ -455,10 +490,12 @@ export const deleteArtifact = internalAction({
 export const deleteMachine = internalAction({
   args: { machineId: v.string() },
   handler: async (_ctx, { machineId }) => {
-    const machine = await Machine.connect(machineId, {
-      target: 'cloud',
-      apiKey: env.SMOL_CLOUD_TOKEN,
-      baseUrl: env.SMOL_CLOUD_URL ?? DEFAULT_SMOL_CLOUD_URL,
+    const machine = new CloudBuildMachine(machineId, {
+      apiKey: env.SMOL_CLOUD_TOKEN ?? '',
+      baseUrl: (env.SMOL_CLOUD_URL ?? DEFAULT_SMOL_CLOUD_URL).replace(
+        /\/+$/,
+        '',
+      ),
     })
     await machine.delete()
   },

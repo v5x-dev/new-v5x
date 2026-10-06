@@ -49,7 +49,11 @@ export default defineSchema({
     warmImageTag: v.optional(v.string()),
     warmExpiresAt: v.optional(v.number()),
     artifacts: v.array(
-      v.object({ path: v.string(), storageId: v.id('_storage') }),
+      v.object({
+        path: v.string(),
+        storageId: v.id('_storage'),
+        sha256: v.optional(v.string()),
+      }),
     ),
     timings: v.array(v.object({ stage: v.string(), ms: v.number() })),
   }).index('by_program', ['programId']),

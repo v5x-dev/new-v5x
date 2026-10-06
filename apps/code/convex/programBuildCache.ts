@@ -5,6 +5,7 @@ import { internalMutation, query } from './_generated/server'
 const artifactValidator = v.object({
   path: v.string(),
   storageId: v.id('_storage'),
+  sha256: v.optional(v.string()),
 })
 
 const timingValidator = v.object({ stage: v.string(), ms: v.number() })
@@ -30,6 +31,22 @@ export const cacheLatest = internalMutation({
     const program = await ctx.db.get('program', args.programId)
     if (!program || program.currentCommitSha !== args.commitSha) return null
 
+    for (const artifact of args.artifacts) {
+      if (!artifact.sha256) continue
+      const metadata = await ctx.db.system.get(artifact.storageId)
+      const expected = btoa(
+        String.fromCharCode(
+          ...(artifact.sha256.match(/../g) ?? []).map((hex) =>
+            parseInt(hex, 16),
+          ),
+        ),
+      )
+      if (!metadata || metadata.sha256 !== expected)
+        throw new Error(
+          `Build artifact failed integrity check: ${artifact.path}`,
+        )
+    }
+
     const cached = await ctx.db
       .query('programBuildCache')
       .withIndex('by_program', (q) => q.eq('programId', args.programId))
@@ -37,7 +54,11 @@ export const cacheLatest = internalMutation({
 
     if (cached) {
       for (const artifact of cached.artifacts) {
-        await ctx.storage.delete(artifact.storageId)
+        if (
+          !args.artifacts.some((next) => next.storageId === artifact.storageId)
+        ) {
+          await ctx.storage.delete(artifact.storageId)
+        }
       }
 
       await ctx.db.patch('programBuildCache', cached._id, {
@@ -77,6 +98,7 @@ export const takeWarmMachine = internalMutation({
       machineId: v.string(),
       commitSha: v.string(),
       expiresAt: v.number(),
+      artifacts: v.array(artifactValidator),
     }),
   ),
   handler: async (ctx, { programId, imageTag }) => {
@@ -103,7 +125,12 @@ export const takeWarmMachine = internalMutation({
       })
       return null
     }
-    return { machineId, commitSha: cached.commitSha, expiresAt }
+    return {
+      machineId,
+      commitSha: cached.commitSha,
+      expiresAt,
+      artifacts: cached.artifacts,
+    }
   },
 })
 

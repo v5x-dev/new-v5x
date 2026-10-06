@@ -6,6 +6,13 @@ import { v } from 'convex/values'
 // app will continue to work.
 // The schema provides more precise TypeScript types.
 export default defineSchema({
+  feedback: defineTable({
+    kind: v.union(v.literal('bug'), v.literal('feature')),
+    title: v.string(),
+    description: v.string(),
+    reporterId: v.string(),
+    reporterEmail: v.optional(v.string()),
+  }),
   program: defineTable({
     name: v.string(),
     repoId: v.string(),

@@ -1,8 +1,21 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { Link, createFileRoute } from '@tanstack/react-router'
 import { useAction } from 'convex/react'
+import { useQuery } from '@tanstack/react-query'
+import { convexQuery } from '@convex-dev/react-query'
+import { QuestionMark } from '@phosphor-icons/react'
+import { api } from '../../../convex/_generated/api'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '~/components/ui/table'
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -12,18 +25,7 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from '~/components/ui/sidebar'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '~/components/ui/table'
-import { api } from '../../../convex/_generated/api'
-import { useQuery } from '@tanstack/react-query'
-import { convexQuery } from '@convex-dev/react-query'
-import { QuestionMark } from '@phosphor-icons/react'
+import { FeedbackDialog } from '~/components/feedback-dialog'
 
 const templateInfo = {
   vexcode: { label: 'VEXcode', icon: '/template-icons/vexcode.png' },
@@ -104,6 +106,9 @@ function RouteComponent() {
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
+        <SidebarFooter>
+          <FeedbackDialog />
+        </SidebarFooter>
       </Sidebar>
 
       <SidebarInset className="max-h-screen overflow-hidden">

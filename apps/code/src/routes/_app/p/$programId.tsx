@@ -23,6 +23,7 @@ import type { Id } from '../../../../convex/_generated/dataModel'
 import { WorkspaceEditor } from '~/components/ide/workspace-editor'
 import { ProgramFileTree } from '~/components/ide/program-file-tree'
 import { Button } from '~/components/ui/button'
+import { FeedbackDialog } from '~/components/feedback-dialog'
 import {
   Popover,
   PopoverContent,
@@ -533,19 +534,22 @@ function RouteComponent() {
             ) : null}
           </SidebarContent>
           <SidebarFooter className="flex-row justify-between">
-            <Button
-              size="icon-sm"
-              variant="ghost"
-              aria-label="Back to programs"
-              title="Back to programs"
-              disabled={isSaving || isUploading}
-              onClick={() => {
-                if (isSaving || isUploading) return
-                void navigate({ to: '/' })
-              }}
-            >
-              <ArrowLeftIcon />
-            </Button>
+            <div className="flex items-center gap-0.5">
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                aria-label="Back to programs"
+                title="Back to programs"
+                disabled={isSaving || isUploading}
+                onClick={() => {
+                  if (isSaving || isUploading) return
+                  void navigate({ to: '/' })
+                }}
+              >
+                <ArrowLeftIcon />
+              </Button>
+              <FeedbackDialog />
+            </div>
             <div className="flex flex-row gap-0.5 items-center">
               <Button
                 size="icon-sm"

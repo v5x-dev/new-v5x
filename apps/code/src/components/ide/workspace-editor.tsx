@@ -1,7 +1,6 @@
 import * as React from 'react'
-import { HugeiconsIcon } from '@hugeicons/react'
-import { CheckmarkCircle01Icon } from '@hugeicons/core-free-icons'
 import {
+  CheckIcon,
   MagnifyingGlassIcon,
   TerminalIcon,
   TextAlignLeftIcon,
@@ -1311,11 +1310,7 @@ export function WorkspaceEditor(props: Props) {
           aria-label={ready ? 'C++ ready' : 'Starting C++'}
         >
           {ready ? (
-            <HugeiconsIcon
-              icon={CheckmarkCircle01Icon}
-              className="size-4 text-emerald-500"
-              aria-hidden="true"
-            />
+            <CheckIcon className="size-4 text-emerald-500" aria-hidden="true" />
           ) : (
             <Spinner aria-hidden="true" />
           )}

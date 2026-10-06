@@ -6,6 +6,7 @@ import {
   ArrowLeftIcon,
   GitCommitIcon,
   HammerIcon,
+  PlugsIcon,
   UploadSimpleIcon,
 } from '@phosphor-icons/react'
 import * as React from 'react'
@@ -707,32 +708,40 @@ function RouteComponent() {
                         ),
                       )}
                     </div>
-                    <Button
-                      className="w-full"
-                      onClick={() => void uploadToBrain()}
-                      disabled={
-                        !program ||
-                        buildArtifacts.size === 0 ||
-                        buildArtifactsCommitSha !== program.currentCommitSha ||
-                        isBuilding ||
-                        isSaving ||
-                        isUploading ||
-                        hasUnsavedChanges
-                      }
-                    >
-                      {isUploading ? <Spinner /> : <UploadSimpleIcon />}
-                      {isUploading ? 'Uploading to Brain' : 'Upload to Brain'}
-                    </Button>
-                    {isBrainConnected ? (
+                    <div className="flex items-center gap-2">
                       <Button
-                        variant="outline"
-                        className="w-full"
-                        disabled={isUploading}
-                        onClick={() => void disconnectBrain()}
+                        size="icon"
+                        aria-label="Upload to Brain"
+                        title={
+                          isUploading ? 'Uploading to Brain' : 'Upload to Brain'
+                        }
+                        onClick={() => void uploadToBrain()}
+                        disabled={
+                          !program ||
+                          buildArtifacts.size === 0 ||
+                          buildArtifactsCommitSha !==
+                            program.currentCommitSha ||
+                          isBuilding ||
+                          isSaving ||
+                          isUploading ||
+                          hasUnsavedChanges
+                        }
                       >
-                        Disconnect Brain
+                        {isUploading ? <Spinner /> : <UploadSimpleIcon />}
                       </Button>
-                    ) : null}
+                      {isBrainConnected ? (
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          aria-label="Disconnect Brain"
+                          title="Disconnect Brain"
+                          disabled={isUploading}
+                          onClick={() => void disconnectBrain()}
+                        >
+                          <PlugsIcon />
+                        </Button>
+                      ) : null}
+                    </div>
                     {uploadMessage ? (
                       <p className="text-xs text-muted-foreground">
                         {uploadMessage}

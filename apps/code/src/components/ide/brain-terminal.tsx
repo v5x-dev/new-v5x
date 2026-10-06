@@ -5,6 +5,7 @@ import {
   PlugsIcon,
   SpinnerGapIcon,
   TrashIcon,
+  XIcon,
 } from '@phosphor-icons/react'
 import * as React from 'react'
 import type { V5SerialDevice, V5UserProgramTerminal } from '@v5x/serial'
@@ -12,9 +13,8 @@ import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import {
   Sheet,
+  SheetClose,
   SheetContent,
-  SheetDescription,
-  SheetHeader,
   SheetTitle,
 } from '~/components/ui/sheet'
 
@@ -113,16 +113,11 @@ export function BrainTerminal({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
+        showCloseButton={false}
         className="max-h-[80vh] gap-0 data-[side=bottom]:h-[50vh]"
       >
-        <SheetHeader>
-          <SheetTitle>Brain terminal</SheetTitle>
-          <SheetDescription>
-            Live program output and input over USB. Run your program on the
-            Brain to see printf and logs.
-          </SheetDescription>
-        </SheetHeader>
-        <div className="flex min-h-0 flex-1 flex-col gap-3 px-4 pb-4">
+        <SheetTitle className="sr-only">Brain terminal</SheetTitle>
+        <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
           <div className="flex flex-wrap items-center gap-2">
             <Button
               size="icon-sm"
@@ -178,6 +173,19 @@ export function BrainTerminal({
                     ? 'Terminal stopped'
                     : 'Disconnected'}
             </span>
+            <SheetClose
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="ml-auto"
+                  aria-label="Close terminal"
+                  title="Close terminal"
+                />
+              }
+            >
+              <XIcon />
+            </SheetClose>
           </div>
           {error && (
             <p role="alert" className="text-xs text-destructive">

@@ -6,6 +6,7 @@ const app = defineApp({
   env: {
     SMOL_CLOUD_TOKEN: v.optional(v.string()),
     SMOL_CLOUD_URL: v.optional(v.string()),
+    VEXCODE_IMAGE_TAG: v.optional(v.string()),
   },
 })
 

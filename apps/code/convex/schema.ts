@@ -27,6 +27,14 @@ export default defineSchema({
       ),
     ),
   }).index('by_owner', ['ownerId']),
+  buildPool: defineTable({
+    template: v.string(),
+    imageTag: v.string(),
+    lease: v.string(),
+    expiresAt: v.number(),
+    machineId: v.optional(v.string()),
+    commitSha: v.optional(v.string()),
+  }).index('by_template_and_imageTag', ['template', 'imageTag']),
   programBuilds: defineTable({
     programId: v.id('program'),
     commitSha: v.string(),
@@ -39,6 +47,7 @@ export default defineSchema({
     stderr: v.string(),
     warmMachineId: v.optional(v.string()),
     warmImageTag: v.optional(v.string()),
+    warmExpiresAt: v.optional(v.number()),
     artifacts: v.array(
       v.object({ path: v.string(), storageId: v.id('_storage') }),
     ),

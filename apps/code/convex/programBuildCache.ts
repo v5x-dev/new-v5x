@@ -1,5 +1,6 @@
 import { v } from 'convex/values'
-import { internalMutation, internalQuery, query } from './_generated/server'
+import { internal } from './_generated/api'
+import { internalMutation, query } from './_generated/server'
 
 const artifactValidator = v.object({
   path: v.string(),
@@ -19,6 +20,7 @@ export const cacheLatest = internalMutation({
     timings: v.array(timingValidator),
     warmMachineId: v.optional(v.string()),
     warmImageTag: v.optional(v.string()),
+    warmExpiresAt: v.optional(v.number()),
   },
   returns: v.union(
     v.null(),
@@ -47,13 +49,16 @@ export const cacheLatest = internalMutation({
         timings: args.timings,
         warmMachineId: args.warmMachineId,
         warmImageTag: args.warmImageTag,
+        warmExpiresAt: args.warmExpiresAt,
       })
     } else {
-      const { warmMachineId, warmImageTag, ...buildCache } = args
+      const { warmMachineId, warmImageTag, warmExpiresAt, ...buildCache } = args
 
       await ctx.db.insert('programBuildCache', {
         ...buildCache,
-        ...(warmMachineId ? { warmMachineId, warmImageTag } : {}),
+        ...(warmMachineId
+          ? { warmMachineId, warmImageTag, warmExpiresAt }
+          : {}),
       })
     }
 
@@ -61,14 +66,18 @@ export const cacheLatest = internalMutation({
   },
 })
 
-export const getWarmMachine = internalQuery({
+export const takeWarmMachine = internalMutation({
   args: {
     programId: v.id('program'),
     imageTag: v.string(),
   },
   returns: v.union(
     v.null(),
-    v.object({ machineId: v.string(), commitSha: v.string() }),
+    v.object({
+      machineId: v.string(),
+      commitSha: v.string(),
+      expiresAt: v.number(),
+    }),
   ),
   handler: async (ctx, { programId, imageTag }) => {
     const cached = await ctx.db
@@ -80,7 +89,21 @@ export const getWarmMachine = internalQuery({
       return null
     }
 
-    return { machineId: cached.warmMachineId, commitSha: cached.commitSha }
+    const machineId = cached.warmMachineId
+    await ctx.db.patch('programBuildCache', cached._id, {
+      warmMachineId: undefined,
+      warmImageTag: undefined,
+      warmExpiresAt: undefined,
+    })
+
+    const expiresAt = cached.warmExpiresAt ?? 0
+    if (expiresAt <= Date.now()) {
+      await ctx.scheduler.runAfter(0, internal.programBuild.deleteMachine, {
+        machineId,
+      })
+      return null
+    }
+    return { machineId, commitSha: cached.commitSha, expiresAt }
   },
 })
 

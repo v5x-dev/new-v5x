@@ -2,82 +2,23 @@
 
 import { v } from 'convex/values'
 import { Machine } from 'smolmachines'
-import { api, internal } from './_generated/api'
-import type { Doc, Id } from './_generated/dataModel'
+import { internal } from './_generated/api'
 import { action, env, internalAction } from './_generated/server'
 import { store } from './store'
+import { prepareBuildSdk, preparePrecompiledHeader } from './lib/buildSdk'
 
-const DEFAULT_SMOL_CLOUD_URL = 'https://api.smolmachines.com'
+import {
+  BUILD_GIT_ENV,
+  DEFAULT_BUILD_IMAGE_TAG,
+  DEFAULT_SMOL_CLOUD_URL,
+  createBuildMachine,
+  resolveBuildCloud,
+} from './lib/buildCloud'
+import type { Id } from './_generated/dataModel'
 
 const MAX_OUTPUT_BYTES = 400 * 1024
 
 const MAX_CACHED_LOG_BYTES = 200 * 1024
-
-const PROS_KERNEL_URL =
-  'https://pros.cs.purdue.edu/v5/_static/releases/kernel@3.8.3.zip'
-
-const PROS_KERNEL_SHA256 =
-  'fa0eddc8c9493ba1fca73ff7648227f8e84ec1784627f22e37a55445e5f2ecc8'
-
-const PROS_KERNEL_ARCHIVE = '/tmp/pros-kernel-3.8.3.zip'
-
-const PROS_KERNEL_IMAGE_DIR = '/opt/vex-build/pros-kernel-3.8.3'
-
-const PROS_KERNEL_READY_MARKER = '/tmp/v5x-build-cache/pros-kernel-3.8.3.ready'
-
-const EZ_TEMPLATE_PROJECT_URL =
-  'https://github.com/EZ-Robotics/EZ-Template/releases/download/v3.2.2/EZ-Template-Example-Project.zip'
-
-const EZ_TEMPLATE_PROJECT_SHA256 =
-  '41ec47dc65588cf7efae84771965a4803611f5db88ed5465bbb829a5eb8d7822'
-
-const EZ_TEMPLATE_PROJECT_ARCHIVE = '/tmp/ez-template-example-project-3.2.2.zip'
-
-const EZ_TEMPLATE_IMAGE_DIR = '/opt/vex-build/ez-template-3.2.2'
-
-const prepareProsBuild = [
-  'set -eu',
-  'command -v arm-none-eabi-gcc >/dev/null 2>&1 || { echo "PROS image is missing arm-none-eabi-gcc." >&2; exit 127; }',
-  'command -v arm-none-eabi-g++ >/dev/null 2>&1 || { echo "PROS image is missing arm-none-eabi-g++." >&2; exit 127; }',
-  'stdlib_path=$(arm-none-eabi-g++ -print-file-name=libstdc++.a)',
-  '[ -f "$stdlib_path" ] || { echo "PROS image is missing the ARM C++ standard library." >&2; exit 127; }',
-  `if [ -f '${PROS_KERNEL_READY_MARKER}' ] && [ -f '/workspace/common.mk' ] && [ -f '/workspace/firmware/libpros.a' ] && [ -f '/workspace/include/api.h' ]; then`,
-  '  :',
-  `elif [ -d '${PROS_KERNEL_IMAGE_DIR}' ]; then`,
-  `  cp -a -n '${PROS_KERNEL_IMAGE_DIR}/.' '/workspace/'`,
-  '  mkdir -p /tmp/v5x-build-cache',
-  `  touch '${PROS_KERNEL_READY_MARKER}'`,
-  'else',
-  '  command -v wget >/dev/null 2>&1 || { echo "Build image is missing wget and the baked PROS kernel." >&2; exit 127; }',
-  '  command -v unzip >/dev/null 2>&1 || { echo "Build image is missing unzip." >&2; exit 127; }',
-  '  command -v sha256sum >/dev/null 2>&1 || { echo "Build image is missing sha256sum." >&2; exit 127; }',
-  `  wget -q -O '${PROS_KERNEL_ARCHIVE}' '${PROS_KERNEL_URL}'`,
-  `  printf '%s  %s\\n' '${PROS_KERNEL_SHA256}' '${PROS_KERNEL_ARCHIVE}' | sha256sum --check -`,
-  `  unzip -n -q '${PROS_KERNEL_ARCHIVE}' -d '/workspace'`,
-  '  mkdir -p /tmp/v5x-build-cache',
-  `  touch '${PROS_KERNEL_READY_MARKER}'`,
-  'fi',
-].join('\n')
-
-const prepareEzTemplateBuild = [
-  'set -eu',
-  'command -v arm-none-eabi-gcc >/dev/null 2>&1 || { echo "PROS image is missing arm-none-eabi-gcc." >&2; exit 127; }',
-  'command -v arm-none-eabi-g++ >/dev/null 2>&1 || { echo "PROS image is missing arm-none-eabi-g++." >&2; exit 127; }',
-  'stdlib_path=$(arm-none-eabi-g++ -print-file-name=libstdc++.a)',
-  '[ -f "$stdlib_path" ] || { echo "PROS image is missing the ARM C++ standard library." >&2; exit 127; }',
-  `if [ "$(cat '/workspace/.ez-template' 2>/dev/null || true)" = '3.2.2' ] && [ -f '/workspace/common.mk' ] && [ -f '/workspace/firmware/EZ-Template.a' ] && [ -f '/workspace/include/EZ-Template/api.hpp' ]; then`,
-  '  :',
-  `elif [ -d '${EZ_TEMPLATE_IMAGE_DIR}' ]; then`,
-  `  cp -a -n '${EZ_TEMPLATE_IMAGE_DIR}/.' '/workspace/'`,
-  'else',
-  '  command -v wget >/dev/null 2>&1 || { echo "Build image is missing wget and the baked EZ Template files." >&2; exit 127; }',
-  '  command -v unzip >/dev/null 2>&1 || { echo "Build image is missing unzip." >&2; exit 127; }',
-  '  command -v sha256sum >/dev/null 2>&1 || { echo "Build image is missing sha256sum." >&2; exit 127; }',
-  `  wget -q -O '${EZ_TEMPLATE_PROJECT_ARCHIVE}' '${EZ_TEMPLATE_PROJECT_URL}'`,
-  `  printf '%s  %s\\n' '${EZ_TEMPLATE_PROJECT_SHA256}' '${EZ_TEMPLATE_PROJECT_ARCHIVE}' | sha256sum --check -`,
-  `  unzip -n -q '${EZ_TEMPLATE_PROJECT_ARCHIVE}' 'common.mk' 'firmware/*' 'include/*' -d '/workspace'`,
-  'fi',
-].join('\n')
 
 function limitOutput(output: string, maxBytes = MAX_OUTPUT_BYTES) {
   const bytes = new TextEncoder().encode(output)
@@ -94,13 +35,13 @@ type BuildActionResult = {
   exitCode: number
   stdout: string
   stderr: string
-  binFiles: string[]
+  binFiles: Array<string>
   artifacts: Array<{ path: string; url: string }>
-  timings: BuildTiming[]
+  timings: Array<BuildTiming>
 }
 
 function createBuildTimer(programId: string) {
-  const timings: BuildTiming[] = []
+  const timings: Array<BuildTiming> = []
 
   const measure = async <T>(
     stage: string,
@@ -131,71 +72,43 @@ async function prepareBuildWorkspace(args: {
 }) {
   const { machine, remoteUrl, commitSha, previousCommitSha, measure } = args
 
-  if (previousCommitSha !== null) {
-    const credentials = await measure('Refresh repository credentials', () =>
-      machine.exec(['git', 'remote', 'set-url', 'origin', remoteUrl], {
-        workdir: '/workspace',
-        timeout: 10,
-      }),
-    )
-
-    if (credentials.exitCode !== 0) {
-      throw new Error('Unable to refresh program repository credentials')
-    }
-
-    if (previousCommitSha !== commitSha) {
-      const fetch = await measure('Fetch repository updates', () =>
-        machine.exec(['git', 'fetch', '--no-tags', 'origin'], {
-          workdir: '/workspace',
-          timeout: 120,
-        }),
-      )
-
-      if (fetch.exitCode !== 0) {
-        throw new Error(
-          `Unable to fetch program repository (${fetch.exitCode})`,
-        )
-      }
-    }
-  } else {
-    const clone = await measure('Clone repository', () =>
-      machine.exec(['git', 'clone', remoteUrl, '/workspace'], {
-        timeout: 120,
-      }),
-    )
-
-    if (clone.exitCode !== 0) {
-      // Keep the short lived clone credential out of errors returned to clients.
-      throw new Error(`Unable to clone program repository (${clone.exitCode})`)
-    }
-  }
-
-  const checkout = await measure('Select program commit', () =>
-    machine.exec(['git', 'checkout', '--force', '--detach', commitSha], {
-      workdir: '/workspace',
-      timeout: 30,
-    }),
-  )
-
-  if (checkout.exitCode !== 0) {
-    throw new Error(`Unable to select program commit (${checkout.exitCode})`)
-  }
-
-  const clearCredentials = await measure('Clear repository credentials', () =>
+  // Pass credentials as an argument, never interpolate them into shell source.
+  // A trap clears them on checkout/fetch failures as well as on success.
+  const result = await measure('Sync program workspace', () =>
     machine.exec(
       [
-        'git',
-        'remote',
-        'set-url',
-        'origin',
-        'https://invalid.invalid/v5x-build-cache',
+        'sh',
+        '-c',
+        [
+          'set -eu',
+          'remote_url="$1"',
+          'commit_sha="$2"',
+          'previous_sha="$3"',
+          'clear_credentials() { git -C /workspace remote set-url origin https://invalid.invalid/v5x-build-cache 2>/dev/null || true; }',
+          'trap clear_credentials EXIT',
+          'if [ -n "$previous_sha" ]; then',
+          '  git -C /workspace remote set-url origin "$remote_url"',
+          '  if [ "$previous_sha" != "$commit_sha" ]; then',
+          '    git -C /workspace fetch --no-tags --depth=1 origin "$commit_sha"',
+          '  fi',
+          'else',
+          '  git clone --no-checkout --depth=1 "$remote_url" /workspace',
+          '  git -C /workspace cat-file -e "$commit_sha^{commit}" 2>/dev/null || git -C /workspace fetch --no-tags --depth=1 origin "$commit_sha"',
+          'fi',
+          'git -C /workspace checkout --force --detach "$commit_sha"',
+        ].join('\n'),
+        'sync-workspace',
+        remoteUrl,
+        commitSha,
+        previousCommitSha ?? '',
       ],
-      { workdir: '/workspace', timeout: 10 },
+      { timeout: 120, env: BUILD_GIT_ENV },
     ),
   )
 
-  if (clearCredentials.exitCode !== 0) {
-    throw new Error('Unable to clear program repository credentials')
+  if (result.exitCode !== 0) {
+    // Git errors can contain the short-lived credential.
+    throw new Error(`Unable to sync program repository (${result.exitCode})`)
   }
 }
 
@@ -224,18 +137,6 @@ export const build = action({
 
     if (!identity) throw new Error('Unauthorized')
 
-    const program: Doc<'program'> | null = await measure('Load program', () =>
-      ctx.runQuery(api.program.get, { programId }),
-    )
-
-    if (!program) throw new Error('Program not found')
-
-    if (!program.currentCommitSha) {
-      throw new Error('Program commit is still loading')
-    }
-
-    const commitSha: string = program.currentCommitSha
-
     const token = env.SMOL_CLOUD_TOKEN
     if (!token) throw new Error('SMOL_CLOUD_TOKEN is not configured')
 
@@ -244,34 +145,7 @@ export const build = action({
       '',
     )
 
-    const accountResponse = await measure('Resolve cloud account', () =>
-      fetch(`${cloudUrl}/v1/me`, {
-        headers: { authorization: `Bearer ${token}` },
-      }),
-    )
-
-    if (!accountResponse.ok) {
-      throw new Error(
-        `Could not resolve Smol registry namespace (${accountResponse.status})`,
-      )
-    }
-
-    const account: unknown = await accountResponse.json()
-
-    const registryNamespace =
-      typeof account === 'object' &&
-      account !== null &&
-      'registryNamespace' in account &&
-      typeof account.registryNamespace === 'string'
-        ? account.registryNamespace
-        : null
-
-    if (!registryNamespace?.startsWith('tenants/')) {
-      throw new Error('Smol account has no registry namespace')
-    }
-
-    const imageTag = process.env.VEXCODE_IMAGE_TAG || 'v1'
-    const machineImage = `registry.smolmachines.com/${registryNamespace}/vexcode:${imageTag}`
+    const imageTag = env.VEXCODE_IMAGE_TAG ?? DEFAULT_BUILD_IMAGE_TAG
 
     const cloudConnection = {
       target: 'cloud' as const,
@@ -279,337 +153,293 @@ export const build = action({
       baseUrl: cloudUrl,
     }
 
-    const warmBuild = await measure('Load warm build machine', () =>
-      ctx.runQuery(internal.programBuildCache.getWarmMachine, {
-        programId,
-        imageTag,
-      }),
+    const { program, commitSha, warmBuild } = await measure(
+      'Acquire build workspace',
+      () =>
+        ctx.runMutation(internal.buildRequest.acquire, {
+          programId,
+          ownerId: identity.subject,
+          imageTag,
+        }),
     )
-
-    const repo = store.repo({ id: program.repoId })
-
-    const remoteUrl = await measure('Get repository URL', () =>
-      repo.getRemoteURL({ permissions: ['git:read'], ttl: 900 }),
-    )
-
-    const startCleanMachine = () =>
-      Machine.create(
-        {
-          image: machineImage,
-          resources: { cpus: 2, memoryMb: 2048, network: true },
-          ttlSeconds: 900,
-          branchable: true,
-        },
-        cloudConnection,
-      )
-
-    let machine: Machine | null = null
-    let sourceMachine: Machine | null = null
-
-    if (warmBuild) {
-      try {
-        sourceMachine = await measure('Connect warm build machine', () =>
-          Machine.connect(warmBuild.machineId, cloudConnection),
-        )
-
-        await measure('Branch warm build machine', async () => {
-          await sourceMachine!.waitUntilReady({ timeoutMs: 15_000 })
-
-          machine = await sourceMachine!.branch(
-            `build-${crypto.randomUUID()}`,
-            { branchable: true },
-          )
-        })
-      } catch {
-        console.warn(
-          `[build ${programId}] Warm build machine unavailable; starting a clean machine`,
-        )
-
-        sourceMachine = null
-      }
-    }
-
-    if (!machine) {
-      machine = await measure('Start build machine', startCleanMachine)
-    }
-
-    if (!machine) throw new Error('Unable to start build machine')
-    let buildMachine: Machine = machine
-    let usingWarmBuild = Boolean(warmBuild && sourceMachine)
-
-    const storedArtifacts: Array<{
-      path: string
-      storageId: Id<'_storage'>
-      url: string
-    }> = []
-
-    let keepStoredArtifacts = false
-    // Each follow-up build gets a CoW branch, keeping overlapping requests
-    // from changing the saved incremental workspace.
-    let keepWarmMachine = false
-    let replacedMachineId: string | null = null
 
     try {
+      const repo = store.repo({ id: program.repoId })
+      let remoteUrl: string
       try {
-        await prepareBuildWorkspace({
-          machine: buildMachine,
-          remoteUrl,
-          commitSha,
-          previousCommitSha: usingWarmBuild ? warmBuild!.commitSha : null,
-          measure,
-        })
+        remoteUrl = await measure('Get repository URL', () =>
+          repo.getRemoteURL({ permissions: ['git:read'], ttl: 900 }),
+        )
       } catch (error) {
-        if (!usingWarmBuild) throw error
-
-        console.warn(
-          `[build ${programId}] Could not refresh warm workspace; retrying from a clean machine`,
-        )
-
-        await measure('Discard stale warm build branch', async () => {
-          await buildMachine.delete().catch((deleteError: unknown) => {
-            console.warn(
-              `[build ${programId}] Could not discard stale build branch`,
-              deleteError,
-            )
+        if (warmBuild)
+          await ctx.scheduler.runAfter(0, internal.programBuild.deleteMachine, {
+            machineId: warmBuild.machineId,
           })
-        })
-
-        sourceMachine = null
-        usingWarmBuild = false
-
-        buildMachine = await measure(
-          'Start clean fallback build machine',
-          startCleanMachine,
-        )
-
-        machine = buildMachine
-
-        await prepareBuildWorkspace({
-          machine: buildMachine,
-          remoteUrl,
-          commitSha,
-          previousCommitSha: null,
-          measure,
-        })
+        throw error
       }
 
-      const claimed = await ctx.runMutation(internal.program.claimCommitBuild, {
+      let machineExpiresAt = warmBuild?.expiresAt ?? 0
+
+      const startCleanMachine = async () => {
+        machineExpiresAt = Date.now() + 840_000
+        const namespace = await resolveBuildCloud(token, cloudUrl)
+        return createBuildMachine(namespace, imageTag, token, cloudUrl)
+      }
+
+      let machine: Machine | null = null
+      let usingWarmBuild = false
+
+      if (warmBuild) {
+        try {
+          machine = await measure('Resume warm build machine', async () => {
+            const warm = await Machine.connect(
+              warmBuild.machineId,
+              cloudConnection,
+            )
+            await warm.waitUntilReady({ timeoutMs: 15_000 })
+            return warm
+          })
+          usingWarmBuild = true
+        } catch {
+          console.warn(
+            `[build ${programId}] Warm build machine unavailable; starting a clean machine`,
+          )
+
+          machine = null
+        }
+      }
+
+      if (!machine) {
+        machine = await measure('Start build machine', startCleanMachine)
+      }
+
+      let buildMachine: Machine = machine
+
+      const storedArtifacts: Array<{
+        path: string
+        storageId: Id<'_storage'>
+        url: string
+      }> = []
+
+      let keepStoredArtifacts = false
+      // takeWarmMachine atomically transfers ownership to this request.
+      // Overlapping builds get a separate machine.
+      let keepWarmMachine = false
+      let replacedMachineId: string | null = null
+
+      try {
+        try {
+          await prepareBuildWorkspace({
+            machine: buildMachine,
+            remoteUrl,
+            commitSha,
+            previousCommitSha: usingWarmBuild ? warmBuild!.commitSha : null,
+            measure,
+          })
+        } catch (error) {
+          if (!usingWarmBuild) throw error
+
+          console.warn(
+            `[build ${programId}] Could not refresh warm workspace; retrying from a clean machine`,
+          )
+
+          await measure('Discard stale warm build branch', async () => {
+            await buildMachine.delete().catch((deleteError: unknown) => {
+              console.warn(
+                `[build ${programId}] Could not discard stale build branch`,
+                deleteError,
+              )
+            })
+          })
+
+          machine = null
+          usingWarmBuild = false
+
+          buildMachine = await measure(
+            'Start clean fallback build machine',
+            startCleanMachine,
+          )
+
+          machine = buildMachine
+
+          await prepareBuildWorkspace({
+            machine: buildMachine,
+            remoteUrl,
+            commitSha,
+            previousCommitSha: null,
+            measure,
+          })
+        }
+
+        const outputsMarker = '\n__V5X_BUILD_OUTPUTS__\n'
+        const result = await measure(
+          'Prepare SDK and compile with make -j8',
+          () =>
+            buildMachine.exec(
+              [
+                'sh',
+                '-c',
+                [
+                  prepareBuildSdk,
+                  'previous_sha="$1"',
+                  'commit_sha="$2"',
+                  // A fresh template matches the worker that already compiled it.
+                  // Keep those binaries. Any content change still relinks, including
+                  // when sources were deleted, while object files stay for make.
+                  'reuse=0',
+                  'if [ -n "$previous_sha" ] && git diff --quiet "$previous_sha" "$commit_sha"; then',
+                  '  existing_bin="$(find ./build ./bin -type f -name \'*.bin\' -print -quit 2>/dev/null || true)"',
+                  '  if [ -n "$existing_bin" ]; then reuse=1; fi',
+                  'fi',
+                  'if [ "$reuse" -eq 1 ]; then',
+                  '  echo "Reusing prebuilt template binaries"',
+                  'else',
+                  "  find ./build ./bin -type f \\( -name '*.bin' -o -name '*.elf' \\) ! -name 'cold.package.bin' ! -name 'cold.package.elf' -delete 2>/dev/null || true",
+                  preparePrecompiledHeader,
+                  '  make -j8 P=workspace',
+                  'fi',
+                  "printf '\\n__V5X_BUILD_OUTPUTS__\\n'",
+                  "find ./build ./bin -type f -name '*.bin' 2>/dev/null || true",
+                ].join('\n'),
+                'build-workspace',
+                usingWarmBuild ? warmBuild!.commitSha : '',
+                commitSha,
+              ],
+              {
+                workdir: '/workspace',
+                env: { ...BUILD_GIT_ENV, VEX_SDK_PATH: '/sdk' },
+                timeout: 300,
+              },
+            ),
+        )
+        const outputsStart = result.stdout.lastIndexOf(outputsMarker)
+        const buildStdout =
+          outputsStart < 0
+            ? result.stdout
+            : result.stdout.slice(0, outputsStart)
+        let binFiles: Array<string> = []
+
+        if (result.exitCode === 0) {
+          if (outputsStart >= 0) {
+            binFiles = result.stdout
+              .slice(outputsStart + outputsMarker.length)
+              .split(/\r?\n/)
+              .filter(
+                (path) =>
+                  (path.startsWith('./build/') || path.startsWith('./bin/')) &&
+                  path.endsWith('.bin') &&
+                  !path.split('/').some((segment) => segment === '..'),
+              )
+              .map((path) => path.slice(2))
+              .slice(0, 100)
+          }
+
+          const uploads = await Promise.allSettled(
+            binFiles.map(async (path) => {
+              const file = await measure(`Read ${path}`, () =>
+                buildMachine.readFile(`/workspace/${path}`),
+              )
+
+              const bytes = new Uint8Array(file.byteLength)
+              bytes.set(file)
+
+              const storageId = await measure(`Store ${path}`, () =>
+                ctx.storage.store(
+                  new Blob([bytes.buffer], {
+                    type: 'application/octet-stream',
+                  }),
+                ),
+              )
+
+              const url = await measure(`Sign ${path} URL`, () =>
+                ctx.storage.getUrl(storageId),
+              )
+
+              if (url === null) {
+                await ctx.storage.delete(storageId)
+                throw new Error(`Unable to load build artifact ${path}`)
+              }
+
+              storedArtifacts.push({ path, storageId, url })
+            }),
+          )
+          const failedUpload = uploads.find(
+            (upload) => upload.status === 'rejected',
+          )
+          if (failedUpload?.status === 'rejected') throw failedUpload.reason
+          storedArtifacts.sort((a, b) => a.path.localeCompare(b.path))
+        }
+
+        const buildResult = {
+          commitSha,
+          exitCode: result.exitCode,
+          stdout: limitOutput(buildStdout),
+          stderr: limitOutput(result.stderr),
+          binFiles,
+          artifacts: storedArtifacts.map(({ path, url }) => ({ path, url })),
+          timings,
+        }
+
+        const cached = await ctx.runMutation(
+          internal.programBuildCache.cacheLatest,
+          {
+            programId,
+            commitSha,
+            exitCode: buildResult.exitCode,
+            stdout: limitOutput(buildResult.stdout, MAX_CACHED_LOG_BYTES),
+            stderr: limitOutput(buildResult.stderr, MAX_CACHED_LOG_BYTES),
+            artifacts: storedArtifacts.map(({ path, storageId }) => ({
+              path,
+              storageId,
+            })),
+            timings,
+            warmMachineId: buildMachine.id,
+            warmImageTag: imageTag,
+            warmExpiresAt: machineExpiresAt,
+          },
+        )
+
+        if (cached) {
+          keepStoredArtifacts = true
+          keepWarmMachine = true
+          replacedMachineId = cached.previousMachineId
+        }
+
+        return buildResult
+      } finally {
+        if (!keepStoredArtifacts) {
+          await Promise.allSettled(
+            storedArtifacts.map(({ storageId }) =>
+              ctx.storage.delete(storageId),
+            ),
+          )
+        }
+
+        if (!keepWarmMachine) {
+          await measure('Delete build machine', async () => {
+            await buildMachine.delete().catch((error: unknown) => {
+              console.warn(
+                `[build ${programId}] Could not delete build machine`,
+                error,
+              )
+            })
+          })
+        }
+
+        const previousMachineId = replacedMachineId
+
+        if (previousMachineId) {
+          await ctx.scheduler.runAfter(0, internal.programBuild.deleteMachine, {
+            machineId: previousMachineId,
+          })
+        }
+      }
+    } catch (error) {
+      await ctx.runMutation(internal.buildRequest.release, {
         programId,
         commitSha,
       })
-
-      if (!claimed) throw new Error('This commit has already been built')
-
-      let setupStdout = ''
-      let setupStderr = ''
-
-      const prosProject = await measure('Detect PROS project', () =>
-        buildMachine.exec(['test', '-f', 'project.pros'], {
-          workdir: '/workspace',
-          timeout: 10,
-        }),
-      )
-
-      if (prosProject.exitCode === 0) {
-        const ezTemplate = await measure('Detect EZ Template', () =>
-          buildMachine.exec(['test', '-f', '.ez-template'], {
-            workdir: '/workspace',
-            timeout: 10,
-          }),
-        )
-
-        const setupScript =
-          ezTemplate.exitCode === 0 ? prepareEzTemplateBuild : prepareProsBuild
-
-        const setup = await measure('Prepare SDK', () =>
-          buildMachine.exec(['sh', '-lc', setupScript], {
-            workdir: '/workspace',
-            timeout: 240,
-          }),
-        )
-
-        setupStdout = setup.stdout
-        setupStderr = setup.stderr
-
-        if (setup.exitCode !== 0) {
-          const buildResult = {
-            commitSha,
-            exitCode: setup.exitCode,
-            stdout: limitOutput(setup.stdout),
-            stderr: limitOutput(setup.stderr),
-            binFiles: [],
-            artifacts: [],
-            timings,
-          }
-
-          const cached = await ctx.runMutation(
-            internal.programBuildCache.cacheLatest,
-            {
-              programId,
-              commitSha,
-              exitCode: buildResult.exitCode,
-              stdout: limitOutput(buildResult.stdout, MAX_CACHED_LOG_BYTES),
-              stderr: limitOutput(buildResult.stderr, MAX_CACHED_LOG_BYTES),
-              artifacts: [],
-              timings,
-              warmMachineId: undefined,
-              warmImageTag: undefined,
-            },
-          )
-
-          if (cached) {
-            keepStoredArtifacts = true
-            replacedMachineId = cached.previousMachineId
-          }
-
-          return buildResult
-        }
-      }
-
-      const result = await measure('Compile with make -j2', () =>
-        buildMachine.exec(['make', '-j2'], {
-          workdir: '/workspace',
-          env: { VEX_SDK_PATH: '/sdk' },
-          timeout: 300,
-        }),
-      )
-
-      let binFiles: string[] = []
-
-      if (result.exitCode === 0) {
-        const binaries = await measure('Find build outputs', () =>
-          buildMachine.exec(
-            [
-              'find',
-              '.',
-              '-type',
-              'f',
-              '-name',
-              '*.bin',
-              '-not',
-              '-path',
-              './.git/*',
-            ],
-            { workdir: '/workspace', timeout: 30 },
-          ),
-        )
-
-        if (binaries.exitCode === 0) {
-          binFiles = binaries.stdout
-            .split(/\r?\n/)
-            .filter(
-              (path) =>
-                (path.startsWith('./build/') || path.startsWith('./bin/')) &&
-                path.endsWith('.bin') &&
-                !path.split('/').some((segment) => segment === '..'),
-            )
-            .map((path) => path.slice(2))
-            .slice(0, 100)
-        }
-
-        for (const path of binFiles) {
-          const file = await measure(`Read ${path}`, () =>
-            buildMachine.readFile(`/workspace/${path}`),
-          )
-
-          const bytes = new Uint8Array(file.byteLength)
-          bytes.set(file)
-
-          const storageId = await measure(`Store ${path}`, () =>
-            ctx.storage.store(
-              new Blob([bytes.buffer], { type: 'application/octet-stream' }),
-            ),
-          )
-
-          const url = await measure(`Sign ${path} URL`, () =>
-            ctx.storage.getUrl(storageId),
-          )
-
-          if (url === null) {
-            await ctx.storage.delete(storageId)
-            throw new Error(`Unable to load build artifact ${path}`)
-          }
-
-          storedArtifacts.push({ path, storageId, url })
-        }
-      }
-
-      const buildResult = {
-        commitSha,
-        exitCode: result.exitCode,
-        stdout: limitOutput(
-          [setupStdout, result.stdout].filter(Boolean).join('\n'),
-        ),
-        stderr: limitOutput(
-          [setupStderr, result.stderr].filter(Boolean).join('\n'),
-        ),
-        binFiles,
-        artifacts: storedArtifacts.map(({ path, url }) => ({ path, url })),
-        timings,
-      }
-
-      const cached = await ctx.runMutation(
-        internal.programBuildCache.cacheLatest,
-        {
-          programId,
-          commitSha,
-          exitCode: buildResult.exitCode,
-          stdout: limitOutput(buildResult.stdout, MAX_CACHED_LOG_BYTES),
-          stderr: limitOutput(buildResult.stderr, MAX_CACHED_LOG_BYTES),
-          artifacts: storedArtifacts.map(({ path, storageId }) => ({
-            path,
-            storageId,
-          })),
-          timings,
-          warmMachineId: buildMachine.id,
-          warmImageTag: imageTag,
-        },
-      )
-
-      if (cached) {
-        keepStoredArtifacts = true
-        keepWarmMachine = true
-        replacedMachineId = cached.previousMachineId
-      }
-
-      return buildResult
-    } finally {
-      if (!keepStoredArtifacts) {
-        await Promise.allSettled(
-          storedArtifacts.map(({ storageId }) => ctx.storage.delete(storageId)),
-        )
-      }
-
-      if (!keepWarmMachine) {
-        await measure('Delete build machine', async () => {
-          await buildMachine.delete().catch((error: unknown) => {
-            console.warn(
-              `[build ${programId}] Could not delete build machine`,
-              error,
-            )
-          })
-        })
-      }
-
-      const previousMachineId = replacedMachineId
-
-      if (previousMachineId) {
-        await measure('Delete previous warm build machine', async () => {
-          try {
-            const previousMachine =
-              sourceMachine?.id === previousMachineId
-                ? sourceMachine
-                : await Machine.connect(previousMachineId, cloudConnection)
-
-            await previousMachine.delete()
-          } catch (error) {
-            console.warn(
-              `[build ${programId}] Could not delete previous warm build machine`,
-              error,
-            )
-          }
-        })
-      }
+      throw error
     }
   },
 })
@@ -619,5 +449,17 @@ export const deleteArtifact = internalAction({
   handler: async (ctx, { storageId }) => {
     await ctx.storage.delete(storageId)
     return null
+  },
+})
+
+export const deleteMachine = internalAction({
+  args: { machineId: v.string() },
+  handler: async (_ctx, { machineId }) => {
+    const machine = await Machine.connect(machineId, {
+      target: 'cloud',
+      apiKey: env.SMOL_CLOUD_TOKEN,
+      baseUrl: env.SMOL_CLOUD_URL ?? DEFAULT_SMOL_CLOUD_URL,
+    })
+    await machine.delete()
   },
 })

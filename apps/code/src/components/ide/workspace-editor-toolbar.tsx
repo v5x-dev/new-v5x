@@ -1,5 +1,6 @@
 import {
   CheckIcon,
+  CircuitryIcon,
   MagnifyingGlassIcon,
   TerminalIcon,
   TextAlignLeftIcon,
@@ -10,6 +11,7 @@ import { Button } from '~/components/ui/button'
 import { Spinner } from '~/components/ui/spinner'
 
 interface Props {
+  hasBrainTerminal: boolean
   problems: Array<WorkspaceProblem>
   panel: WorkspacePanel
   setPanel: (panel: WorkspacePanel) => void
@@ -22,6 +24,7 @@ interface Props {
 }
 
 export function WorkspaceEditorToolbar({
+  hasBrainTerminal,
   problems,
   panel,
   setPanel,
@@ -58,6 +61,18 @@ export function WorkspaceEditorToolbar({
         >
           <TerminalIcon />
         </Button>
+        {hasBrainTerminal && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Brain terminal"
+            title="Brain terminal"
+            aria-pressed={panel === 'terminal'}
+            onClick={() => setPanel(panel === 'terminal' ? null : 'terminal')}
+          >
+            <CircuitryIcon />
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="icon-sm"

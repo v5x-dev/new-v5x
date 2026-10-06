@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { BrainTerminal } from './brain-terminal'
 import { WorkspaceEditorTabs } from './workspace-editor-tabs'
 import { WorkspaceFilePicker } from './workspace-file-picker'
 import { WorkspaceSearch } from './workspace-search'
@@ -6,6 +7,7 @@ import { WorkspacePanels } from './workspace-panels'
 import { WorkspaceEditorToolbar } from './workspace-editor-toolbar'
 import { WorkspaceCompletions } from './workspace-completions'
 import { PierreDocument } from './pierre-document'
+import type { BrainTerminalProps } from './brain-terminal'
 import type { PierreEditor } from './pierre-document'
 import type {
   CompletionItem,
@@ -65,6 +67,7 @@ export interface CommitChange {
 }
 
 interface Props {
+  brainTerminal?: BrainTerminalProps
   workspaceId: string
   template: ProjectTemplate
   selectedFile: string
@@ -112,7 +115,9 @@ export function WorkspaceEditor(props: Props) {
   const clientRef = React.useRef<ClangdClient | null>(null)
   const editorRef = React.useRef<PierreEditor | null>(null)
   const [ready, setReady] = React.useState(false)
-  const [panel, setPanel] = React.useState<'problems' | 'output' | null>(null)
+  const [panel, setPanel] = React.useState<
+    'problems' | 'output' | 'terminal' | null
+  >(null)
   const [searchQuery, setSearchQuery] = React.useState('')
   const [searchOpen, setSearchOpen] = React.useState(false)
   const [matchCase, setMatchCase] = React.useState(false)
@@ -1172,6 +1177,16 @@ export function WorkspaceEditor(props: Props) {
             })}
         </div>
       </div>
+      {props.brainTerminal && (
+        <BrainTerminal
+          {...props.brainTerminal}
+          open={panel === 'terminal'}
+          onOpenChange={(open) => {
+            if (!open)
+              setPanel((current) => (current === 'terminal' ? null : current))
+          }}
+        />
+      )}
       <WorkspacePanels
         panel={panel}
         setPanel={setPanel}
@@ -1186,6 +1201,7 @@ export function WorkspaceEditor(props: Props) {
         }}
       />
       <WorkspaceEditorToolbar
+        hasBrainTerminal={!!props.brainTerminal}
         problems={problems}
         panel={panel}
         setPanel={setPanel}

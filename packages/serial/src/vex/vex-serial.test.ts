@@ -17,6 +17,7 @@ import {
   UserFifoReplyD2HPacket,
 } from "./vex-packet"
 import { V5SerialConnection } from "./vex-connection"
+import { V5SerialDevice } from "./vex-device"
 import { V5UserProgramTerminal } from "./vex-terminal"
 
 function reply(
@@ -373,4 +374,49 @@ test("terminal decodes output and writes stdin", async () => {
   expect(await terminal.write("in")).toBe(2)
   expect(connection.writes[0]).toEqual(new TextEncoder().encode("in"))
   await terminal.close()
+})
+
+test("device terminals stay open until closed or disposed", async () => {
+  class FakeConnection extends V5SerialConnection {
+    override get isConnected(): boolean {
+      return true
+    }
+
+    override async query1() {
+      return {} as NonNullable<
+        Awaited<ReturnType<V5SerialConnection["query1"]>>
+      >
+    }
+
+    override async readUserFifo() {
+      return new TextEncoder().encode("log\n")
+    }
+
+    override async close() {}
+  }
+
+  class FakeDevice extends V5SerialDevice {
+    override async refresh() {
+      return true
+    }
+  }
+
+  const device = new FakeDevice({} as never, { autoRefresh: false })
+  await device.connect(new FakeConnection({} as never))
+  const terminal = device.openTerminal()
+  expect(terminal).toBeDefined()
+  expect(terminal!.isRunning).toBe(true)
+  const output: string[] = []
+  terminal!.on("text", (text) => {
+    output.push(text)
+    void terminal!.close()
+  })
+  await Bun.sleep(5)
+  expect(output.join("")).toBe("log\n")
+  expect(terminal!.isRunning).toBe(false)
+
+  const second = device.openTerminal()
+  expect(second!.isRunning).toBe(true)
+  await device.dispose()
+  expect(second!.isRunning).toBe(false)
 })

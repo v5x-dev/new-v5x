@@ -10,7 +10,7 @@ import {
   SheetTitle,
 } from '~/components/ui/sheet'
 
-export type WorkspacePanel = 'problems' | 'output' | null
+export type WorkspacePanel = 'problems' | 'output' | 'terminal' | null
 
 export interface WorkspaceProblem {
   path: string

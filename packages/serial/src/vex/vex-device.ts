@@ -1319,7 +1319,7 @@ export class V5SerialDevice extends VexSerialDevice {
     const terminal = openUserProgramTerminal(this.connection, options)
     if (terminal === undefined) return undefined
     this.terminals.add(terminal)
-    void terminal.close().then(() => this.terminals.delete(terminal))
+    terminal.on("closed", () => this.terminals.delete(terminal))
     return terminal
   }
 

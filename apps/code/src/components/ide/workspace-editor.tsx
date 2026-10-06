@@ -1273,7 +1273,7 @@ export function WorkspaceEditor(props: Props) {
           </SheetContent>
         </Sheet>
       ))}
-      <div className="absolute bottom-3 right-3 z-20 flex items-center gap-2 rounded-lg border border-border bg-background/90 p-2 text-[11px] text-muted-foreground shadow-sm backdrop-blur-sm">
+      <div className="absolute bottom-3 right-3 z-20 flex items-center gap-2 rounded-lg border border-border bg-card p-2 text-[11px] text-muted-foreground shadow-sm backdrop-blur-sm">
         {problems.some(
           ({ diagnostic }) =>
             diagnostic.severity === 1 || diagnostic.severity === 2,

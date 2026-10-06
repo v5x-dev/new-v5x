@@ -179,10 +179,6 @@ export function WorkspaceEditor(props: Props) {
     )
     .sort((a, b) => (a.diagnostic.severity ?? 3) - (b.diagnostic.severity ?? 3))
 
-  React.useEffect(() => {
-    if (props.buildOutput) setPanel('output')
-  }, [props.buildOutput])
-
   const [position, setPosition] = React.useState<Position>({
     line: 0,
     character: 0,

@@ -1,6 +1,5 @@
 import * as React from 'react'
 import {
-  ArrowRightIcon,
   ClipboardIcon,
   CopyIcon,
   DownloadSimpleIcon,
@@ -26,6 +25,7 @@ import {
   ContextMenuItem,
   ContextMenuLabel,
   ContextMenuSeparator,
+  ContextMenuShortcut,
 } from '~/components/ui/context-menu'
 import {
   Dialog,
@@ -45,7 +45,7 @@ export interface TreeClipboard {
 }
 
 export interface TreeAction {
-  kind: 'create' | 'folder' | 'rename' | 'move' | 'duplicate' | 'delete'
+  kind: 'create' | 'folder' | 'rename' | 'duplicate' | 'delete'
   path: string
   directory: boolean
 }
@@ -77,6 +77,7 @@ export function FileTreeMenu({
   readOnly,
   clipboard,
   setClipboard,
+  onToggleDirectory,
   onAction,
   onError,
 }: {
@@ -87,6 +88,7 @@ export function FileTreeMenu({
   readOnly: boolean
   clipboard: TreeClipboard | null
   setClipboard: (value: TreeClipboard | null) => void
+  onToggleDirectory: (path: string) => void
   onAction: (action: TreeAction) => void
   onError: (message: string) => void
 }) {
@@ -118,6 +120,9 @@ export function FileTreeMenu({
       }}
     >
       <ContextMenuContent
+        // Pierre restores focus when dismissing the menu. Base UI must not
+        // restore it again after an action has focused an inline input.
+        finalFocus={false}
         data-file-tree-context-menu-root="true"
         anchor={{
           getBoundingClientRect: () => DOMRect.fromRect(context.anchorRect),
@@ -132,7 +137,9 @@ export function FileTreeMenu({
           <ContextMenuLabel className="truncate">{item.name}</ContextMenuLabel>
           <ContextMenuItem
             onClick={() => {
-              context.anchorElement.click()
+              if (directory) onToggleDirectory(path)
+              else context.anchorElement.click()
+
               context.close()
             }}
           >
@@ -141,17 +148,19 @@ export function FileTreeMenu({
           </ContextMenuItem>
           <ContextMenuItem
             disabled={unavailable}
+            closeOnClick={false}
             onClick={() => action('create')}
           >
             <FilePlusIcon />
-            New file...
+            New file
           </ContextMenuItem>
           <ContextMenuItem
             disabled={unavailable}
+            closeOnClick={false}
             onClick={() => action('folder')}
           >
             <FolderPlusIcon />
-            New folder...
+            New folder
           </ContextMenuItem>
         </ContextMenuGroup>
         <ContextMenuSeparator />
@@ -235,14 +244,12 @@ export function FileTreeMenu({
         <ContextMenuSeparator />
         <ContextMenuItem
           disabled={unavailable}
+          closeOnClick={false}
           onClick={() => action('rename')}
         >
           <PencilSimpleIcon />
-          Rename...
-        </ContextMenuItem>
-        <ContextMenuItem disabled={unavailable} onClick={() => action('move')}>
-          <ArrowRightIcon />
-          Move to...
+          Rename
+          <ContextMenuShortcut>F2</ContextMenuShortcut>
         </ContextMenuItem>
         <ContextMenuItem
           disabled={unavailable}
@@ -261,7 +268,6 @@ const titles = {
   create: 'New file',
   folder: 'New folder',
   rename: 'Rename',
-  move: 'Move to',
   duplicate: 'Duplicate',
   delete: 'Delete',
 }
@@ -280,14 +286,9 @@ export function FileActionDialog({
   const [value, setValue] = React.useState(
     action.kind === 'rename'
       ? name
-      : action.kind === 'move'
-        ? action.path
-        : action.kind === 'duplicate'
-          ? join(
-              parentPath(action.path),
-              name.replace(/(\.[^.]+)?$/, ' copy$1'),
-            )
-          : '',
+      : action.kind === 'duplicate'
+        ? join(parentPath(action.path), name.replace(/(\.[^.]+)?$/, ' copy$1'))
+        : '',
   )
 
   const [error, setError] = React.useState('')
@@ -308,7 +309,7 @@ export function FileActionDialog({
 
         if (action.kind === 'rename' && input.includes('/'))
           throw new Error(
-            'Enter a name without slashes. Use Move to to change folders.',
+            'Enter a name without slashes. Drag the item to change folders.',
           )
 
         const parent = action.directory ? action.path : parentPath(action.path)
@@ -361,7 +362,7 @@ export function FileActionDialog({
                 ? `This removes ${action.path}${action.directory ? ' and all files inside it' : ''} from your draft. Commit changes to save the deletion.`
                 : action.kind === 'folder'
                   ? 'Empty folders contain a .gitkeep file so they can be committed.'
-                  : action.kind === 'move' || action.kind === 'duplicate'
+                  : action.kind === 'duplicate'
                     ? 'Enter the destination path relative to the project root.'
                     : action.kind === 'rename'
                       ? action.path
@@ -371,9 +372,7 @@ export function FileActionDialog({
           {action.kind !== 'delete' && (
             <div className="grid gap-2">
               <label htmlFor="file-operation-name" className="text-sm">
-                {action.kind === 'move' || action.kind === 'duplicate'
-                  ? 'Destination path'
-                  : 'Name'}
+                {action.kind === 'duplicate' ? 'Destination path' : 'Name'}
               </label>
               <Input
                 id="file-operation-name"

@@ -18,11 +18,21 @@ export const authComponent = createClient<DataModel>(components.betterAuth)
 
 export const createAuth = (ctx: GenericCtx<DataModel>) => {
   return betterAuth({
-    baseURL: siteUrl,
+    baseURL: {
+      allowedHosts: [
+        new URL(siteUrl).host,
+        'code.v5x.dev',
+        'localhost:3000',
+        'k4xs74x6-3000.use.devtunnels.ms',
+      ],
+      fallback: siteUrl,
+    },
+    advanced: { trustedProxyHeaders: true },
     trustedOrigins: [
       new URL(siteUrl).origin,
       'https://code.v5x.dev',
       'http://localhost:3000',
+      'https://k4xs74x6-3000.use.devtunnels.ms',
     ],
     database: authComponent.adapter(ctx),
     // Configure simple, non-verified email/password to get started

@@ -165,14 +165,14 @@ function RouteComponent() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-6 px-2" aria-label="Template" />
+              <TableHead className="w-10 min-w-10 px-2" aria-label="Template" />
               <TableHead>Name</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {programs?.map((program) => (
               <TableRow key={program._id}>
-                <TableCell className="w-6 px-2">
+                <TableCell className="w-10 min-w-10 px-2">
                   {program.template ? (
                     <img
                       src={templateInfo[program.template].icon}

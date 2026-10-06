@@ -4,15 +4,11 @@ import { getRequestHeaders } from '@tanstack/react-start/server'
 
 const convexSiteUrl = process.env.VITE_CONVEX_SITE_URL!
 
-export const {
-  handler: authHandler,
-  fetchAuthQuery,
-  fetchAuthMutation,
-  fetchAuthAction,
-} = convexBetterAuthReactStart({
-  convexUrl: process.env.VITE_CONVEX_URL!,
-  convexSiteUrl,
-})
+export const { fetchAuthQuery, fetchAuthMutation, fetchAuthAction } =
+  convexBetterAuthReactStart({
+    convexUrl: process.env.VITE_CONVEX_URL!,
+    convexSiteUrl,
+  })
 
 function authHeaders(incoming: Headers) {
   const headers = new Headers(incoming)
@@ -37,11 +33,32 @@ function authHeaders(incoming: Headers) {
 
 export function handler(request: Request) {
   const headers = authHeaders(request.headers)
-  for (const name of [...request.headers.keys()]) {
-    if (!headers.has(name)) request.headers.delete(name)
-  }
-  request.headers.set('accept-encoding', 'identity')
-  return authHandler(request)
+  const url = new URL(request.url)
+  const forwardedHost = headers.get('x-forwarded-host')
+  const publicHost =
+    forwardedHost &&
+    [
+      'code.v5x.dev',
+      'localhost:3000',
+      'k4xs74x6-3000.use.devtunnels.ms',
+    ].includes(forwardedHost)
+      ? forwardedHost
+      : url.host
+  const protocol = publicHost === 'localhost:3000' ? 'http' : 'https'
+  headers.set('host', new URL(convexSiteUrl).host)
+  headers.set('x-forwarded-host', publicHost)
+  headers.set('x-forwarded-proto', protocol)
+  headers.set('x-better-auth-forwarded-host', publicHost)
+  headers.set('x-better-auth-forwarded-proto', protocol)
+  return fetch(`${convexSiteUrl}${url.pathname}${url.search}`, {
+    method: request.method,
+    headers,
+    redirect: 'manual',
+    body: request.body,
+    // Node fetch requires duplex when forwarding a streaming request body.
+    // @ts-expect-error duplex is not included in the DOM RequestInit type.
+    duplex: 'half',
+  })
 }
 
 export async function getToken() {

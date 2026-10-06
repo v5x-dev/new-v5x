@@ -26,10 +26,10 @@ function RouteComponent() {
             onClick={async () => {
               const { error } = await authClient.signIn.social({
                 provider: 'google',
+                callbackURL: `${window.location.origin}/`,
               })
 
               setErrorMessage(error?.message ?? null)
-              if (!error) navigate({ to: '/' })
             }}
           >
             <GoogleLogoIcon />

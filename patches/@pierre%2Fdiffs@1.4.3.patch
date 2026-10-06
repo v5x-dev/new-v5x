@@ -294,3 +294,50 @@ index 2585a93cda92ee9cd970e141061914ce25d62890..00000000000000000000000000000000
 diff --git a/dist/node_modules/.pnpm/@types_unist@3.0.3/node_modules/@types/unist/index.d.ts.map b/home/pingu/.cache/.bun/install/cache/@pierre/diffs@1.4.3@@@1/dist/node_modules/.pnpm/@types_unist@3.0.3/node_modules/@types/unist/index.d.ts.map
 deleted file mode 100644
 index ed62f9a073e6c6911b7b8d35adfc8eaaebb345e9..0000000000000000000000000000000000000000
+diff --git a/dist/editor/tokenizer.js b/dist/editor/tokenizer.js
+--- a/dist/editor/tokenizer.js
++++ b/dist/editor/tokenizer.js
+@@ -28,6 +28,7 @@
+ 	#comparisonLineChanges = [];
+ 	#lastLine = -1;
+ 	#isStopped = true;
++	#hasInterruptedHighlight = false;
+ 	#isPaused = false;
+ 	#backgroundJobId = 0;
+ 	#tokenizerId = ++nextTokenizerId;
+@@ -191,6 +192,19 @@
+ 		this.#ensureActiveTheme();
+ 		if (this.#grammar === void 0 && !isGrammarlessLanguage(this.#textDocument.languageId)) throw new Error(`Grammar for language "${this.#textDocument.languageId}" not loaded`);
+ 		const { lineCount } = this.#textDocument;
++		// A new edit can cancel unfinished highlighting after a large replacement.
++		// Cached grammar states alone do not mean those rows have colored markup.
++		if (this.#hasInterruptedHighlight) {
++			this.#hasInterruptedHighlight = false;
++			this.#stateStack = [INITIAL];
++			this.#bracketIgnoredRanges = [];
++			change = {
++				...change,
++				startLine: 0,
++				endLine: lineCount - 1,
++				changedLineRanges: [[0, lineCount - 1]]
++			};
++		}
+ 		const { startingLine = 0, totalLines = Infinity } = renderRange ?? {};
+ 		const renderRangeEndLine = totalLines === Infinity ? lineCount : Math.min(startingLine + totalLines, lineCount);
+ 		const dirtyStart = change.startLine;
+@@ -306,6 +320,7 @@
+ 	stopBackgroundTokenize() {
+ 		this.#pendingPrebuildEndLine = -1;
+ 		if (this.#isStopped) return;
++		if (this.#backgroundPrebuildEndLine < 0) this.#hasInterruptedHighlight = true;
+ 		this.#isStopped = true;
+ 		this.#isPaused = false;
+ 		this.#lastLine = -1;
+@@ -540,6 +555,7 @@
+ 		if (settled || line >= totalLines) {
+ 			const pendingPrebuildEndLine = this.#pendingPrebuildEndLine;
+ 			this.stopBackgroundTokenize();
++			this.#hasInterruptedHighlight = false;
+ 			if (pendingPrebuildEndLine >= 0) this.#scheduleStatePrebuild(pendingPrebuildEndLine);
+ 			return;
+ 		}

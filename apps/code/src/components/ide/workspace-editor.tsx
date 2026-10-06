@@ -211,7 +211,12 @@ export function WorkspaceEditor(props: Props) {
     position: Position
   } | null>(null)
 
-  const [anchor, setAnchor] = React.useState({ left: 12, top: 12 })
+  const getCompletionAnchor = React.useCallback(() => {
+    const current = context.current
+    return current
+      ? editorRef.current?.getPositionRect(current.position)
+      : undefined
+  }, [])
 
   const snippet = React.useRef<{
     path: string
@@ -625,6 +630,19 @@ export function WorkspaceEditor(props: Props) {
     )
       return
 
+    const currentSelection = editorRef.current.getViewState().selections?.at(-1)
+    const currentCursor =
+      currentSelection?.direction === -1
+        ? currentSelection.start
+        : currentSelection?.end
+
+    if (
+      !currentCursor ||
+      currentCursor.line !== cursor.line ||
+      currentCursor.character !== cursor.character
+    )
+      return
+
     context.current = { path: doc.path, version: doc.version, position: cursor }
 
     setCompletions(
@@ -636,13 +654,6 @@ export function WorkspaceEditor(props: Props) {
     )
 
     setCompletionIndex(0)
-    const rect = editorRef.current.getPositionRect(cursor)
-
-    if (rect)
-      setAnchor({
-        left: Math.max(0, Math.min(rect.left, window.innerWidth - 400)),
-        top: Math.max(0, Math.min(rect.bottom + 4, window.innerHeight - 300)),
-      })
   }
 
   React.useEffect(() => {
@@ -1133,6 +1144,17 @@ export function WorkspaceEditor(props: Props) {
                       editorRef.current = editor
                     }}
                     onPosition={(at) => {
+                      const completionCursor = context.current?.position
+                      if (
+                        active &&
+                        completionCursor &&
+                        (completionCursor.line !== at.line ||
+                          completionCursor.character !== at.character)
+                      ) {
+                        setCompletions((current) =>
+                          current.length ? [] : current,
+                        )
+                      }
                       if (active)
                         setPosition((previous) =>
                           previous.line === at.line &&
@@ -1215,7 +1237,7 @@ export function WorkspaceEditor(props: Props) {
       <WorkspaceCompletions
         completions={completions}
         completionIndex={completionIndex}
-        anchor={anchor}
+        getAnchor={getCompletionAnchor}
         onAccept={(item) => void run(() => accept(item))}
       />
     </div>

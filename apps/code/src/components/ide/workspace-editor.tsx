@@ -1,12 +1,10 @@
 import * as React from 'react'
-import {
-  CheckIcon,
-  MagnifyingGlassIcon,
-  TerminalIcon,
-  TextAlignLeftIcon,
-  WarningCircleIcon,
-  XIcon,
-} from '@phosphor-icons/react'
+import { WorkspaceEditorTabs } from './workspace-editor-tabs'
+import { WorkspaceFilePicker } from './workspace-file-picker'
+import { WorkspaceSearch } from './workspace-search'
+import { WorkspacePanels } from './workspace-panels'
+import { WorkspaceEditorToolbar } from './workspace-editor-toolbar'
+import { WorkspaceCompletions } from './workspace-completions'
 import { PierreDocument } from './pierre-document'
 import type { PierreEditor } from './pierre-document'
 import type {
@@ -28,27 +26,7 @@ import type { SemanticColor } from '~/lib/ide/semantic-tokens'
 import type { SnippetStop } from '~/lib/ide/snippets'
 import type { FileOperations } from '~/lib/ide/file-operations'
 import { Button } from '~/components/ui/button'
-import { Card, CardContent } from '~/components/ui/card'
-import { Input } from '~/components/ui/input'
-import { Toggle } from '~/components/ui/toggle'
-import { Tabs as EditorTabs, TabsList, TabsTrigger } from '~/components/ui/tabs'
 import { Spinner } from '~/components/ui/spinner'
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '~/components/ui/sheet'
-import {
-  Command,
-  CommandDialog,
-  CommandEmpty,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '~/components/ui/command'
 import { decodeSemanticTokens } from '~/lib/ide/semantic-tokens'
 import { ClangdClient } from '~/lib/ide/clangd-client'
 import { symbolFoldingRanges } from '~/lib/ide/folding'
@@ -792,106 +770,40 @@ export function WorkspaceEditor(props: Props) {
           keyboard(event)
       }}
     >
-      <div className="flex h-9 shrink-0 items-stretch font-mono text-[11px]">
-        <div className="min-w-0 flex-1 overflow-x-auto">
-          <EditorTabs
-            value={`file:${props.selectedFile}`}
-            onValueChange={(value) => {
-              if (typeof value === 'string' && value.startsWith('file:')) {
-                setSdkHeader(null)
-                setSearchOpen(false)
-                props.onSelect(value.slice(5))
-              }
-            }}
-          >
-            <TabsList aria-label="Open files" variant="line">
-              {tabs.map((path) => (
-                <div key={path} className="flex shrink-0 items-center">
-                  <TabsTrigger value={`file:${path}`} title={path}>
-                    {path.split('/').at(-1)}
-                    {tabs.some(
-                      (other) =>
-                        other !== path &&
-                        other.split('/').at(-1) === path.split('/').at(-1),
-                    ) && (
-                      <span className="ml-2 text-muted-foreground">
-                        {path.slice(0, path.lastIndexOf('/'))}
-                      </span>
-                    )}
-                    {documents[path] && isDirty(documents[path]) && (
-                      <span aria-label="Unsaved changes" className="ml-2">
-                        •
-                      </span>
-                    )}
-                  </TabsTrigger>
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    aria-label={`Close ${path}`}
-                    title="Close file"
-
-                    onClick={() => {
-                      const remaining = tabs.filter((entry) => entry !== path)
-                      setTabs(remaining)
-                      if (props.selectedFile === path) {
-                        setSdkHeader(null)
-                        props.onSelect(
-                          remaining[
-                            Math.min(tabs.indexOf(path), remaining.length - 1)
-                          ] ?? '',
-                        )
-                      }
-                    }}
-                  >
-                    <XIcon />
-                  </Button>
-                </div>
-              ))}
-            </TabsList>
-          </EditorTabs>
-        </div>
-        {sdkHeader ? (
-          <Button variant="ghost" size="sm" onClick={() => setSdkHeader(null)}>
-            Back to source
-          </Button>
-        ) : null}
-      </div>
-      <CommandDialog
-        title="Open file"
-        description="Find and open a project file."
-        open={fileQuery !== null}
-        onOpenChange={(open) => setFileQuery(open ? '' : null)}
-        className="sm:max-w-xl"
-      >
-        <Command>
-          <CommandInput
-            aria-label="Find file"
-            placeholder="Find a file…"
-            value={fileQuery ?? ''}
-            onValueChange={setFileQuery}
-          />
-          <CommandList>
-            <CommandEmpty>No matching files.</CommandEmpty>
-            {workspaceDocuments(documents)
-              .filter((doc) => !doc.deleted)
-              .map((doc) => (
-                <CommandItem
-                  key={doc.path}
-                  value={doc.path}
-                  onSelect={() => {
-                    setSdkHeader(null)
-                    setSearchOpen(false)
-                    props.onSelect(doc.path)
-                    setFileQuery(null)
-                  }}
-                >
-                  <span className="truncate font-mono text-xs">{doc.path}</span>
-                  {isDirty(doc) && <span aria-label="Unsaved changes">•</span>}
-                </CommandItem>
-              ))}
-          </CommandList>
-        </Command>
-      </CommandDialog>
+      <WorkspaceEditorTabs
+        tabs={tabs}
+        documents={documents}
+        selectedFile={props.selectedFile}
+        showingHeader={!!sdkHeader}
+        onSelect={(path) => {
+          setSdkHeader(null)
+          setSearchOpen(false)
+          props.onSelect(path)
+        }}
+        onClose={(path) => {
+          const remaining = tabs.filter((entry) => entry !== path)
+          setTabs(remaining)
+          if (props.selectedFile === path) {
+            setSdkHeader(null)
+            props.onSelect(
+              remaining[Math.min(tabs.indexOf(path), remaining.length - 1)] ??
+                '',
+            )
+          }
+        }}
+        onBack={() => setSdkHeader(null)}
+      />
+      <WorkspaceFilePicker
+        documents={documents}
+        fileQuery={fileQuery}
+        setFileQuery={setFileQuery}
+        onSelect={(path) => {
+          setSdkHeader(null)
+          setSearchOpen(false)
+          props.onSelect(path)
+          setFileQuery(null)
+        }}
+      />
       {error && (
         <p role="alert" className="px-3 py-2 text-xs text-destructive">
           {error}
@@ -966,99 +878,26 @@ export function WorkspaceEditor(props: Props) {
         </div>
       ))}
       <div className="relative flex min-h-0 flex-1 flex-col">
-        <Sheet open={searchOpen} onOpenChange={setSearchOpen}>
-          <SheetContent
-            side="right"
-            className="gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-xl"
-            initialFocus={searchInputRef}
-            showCloseButton={false}
-          >
-            <SheetTitle className="sr-only">Search project</SheetTitle>
-            <div className="flex shrink-0 items-center gap-2 border-b p-3">
-              <Input
-                ref={searchInputRef}
-                aria-label="Search workspace"
-                placeholder="Search project…"
-
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-              />
-              <Toggle
-                size="icon"
-                aria-label="Match case"
-                pressed={matchCase}
-                title="Match case"
-                onPressedChange={setMatchCase}
-              >
-                Aa
-              </Toggle>
-              <SheetClose
-                render={<Button variant="ghost" size="icon" />}
-                aria-label="Close search"
-              >
-                <XIcon />
-              </SheetClose>
-            </div>
-            <div className="min-h-0 flex-1 overflow-auto">
-              {searchQuery && (
-                <p
-                  role="status"
-                  className="px-4 py-3 text-xs text-muted-foreground"
-                >
-                  {searchResults.length
-                    ? `${searchResults.length === 2000 ? 'First ' : ''}${searchResults.length} matches in ${searchGroups.size} files`
-                    : 'No matches.'}
-                </p>
-              )}
-              {Array.from(searchGroups, ([path, results]) => (
-                <div key={path} className="mb-4">
-                  <div className="sticky top-0 flex items-center gap-3 border-y bg-muted px-4 py-2 font-mono text-xs">
-                    <span className="truncate">{path}</span>
-                    <span className="ml-auto text-muted-foreground">
-                      {results.length}
-                    </span>
-                  </div>
-                  {results.map((result) => (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      key={`${result.line}:${result.character}`}
-
-                      onClick={() => {
-                        setSearchOpen(false)
-                        setSdkHeader(null)
-                        props.onSelect(result.path)
-                        setTarget({
-                          path: result.path,
-                          position: {
-                            line: result.line,
-                            character: result.character,
-                          },
-                        })
-                      }}
-                    >
-                      <span className="w-10 shrink-0 text-right text-muted-foreground">
-                        {result.line + 1}
-                      </span>
-                      <span className="whitespace-pre-wrap break-all">
-                        {result.text.slice(0, result.character)}
-                        <mark className="rounded bg-primary/20 text-foreground">
-                          {result.text.slice(
-                            result.character,
-                            result.character + searchQuery.length,
-                          )}
-                        </mark>
-                        {result.text.slice(
-                          result.character + searchQuery.length,
-                        )}
-                      </span>
-                    </Button>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </SheetContent>
-        </Sheet>
+        <WorkspaceSearch
+          searchOpen={searchOpen}
+          setSearchOpen={setSearchOpen}
+          searchInputRef={searchInputRef}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          matchCase={matchCase}
+          setMatchCase={setMatchCase}
+          searchResults={searchResults}
+          searchGroups={searchGroups}
+          onSelect={(result) => {
+            setSearchOpen(false)
+            setSdkHeader(null)
+            props.onSelect(result.path)
+            setTarget({
+              path: result.path,
+              position: { line: result.line, character: result.character },
+            })
+          }}
+        />
         <div className="relative flex min-h-0 flex-1 flex-col">
           {!workspaceLoaded && !error && (
             <div className="grid min-h-0 flex-1 place-items-center">
@@ -1176,178 +1015,36 @@ export function WorkspaceEditor(props: Props) {
             })}
         </div>
       </div>
-      {(['problems', 'output'] as const).map((sheetPanel) => (
-        <Sheet
-          key={sheetPanel}
-          open={panel === sheetPanel}
-          onOpenChange={(open) => {
-            if (!open)
-              setPanel((current) => (current === sheetPanel ? null : current))
-          }}
-        >
-          <SheetContent
-            side="bottom"
-            className="max-h-[80vh] gap-0 data-[side=bottom]:h-[50vh]"
-          >
-            <SheetHeader>
-              <SheetTitle>
-                {sheetPanel === 'problems'
-                  ? `Problems${problems.length ? ` (${problems.length})` : ''}`
-                  : 'Output'}
-              </SheetTitle>
-              <SheetDescription>
-                {sheetPanel === 'problems'
-                  ? 'Diagnostics for project files.'
-                  : 'Compiler output from the latest build.'}
-              </SheetDescription>
-            </SheetHeader>
-            <div className="min-h-0 flex-1 overflow-auto px-4 pb-4">
-              {sheetPanel === 'output' ? (
-                <Card size="sm" className="h-full bg-background ring-inset">
-                  <CardContent className="min-h-0 flex-1 overflow-auto">
-                    <pre className="whitespace-pre-wrap break-words font-mono text-xs">
-                      {props.buildOutput ||
-                        'Build the project to see compiler output.'}
-                    </pre>
-                  </CardContent>
-                </Card>
-              ) : problems.length ? (
-                problems.map(({ path, diagnostic }, index) => (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    key={`${path}:${index}`}
-                    className="mb-1 h-auto w-full items-start justify-start gap-3 whitespace-normal px-3 py-3 text-left"
-
-                    onClick={() => {
-                      setPanel(null)
-                      setSdkHeader(null)
-                      props.onSelect(path)
-                      setTarget({ path, position: diagnostic.range.start })
-                    }}
-                  >
-                    <span
-                      className={
-                        diagnostic.severity === 1
-                          ? 'text-destructive'
-                          : 'text-muted-foreground'
-                      }
-                    >
-                      {diagnostic.severity === 1
-                        ? 'Error'
-                        : diagnostic.severity === 2
-                          ? 'Warning'
-                          : 'Info'}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      {diagnostic.message}
-                      <span className="mt-1 block text-muted-foreground">
-                        {path}:{diagnostic.range.start.line + 1}:
-                        {diagnostic.range.start.character + 1}
-                      </span>
-                    </span>
-                  </Button>
-                ))
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  {ready
-                    ? 'No problems reported.'
-                    : 'Waiting for C++ analysis…'}
-                </p>
-              )}
-            </div>
-          </SheetContent>
-        </Sheet>
-      ))}
-      <div className="absolute bottom-3 right-3 z-20 flex flex-col items-end gap-2 text-muted-foreground">
-        <div className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card p-1 shadow-sm backdrop-blur-sm">
-          {problems.some(
-            ({ diagnostic }) =>
-              diagnostic.severity === 1 || diagnostic.severity === 2,
-          ) && (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              title={`${problems.filter(({ diagnostic }) => diagnostic.severity === 1).length} errors, ${problems.filter(({ diagnostic }) => diagnostic.severity === 2).length} warnings (Ctrl+J)`}
-              aria-label="Toggle problems panel"
-              onClick={() => setPanel(panel ? null : 'problems')}
-            >
-              <WarningCircleIcon />
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Output"
-            title="Output"
-            onClick={() => setPanel(panel === 'output' ? null : 'output')}
-          >
-            <TerminalIcon />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            title="Search project (Ctrl+Shift+F)"
-            aria-label="Search project"
-            aria-pressed={searchOpen}
-            className={searchOpen ? 'bg-muted text-foreground' : undefined}
-            onClick={openSearch}
-          >
-            <MagnifyingGlassIcon />
-          </Button>
-          {!sdkHeader && (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              disabled={!ready || !selected}
-              title="Format document (Shift+Alt+F)"
-              aria-label="Format document"
-              onClick={() => void run(formatDocument)}
-            >
-              <TextAlignLeftIcon />
-            </Button>
-          )}
-          <span
-            role="status"
-            className="inline-flex size-7 shrink-0 items-center justify-center"
-            title={ready ? 'C++ ready' : 'Starting C++'}
-            aria-label={ready ? 'C++ ready' : 'Starting C++'}
-          >
-            {ready ? (
-              <CheckIcon
-                className="size-4 text-emerald-500"
-                aria-hidden="true"
-              />
-            ) : (
-              <Spinner aria-hidden="true" />
-            )}
-          </span>
-        </div>
-      </div>
-      {completions.length > 0 && (
-        <div
-          role="listbox"
-          aria-label="Completions"
-          className="fixed z-50 max-h-72 w-96 overflow-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-xl"
-          style={anchor}
-        >
-          {completions.map((item, index) => (
-            <Button
-              variant="ghost"
-              size="sm"
-              key={`${item.label}:${index}`}
-              role="option"
-              aria-selected={index === completionIndex}
-
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => void run(() => accept(item))}
-            >
-              {item.label}
-              <span className="ml-2 text-muted-foreground">{item.detail}</span>
-            </Button>
-          ))}
-        </div>
-      )}
+      <WorkspacePanels
+        panel={panel}
+        setPanel={setPanel}
+        problems={problems}
+        buildOutput={props.buildOutput}
+        ready={ready}
+        onSelect={({ path, diagnostic }) => {
+          setPanel(null)
+          setSdkHeader(null)
+          props.onSelect(path)
+          setTarget({ path, position: diagnostic.range.start })
+        }}
+      />
+      <WorkspaceEditorToolbar
+        problems={problems}
+        panel={panel}
+        setPanel={setPanel}
+        searchOpen={searchOpen}
+        openSearch={openSearch}
+        showingHeader={!!sdkHeader}
+        ready={ready}
+        hasSelectedFile={!!selected}
+        onFormat={() => void run(formatDocument)}
+      />
+      <WorkspaceCompletions
+        completions={completions}
+        completionIndex={completionIndex}
+        anchor={anchor}
+        onAccept={(item) => void run(() => accept(item))}
+      />
     </div>
   )
 }

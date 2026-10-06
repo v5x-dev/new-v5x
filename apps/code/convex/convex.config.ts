@@ -8,6 +8,7 @@ const app = defineApp({
     SMOL_CLOUD_URL: v.optional(v.string()),
   },
 })
+
 app.use(betterAuth)
 
 export default app

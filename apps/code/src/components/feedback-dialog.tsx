@@ -38,12 +38,14 @@ export function FeedbackDialog() {
     submittingRef.current = true
     setPending(true)
     setError(null)
+
     try {
       await submit({
         kind,
         title: title.trim(),
         description: description.trim(),
       })
+
       setTitle('')
       setDescription('')
       setSent(true)
@@ -65,6 +67,7 @@ export function FeedbackDialog() {
       onOpenChange={(nextOpen) => {
         if (submittingRef.current) return
         setOpen(nextOpen)
+
         if (nextOpen) {
           setSent(false)
           setError(null)

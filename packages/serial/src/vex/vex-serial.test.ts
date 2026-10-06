@@ -29,19 +29,23 @@ function reply(
   const headerLength = payloadSize >= 128 ? 5 : 4
   const packet = new Uint8Array(headerLength + payloadSize)
   packet.set([0xaa, 0x55, command], 0)
+
   if (headerLength === 5) {
     packet[3] = 0x80 | (payloadSize >>> 8)
     packet[4] = payloadSize & 0xff
   } else {
     packet[3] = payloadSize
   }
+
   packet[headerLength] = extendedCommand
   packet[headerLength + 1] = ack
   packet.set(body, headerLength + 2)
+
   const crc = PacketEncoder.getInstance().crcgen.crc16(
     packet.subarray(0, -2),
     0
   )
+
   packet[packet.length - 2] = crc >>> 8
   packet[packet.length - 1] = crc & 0xff
   return packet
@@ -54,6 +58,7 @@ test("user FIFO packets encode channels and enforce the write limit", () => {
   expect(packet.data.slice(4, 11)).toEqual(
     Uint8Array.from([86, 39, 5, UserFifoChannel.STDIN, 3, 1, 2])
   )
+
   expect(
     () =>
       new UserFifoH2DPacket(
@@ -100,13 +105,16 @@ test("the packet reader resynchronizes after garbage and parses large frames", a
   }
 
   let controller: ReadableStreamDefaultController<Uint8Array> | undefined
+
   const readable = new ReadableStream<Uint8Array>({
     start(value) {
       controller = value
     },
   })
+
   const connection = new TestConnection({} as never)
   connection.reader = readable.getReader()
+
   connection.writer = {
     write: async () => {},
     close: async () => {},
@@ -136,13 +144,16 @@ test("accepts a fragmented V5 Brain Query1 reply without a CDC2 ACK", async () =
   }
 
   let controller: ReadableStreamDefaultController<Uint8Array> | undefined
+
   const readable = new ReadableStream<Uint8Array>({
     start(value) {
       controller = value
     },
   })
+
   const connection = new TestConnection({} as never)
   connection.reader = readable.getReader()
+
   connection.writer = {
     write: async () => {},
     close: async () => {},
@@ -152,6 +163,7 @@ test("accepts a fragmented V5 Brain Query1 reply without a CDC2 ACK", async () =
   const request = connection.query1()
   const reading = connection.read()
   controller?.enqueue(Uint8Array.from([170]))
+
   controller?.enqueue(
     Uint8Array.from([85, 33, 10, 0, 0, 1, 1, 5, 0, 0, 0, 0, 6])
   )
@@ -165,12 +177,15 @@ test("accepts a fragmented V5 Brain Query1 reply without a CDC2 ACK", async () =
 test("reuses a matching cold library and transfers hot on every upload", async () => {
   const cold = Uint8Array.from([1, 2, 3, 4])
   const crc = PacketEncoder.getInstance().crcgen.crc32(cold, 0)
+
   class TransferConnection extends V5SerialConnection {
     uploaded: string[] = []
     metadataCrc = crc
 
     override async stopProgram() {
-      return {} as NonNullable<Awaited<ReturnType<V5SerialConnection["stopProgram"]>>>
+      return {} as NonNullable<
+        Awaited<ReturnType<V5SerialConnection["stopProgram"]>>
+      >
     }
 
     override async getSystemVersion() {
@@ -183,6 +198,7 @@ test("reuses a matching cold library and transfers hot on every upload", async (
       if (!(packet instanceof GetFileMetadataH2DPacket)) {
         throw new Error("Unexpected packet")
       }
+
       const body = new Uint8Array(25)
       const view = new DataView(body.buffer)
       view.setUint8(0, 24)
@@ -201,10 +217,16 @@ test("reuses a matching cold library and transfers hot on every upload", async (
   const ini = new ProgramIniConfig()
   ini.libraryName = "cold-library"
   const progress: string[] = []
+
   const upload = () =>
-    connection.uploadProgramToDevice(ini, Uint8Array.from([5, 6]), cold, (state) => {
-      progress.push(state)
-    })
+    connection.uploadProgramToDevice(
+      ini,
+      Uint8Array.from([5, 6]),
+      cold,
+      (state) => {
+        progress.push(state)
+      }
+    )
 
   expect(await upload()).toBe(true)
   expect(connection.uploaded).toEqual(["slot_1.ini", "slot_1.bin"])
@@ -213,6 +235,7 @@ test("reuses a matching cold library and transfers hot on every upload", async (
   connection.uploaded = []
   connection.metadataCrc = crc ^ 1
   expect(await upload()).toBe(true)
+
   expect(connection.uploaded).toEqual([
     "slot_1.ini",
     "cold-library",
@@ -222,6 +245,7 @@ test("reuses a matching cold library and transfers hot on every upload", async (
 
 test("closing a connection resolves pending requests", async () => {
   const connection = new V5SerialConnection({} as never)
+
   connection.writer = {
     write: async () => {},
     close: async () => {},
@@ -236,6 +260,7 @@ test("closing a connection resolves pending requests", async () => {
 test("same-command requests wait for the previous reply or timeout", async () => {
   const connection = new V5SerialConnection({} as never)
   const writes: Uint8Array[] = []
+
   connection.writer = {
     write: async (data: Uint8Array) => {
       writes.push(data)
@@ -245,6 +270,7 @@ test("same-command requests wait for the previous reply or timeout", async () =>
   } as unknown as WritableStreamDefaultWriter<Uint8Array>
 
   const first = connection.writeDataAsync(new ReadKeyValueH2DPacket("first"), 1)
+
   const second = connection.writeDataAsync(
     new ReadKeyValueH2DPacket("second"),
     100
@@ -276,12 +302,15 @@ test("oversized downloads exit file-transfer mode before rejecting", async () =>
         view.setUint32(2, 1024, true)
         return new InitFileTransferReplyD2HPacket(reply(86, 17, body))
       }
+
       if (packet instanceof ExitFileTransferH2DPacket) {
         this.exits++
+
         return new ExitFileTransferReplyD2HPacket(
           reply(86, 18, new Uint8Array())
         )
       }
+
       throw new Error("unexpected transfer packet")
     }
   }
@@ -296,17 +325,20 @@ test("oversized downloads exit file-transfer mode before rejecting", async () =>
       vendor: 1,
     })
   ).rejects.toThrow("download limit")
+
   expect(connection.exits).toBe(1)
 })
 
 test("terminal decodes output and writes stdin", async () => {
   class FakeConnection extends V5SerialConnection {
     connected = true
+
     reads: Array<Uint8Array | undefined> = [
       Uint8Array.from([0xc3]),
       Uint8Array.from([0xa9]),
       new Uint8Array(),
     ]
+
     writes: Uint8Array[] = []
 
     override get isConnected(): boolean {
@@ -320,15 +352,18 @@ test("terminal decodes output and writes stdin", async () => {
     override async writeUserFifo(data: Uint8Array | string): Promise<number> {
       const bytes =
         typeof data === "string" ? new TextEncoder().encode(data) : data
+
       this.writes.push(bytes.slice())
       return bytes.byteLength
     }
   }
 
   const connection = new FakeConnection({} as never)
+
   const terminal = new V5UserProgramTerminal(connection, {
     idlePollIntervalMs: 0,
   })
+
   const text: string[] = []
   terminal.on("text", (value) => text.push(value as string))
   terminal.start()

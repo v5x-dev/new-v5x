@@ -11,6 +11,7 @@ class BrowserSerialPort implements AdapterSerialPort {
 
   constructor(port: SerialPort) {
     this.#port = port
+
     this.#port.addEventListener("disconnect", () => {
       for (const listener of this.#disconnectListeners) listener()
     })
@@ -26,6 +27,7 @@ class BrowserSerialPort implements AdapterSerialPort {
 
   getInfo(): SerialPortInfo {
     const info = this.#port.getInfo()
+
     return {
       usbVendorId: info.usbVendorId,
       usbProductId: info.usbProductId,
@@ -67,6 +69,7 @@ export function createBrowserAdapter(
         // filters still work for already-granted ports through getPorts().
         filters: (options?.filters ?? []).flatMap((filter) => {
           if (filter.usbVendorId === undefined) return []
+
           return [
             {
               usbVendorId: filter.usbVendorId,
@@ -75,6 +78,7 @@ export function createBrowserAdapter(
           ]
         }),
       })
+
       return new BrowserSerialPort(port)
     },
   }

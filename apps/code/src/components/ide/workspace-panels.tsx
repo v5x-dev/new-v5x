@@ -11,10 +11,12 @@ import {
 } from '~/components/ui/sheet'
 
 export type WorkspacePanel = 'problems' | 'output' | null
+
 export interface WorkspaceProblem {
   path: string
   diagnostic: Diagnostic
 }
+
 interface Props {
   panel: WorkspacePanel
   setPanel: Dispatch<SetStateAction<WorkspacePanel>>

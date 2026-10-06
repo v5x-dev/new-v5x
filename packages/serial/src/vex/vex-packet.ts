@@ -32,10 +32,13 @@ function encodeFixedText(
   if (value.includes("\0")) {
     throw new TypeError(`${field} must not contain NUL characters`)
   }
+
   const encoded = textEncoder.encode(value)
+
   if (encoded.byteLength > maxBytes) {
     throw new RangeError(`${field} must be at most ${maxBytes} UTF-8 bytes`)
   }
+
   return encoded
 }
 
@@ -67,6 +70,7 @@ export class PacketEncoder {
     if (Packet.ENCODER === undefined) {
       Packet.ENCODER = new PacketEncoder()
     }
+
     return Packet.ENCODER
   }
 
@@ -97,6 +101,7 @@ export class PacketEncoder {
     if (buf === undefined || buf.byteLength < PacketEncoder.HEADERS_LENGTH) {
       buf = new ArrayBuffer(PacketEncoder.HEADERS_LENGTH)
     }
+
     const h = new Uint8Array(buf)
     h.set(PacketEncoder.HEADER_TO_DEVICE)
     return h
@@ -122,6 +127,7 @@ export class PacketEncoder {
     if (data.byteLength > 0xff) {
       throw new RangeError("CDC payload must be at most 255 bytes")
     }
+
     const buf = new ArrayBuffer(PacketEncoder.HEADERS_LENGTH + 2 + data.length)
     const h = this.createHeader(buf)
     // add command and length bytes
@@ -173,8 +179,10 @@ export class PacketEncoder {
     if (data.byteLength > 0x7fff) {
       throw new RangeError("CDC2 payload must be at most 32767 bytes")
     }
+
     const buf = new ArrayBuffer(this.cdc2CommandBufferLength(data))
     const h = this.createHeader(buf)
+
     // add command and length bytes
     if (data.length < 128) {
       h.set([cmd, ext, data.length], PacketEncoder.HEADERS_LENGTH)
@@ -187,6 +195,7 @@ export class PacketEncoder {
       // add the message data
       h.set(data, PacketEncoder.HEADERS_LENGTH + 4)
     }
+
     // Add CRC (little endian)
     const crc = this.crcgen.crc16(h.subarray(0, buf.byteLength - 2), 0)
     h.set([crc >>> 8, crc & 0xff], buf.byteLength - 2)
@@ -202,18 +211,22 @@ export class PacketEncoder {
 
   validateMessageCdc(data: Uint8Array): boolean {
     const message = data.subarray(0, data.byteLength - 2)
+
     const lastTwoBytes =
       (data[data.byteLength - 2] << 8) + data[data.byteLength - 1]
+
     return this.crcgen.crc16(message, 0) === lastTwoBytes
   }
 
   getPayloadSize(data: Uint8Array): number {
     let t = 0
     let a = data[3]
+
     if ((128 & a) !== 0) {
       t = 127 & a
       a = data[4]
     }
+
     return (t << 8) + a
   }
 
@@ -304,6 +317,7 @@ export class UpdateMatchModeH2DPacket extends DeviceBoundPacket {
 
   constructor(mode: MatchMode, matchClock: number) {
     let bit1
+
     switch (mode) {
       case "autonomous":
         bit1 = 10
@@ -382,6 +396,7 @@ export class InitFileTransferH2DPacket extends DeviceBoundPacket {
     view.setUint8(3, options)
     view.setUint32(4, binary.length, true)
     view.setUint32(8, addr, true)
+
     view.setUint32(
       12,
       operation === FileInitAction.WRITE
@@ -491,6 +506,7 @@ export class LoadFileActionH2DPacket extends DeviceBoundPacket {
     fileNameOrSlotNumber: SlotNumber | string
   ) {
     let fileName
+
     if (typeof fileNameOrSlotNumber === "string") {
       fileName = fileNameOrSlotNumber
     } else {
@@ -651,6 +667,7 @@ export class UserFifoH2DPacket extends DeviceBoundPacket {
 
   constructor(channel: UserFifoChannel, write?: Uint8Array) {
     const length = write?.byteLength ?? 0
+
     if (length > USER_FIFO_MAX_WRITE_SIZE) {
       throw new RangeError(
         `User FIFO writes must be at most ${USER_FIFO_MAX_WRITE_SIZE} bytes`
@@ -704,6 +721,7 @@ export class SelectDashH2DPacket extends DeviceBoundPacket {
   // UNSURE
   static COMMAND_ID = 86
   static COMMAND_EXTENDED_ID = 43
+
   /** @param port untested */
   constructor(screen: number | SelectDashScreen, port: number) {
     const payload = new Uint8Array(2)
@@ -762,6 +780,7 @@ export class WriteKeyValueH2DPacket extends DeviceBoundPacket {
   constructor(key: string, value: string) {
     const strk = encodeFixedText(key, "Key", 31)
     const strv = encodeFixedText(value, "Value", 0x7fff)
+
     if (strk.byteLength + strv.byteLength + 20 > 0x7fff) {
       throw new RangeError("Key and value are too large for a protocol packet")
     }
@@ -836,7 +855,10 @@ export class Query1ReplyD2HPacket extends HostBoundPacket {
   static COMMAND_EXTENDED_ID = undefined
 
   // Query1 is a simple CDC reply. Its payload has no CDC2 ACK byte.
-  static override isValidPacket(data: Uint8Array, headerLength: number): boolean {
+  static override isValidPacket(
+    data: Uint8Array,
+    headerLength: number
+  ): boolean {
     return data.length >= headerLength + 10
   }
 
@@ -864,7 +886,10 @@ export class SystemVersionReplyD2HPacket extends HostBoundPacket {
   static COMMAND_EXTENDED_ID = undefined
 
   // SystemVersion is a simple CDC reply and has no CDC2 ACK byte.
-  static override isValidPacket(data: Uint8Array, headerLength: number): boolean {
+  static override isValidPacket(
+    data: Uint8Array,
+    headerLength: number
+  ): boolean {
     return data.length >= headerLength + 5
   }
 
@@ -880,6 +905,7 @@ export class SystemVersionReplyD2HPacket extends HostBoundPacket {
       this.data[6],
       this.data[8]
     )
+
     this.hardware = this.data[7]
   }
 }
@@ -948,10 +974,13 @@ export class MatchStatusReplyD2HPacket extends HostBoundPacket {
     let rawStr = new TextDecoder("UTF-8").decode(
       data.slice(n + 18, n + this.payloadSize + 28)
     )
+
     const endIdx = rawStr.indexOf("\0")
+
     if (endIdx > -1) {
       rawStr = rawStr.substr(0, endIdx)
     }
+
     this.robotName = rawStr
   }
 }
@@ -1004,6 +1033,7 @@ export class ReadFileReplyD2HPacket extends HostBoundPacket {
     this.addr = dataView.nextUint32(true)
     this.length = Math.max(0, this.payloadSize - 8)
     const bytes = data instanceof Uint8Array ? data : new Uint8Array(data)
+
     this.buf = bytes.slice(dataView.position, dataView.position + this.length)
       .buffer as ArrayBuffer
   }
@@ -1152,22 +1182,29 @@ export class GetSystemFlagsReplyD2HPacket extends HostBoundPacket {
 
     if (this.payloadSize === 11) {
       this.battery = 8 * (byte1 & 0x0f)
+
       if ((this.flags & 0x100) !== 0 || hasRadio)
         this.controllerBatteryPercent = 8 * ((byte1 >> 4) & 0x0f)
+
       if (hasRadio) this.radioQuality = 8 * (byte2 & 0x0f)
       this.radioSearching = (this.flags & 0x600) === 0x200
+
       if (hasPartner)
         this.partnerControllerBatteryPercent = 8 * ((byte2 >> 4) & 0x0f)
+
       this.currentProgram = dataView.nextUint8()
 
       if (this.battery != null && this.battery > 100) this.battery = 100
+
       if (
         this.controllerBatteryPercent != null &&
         this.controllerBatteryPercent > 100
       )
         this.controllerBatteryPercent = 100
+
       if (this.radioQuality != null && this.radioQuality > 100)
         this.radioQuality = 100
+
       if (
         this.partnerControllerBatteryPercent != null &&
         this.partnerControllerBatteryPercent > 100
@@ -1190,6 +1227,7 @@ export class GetDeviceStatusReplyD2HPacket extends HostBoundPacket {
 
     this.count = dataView.nextUint8()
     this.devices = []
+
     for (let i = 0; i < this.count; i++) {
       this.devices.push({
         port: dataView.nextUint8(),
@@ -1241,6 +1279,7 @@ export class GetSystemStatusReplyD2HPacket extends HostBoundPacket {
 
     if (this.payloadSize > 25) {
       this.uniqueId = dataView.nextUint32()
+
       this.sysflags = [
         dataView.nextUint8(),
         dataView.nextUint8(),
@@ -1250,6 +1289,7 @@ export class GetSystemStatusReplyD2HPacket extends HostBoundPacket {
         0,
         dataView.nextUint8(),
       ]
+
       this.eventBrain = (1 & this.sysflags[6]) !== 0
       this.romBootloaderActive = (2 & this.sysflags[6]) !== 0
       this.ramBootloaderActive = (4 & this.sysflags[6]) !== 0
@@ -1278,6 +1318,7 @@ export class GetFdtStatusReplyD2HPacket extends HostBoundPacket {
 
     this.count = dataView.nextUint8()
     this.status = []
+
     for (let i = 0; i < this.count; i++) {
       this.status.push({
         index: dataView.nextUint8(),
@@ -1326,6 +1367,7 @@ export class ReadLogPageReplyD2HPacket extends HostBoundPacket {
     this.entries = []
 
     let j = n + 8
+
     for (let i = 0; i < this.count; i++) {
       this.entries.push({
         code: dataView.getUint8(j),
@@ -1334,6 +1376,7 @@ export class ReadLogPageReplyD2HPacket extends HostBoundPacket {
         spare: dataView.getUint8(j + 3),
         time: dataView.getUint32(j + 4, true),
       })
+
       j += size
     }
   }

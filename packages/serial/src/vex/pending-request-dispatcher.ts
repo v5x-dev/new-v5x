@@ -37,6 +37,7 @@ export class PendingRequestDispatcher {
   ): Promise<T> {
     const key = this.key(commandId, commandExtendedId)
     let queue = this.commandQueues.get(key)
+
     if (queue === undefined) {
       queue = new TailQueue()
       this.commandQueues.set(key, queue)
@@ -60,6 +61,7 @@ export class PendingRequestDispatcher {
             callback.wantedCommandExId,
             true
           )
+
     const pending: PendingCallback = {
       ...callback,
       active: true,
@@ -69,6 +71,7 @@ export class PendingRequestDispatcher {
 
     if (queue.tail === undefined) queue.head = pending
     else queue.tail.next = pending
+
     queue.tail = pending
     return () => this.remove(pending)
   }
@@ -79,6 +82,7 @@ export class PendingRequestDispatcher {
   ): IPacketCallback | undefined {
     const callback =
       this.getQueue(commandId, commandExtendedId, false)?.head ?? this.raw.head
+
     if (callback !== undefined) this.remove(callback)
     return callback
   }
@@ -100,6 +104,7 @@ export class PendingRequestDispatcher {
 
   private drainQueue(queue: PendingQueue, result: IPacketCallback[]): void {
     let callback = queue.head
+
     while (callback !== undefined) {
       const next = callback.next
       clearTimeout(callback.timeout)
@@ -109,6 +114,7 @@ export class PendingRequestDispatcher {
       result.push(callback)
       callback = next
     }
+
     queue.head = undefined
     queue.tail = undefined
   }
@@ -125,11 +131,13 @@ export class PendingRequestDispatcher {
     commandExtendedId: number | undefined,
     create: true
   ): PendingQueue
+
   private getQueue(
     commandId: number,
     commandExtendedId: number | undefined,
     create: false
   ): PendingQueue | undefined
+
   private getQueue(
     commandId: number,
     commandExtendedId: number | undefined,
@@ -137,10 +145,12 @@ export class PendingRequestDispatcher {
   ): PendingQueue | undefined {
     const key = this.key(commandId, commandExtendedId)
     let queue = this.typed.get(key)
+
     if (queue === undefined && create) {
       queue = {}
       this.typed.set(key, queue)
     }
+
     return queue
   }
 
@@ -149,10 +159,13 @@ export class PendingRequestDispatcher {
     callback.active = false
 
     const { queue, previous, next } = callback
+
     if (previous === undefined) queue.head = next
     else previous.next = next
+
     if (next === undefined) queue.tail = previous
     else next.previous = previous
+
     callback.previous = undefined
     callback.next = undefined
 
@@ -165,6 +178,7 @@ export class PendingRequestDispatcher {
         this.key(callback.wantedCommandId, callback.wantedCommandExId)
       )
     }
+
     return true
   }
 }

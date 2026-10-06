@@ -10,6 +10,7 @@ export function createByteStreams(handlers: {
   writable: WritableStream<Uint8Array>
 } {
   let unsubscribe: (() => void) | undefined
+
   const readable = new ReadableStream<Uint8Array>({
     start(controller) {
       unsubscribe = handlers.subscribe(
@@ -26,10 +27,12 @@ export function createByteStreams(handlers: {
       unsubscribe?.()
     },
   })
+
   const writable = new WritableStream<Uint8Array>({
     write(chunk) {
       return handlers.write(chunk)
     },
   })
+
   return { readable, writable }
 }

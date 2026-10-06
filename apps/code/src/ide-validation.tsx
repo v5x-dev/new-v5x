@@ -28,6 +28,7 @@ const vexFiles: Record<string, string> = {
   'README.md':
     '# Local browser validation\n\nThis workspace uses real VEX SDK headers and clangd WebAssembly.\n',
 }
+
 const templates: Record<ProjectTemplate, Record<string, string>> = {
   vexcode: vexFiles,
   pros: {
@@ -39,6 +40,7 @@ const templates: Record<ProjectTemplate, Record<string, string>> = {
   'ez-template': ezTemplateFiles,
   'jar-template': jarTemplateFiles,
 }
+
 function ValidationWorkspace() {
   const [template, setTemplate] = React.useState<ProjectTemplate>('vexcode')
   const [path, setPath] = React.useState('src/main.cpp')
@@ -47,6 +49,7 @@ function ValidationWorkspace() {
   const repository = React.useRef({ ...templates[template] })
   const fileOperationsRef = React.useRef<FileOperations | null>(null)
   const saveHandlerRef = React.useRef<(() => Promise<void>) | null>(null)
+
   return (
     <SidebarProvider className="h-svh min-h-0 overflow-hidden">
       <Sidebar variant="floating">
@@ -95,11 +98,13 @@ function ValidationWorkspace() {
           }
           commitChanges={(changes, expected, _message) => {
             if (expected !== sha) throw new Error('Validation snapshot changed')
+
             for (const change of changes) {
               if (change.contents === null)
                 delete repository.current[change.path]
               else repository.current[change.path] = change.contents
             }
+
             const next = crypto.randomUUID()
             setSha(next)
             return Promise.resolve(next)
@@ -115,4 +120,5 @@ function ValidationWorkspace() {
     </SidebarProvider>
   )
 }
+
 createRoot(document.getElementById('root')!).render(<ValidationWorkspace />)

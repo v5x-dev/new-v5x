@@ -14,6 +14,7 @@ function authHeaders(incoming: Headers) {
   const headers = new Headers(incoming)
   // Transport-specific headers must not be forwarded to Convex over HTTP/2.
   const connectionHeaders = headers.get('connection')?.split(',') ?? []
+
   for (const name of [
     ...connectionHeaders,
     'connection',
@@ -27,6 +28,7 @@ function authHeaders(incoming: Headers) {
   ]) {
     headers.delete(name.trim())
   }
+
   headers.set('accept-encoding', 'identity')
   return headers
 }
@@ -35,6 +37,7 @@ export function handler(request: Request) {
   const headers = authHeaders(request.headers)
   const url = new URL(request.url)
   const forwardedHost = headers.get('x-forwarded-host')
+
   const publicHost =
     forwardedHost &&
     [
@@ -44,12 +47,14 @@ export function handler(request: Request) {
     ].includes(forwardedHost)
       ? forwardedHost
       : url.host
+
   const protocol = publicHost === 'localhost:3000' ? 'http' : 'https'
   headers.set('host', new URL(convexSiteUrl).host)
   headers.set('x-forwarded-host', publicHost)
   headers.set('x-forwarded-proto', protocol)
   headers.set('x-better-auth-forwarded-host', publicHost)
   headers.set('x-better-auth-forwarded-proto', protocol)
+
   return fetch(`${convexSiteUrl}${url.pathname}${url.search}`, {
     method: request.method,
     headers,
@@ -66,5 +71,6 @@ export async function getToken() {
     convexSiteUrl,
     authHeaders(new Headers(getRequestHeaders())),
   )
+
   return token
 }

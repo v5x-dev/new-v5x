@@ -21,6 +21,7 @@ export class PacketView extends DataView<ArrayBufferLike> {
       packet.data.byteOffset,
       packet.data.byteLength
     )
+
     view.position = packet.ackIndex + 1
     return view
   }
@@ -65,6 +66,7 @@ export class PacketView extends DataView<ArrayBufferLike> {
     const result = textDecoder.decode(
       new Uint8Array(this.buffer, this.byteOffset + this.position, length)
     )
+
     this.position += length
     return result
   }
@@ -81,12 +83,14 @@ export class PacketView extends DataView<ArrayBufferLike> {
     // this length is different from the document
     const lastPosition = this.position
     let byteLength = 0
+
     for (let i = 0; i < length; i++) {
       if (this.byteLength <= this.position) break
       const g = this.nextUint8()
       if (g === 0) break
       byteLength++
     }
+
     return textDecoder.decode(
       new Uint8Array(this.buffer, this.byteOffset + lastPosition, byteLength)
     )
@@ -98,6 +102,7 @@ export class PacketView extends DataView<ArrayBufferLike> {
       this.position,
       reverse
     )
+
     this.position += 4
     return result
   }

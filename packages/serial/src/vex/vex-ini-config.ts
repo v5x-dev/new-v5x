@@ -4,8 +4,10 @@
 // -@meisZWFLZ
 
 import { FileExitAction, type ZerobaseSlotNumber } from "./vex"
+
 class BaseIniBuilder {
   protected str = ""
+
   protected addLine(line: string): void {
     this.str += line + "\n"
   }
@@ -47,20 +49,25 @@ class IniSectionBuilder<
     maxValueLength?: number
   ): this {
     const keys = Array.isArray(key) ? key : [key]
+
     for (const k of keys) {
       this.addSingleObjProperty(k, maxValueLength)
     }
+
     return this
   }
 
   public addAllObjProps(maxValueLength?: number): this {
     const keys = Object.keys(this.object)
+
     for (const k of keys) {
       this.addSingleObjProperty(k, maxValueLength)
     }
+
     return this
   }
 }
+
 class IniFileBuilder extends BaseIniBuilder {
   public addSection(
     section: IniSectionBuilder<Record<number | string, string | number>>
@@ -84,6 +91,7 @@ export class ProgramIniConfig {
   /** Address from the PROS kernel template metadata. */
   programAddress = 0x07800000
   project = { version: "1", ide: "Unknown", file: "none" }
+
   program = {
     version: "1",
     name: "program",
@@ -112,6 +120,7 @@ export class ProgramIniConfig {
     const tzo = Math.abs(d.getTimezoneOffset())
     const tzh = (tzo / 60) >>> 0
     const tzm = tzo - tzh * 60
+
     this.program.timezone =
       (d.getTimezoneOffset() > 0 ? "-" : "+") +
       this.dec2(tzh) +
@@ -123,6 +132,7 @@ export class ProgramIniConfig {
     if (this.program.date.length === 0) {
       this.setProgramDate(new Date())
     }
+
     return new IniFileBuilder()
       .addComment("")
       .addComment("VEX program ini file")

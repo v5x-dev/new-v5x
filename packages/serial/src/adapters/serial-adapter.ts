@@ -40,6 +40,7 @@ export function portMatchesFilters(
   filters?: SerialPortFilter[]
 ): boolean {
   if (filters === undefined || filters.length === 0) return true
+
   return filters.some(
     (filter) =>
       (filter.usbVendorId === undefined ||

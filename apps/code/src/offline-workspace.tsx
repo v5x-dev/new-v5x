@@ -9,11 +9,13 @@ function OfflineWorkspace() {
   const [workspaces, setWorkspaces] = React.useState<
     Array<{ id: string; workspace: SavedWorkspace }>
   >([])
+
   const [id, setId] = React.useState('')
   const [path, setPath] = React.useState('')
   const [paths, setPaths] = React.useState<Array<string>>([])
   const [error, setError] = React.useState('')
   const saveHandlerRef = React.useRef<(() => Promise<void>) | null>(null)
+
   React.useEffect(() => {
     void listWorkspaces()
       .then((entries) =>
@@ -23,7 +25,9 @@ function OfflineWorkspace() {
       )
       .catch((reason) => setError(String(reason)))
   }, [])
+
   const current = workspaces.find((entry) => entry.id === id)
+
   return (
     <div className="flex h-svh flex-col bg-background text-foreground">
       <header className="flex h-12 shrink-0 items-center justify-between border-b px-4">
@@ -41,6 +45,7 @@ function OfflineWorkspace() {
               value={id}
               onChange={(event) => {
                 setId(event.target.value)
+
                 setPath(
                   workspaces.find((entry) => entry.id === event.target.value)
                     ?.workspace.selectedFile ?? '',
@@ -100,4 +105,5 @@ function OfflineWorkspace() {
     </div>
   )
 }
+
 createRoot(document.getElementById('root')!).render(<OfflineWorkspace />)

@@ -5,6 +5,7 @@ const artifactValidator = v.object({
   path: v.string(),
   storageId: v.id('_storage'),
 })
+
 const timingValidator = v.object({ stage: v.string(), ms: v.number() })
 
 export const cacheLatest = internalMutation({
@@ -36,6 +37,7 @@ export const cacheLatest = internalMutation({
       for (const artifact of cached.artifacts) {
         await ctx.storage.delete(artifact.storageId)
       }
+
       await ctx.db.patch('programBuildCache', cached._id, {
         commitSha: args.commitSha,
         exitCode: args.exitCode,
@@ -48,6 +50,7 @@ export const cacheLatest = internalMutation({
       })
     } else {
       const { warmMachineId, warmImageTag, ...buildCache } = args
+
       await ctx.db.insert('programBuildCache', {
         ...buildCache,
         ...(warmMachineId ? { warmMachineId, warmImageTag } : {}),
@@ -100,6 +103,7 @@ export const getLatest = query({
     if (!identity) return null
 
     const program = await ctx.db.get('program', programId)
+
     if (
       !program ||
       program.ownerId !== identity.subject ||
@@ -112,6 +116,7 @@ export const getLatest = query({
       .query('programBuildCache')
       .withIndex('by_program', (q) => q.eq('programId', programId))
       .unique()
+
     if (!cached || cached.commitSha !== commitSha) return null
 
     const artifacts = await Promise.all(

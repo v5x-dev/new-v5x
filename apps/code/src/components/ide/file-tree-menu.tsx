@@ -43,26 +43,32 @@ export interface TreeClipboard {
   cut: boolean
   files: Record<string, string>
 }
+
 export interface TreeAction {
   kind: 'create' | 'folder' | 'rename' | 'move' | 'duplicate' | 'delete'
   path: string
   directory: boolean
 }
+
 const parentPath = (path: string) => path.split('/').slice(0, -1).join('/')
+
 const join = (parent: string, name: string) =>
   parent ? `${parent}/${name}` : name
+
 export function pasteFiles(
   ops: FileOperations,
   clipboard: TreeClipboard,
   destination: string,
 ) {
   const to = join(destination, clipboard.path.split('/').at(-1)!)
+
   ops.apply(
     clipboard.cut
       ? { kind: 'move', path: clipboard.path, to }
       : { kind: 'copy', path: clipboard.path, to, files: clipboard.files },
   )
 }
+
 export function FileTreeMenu({
   item,
   context,
@@ -87,19 +93,23 @@ export function FileTreeMenu({
   const path = item.path.replace(/\/$/, '')
   const directory = item.kind === 'directory'
   const unavailable = disabled || readOnly || !operationsRef?.current
+
   const execute = (work: (ops: FileOperations) => void) => {
     try {
       if (!operationsRef?.current)
         throw new Error('Wait for the workspace to load.')
+
       work(operationsRef.current)
     } catch (reason) {
       onError(reason instanceof Error ? reason.message : String(reason))
     }
   }
+
   const action = (kind: TreeAction['kind']) => {
     context.close({ restoreFocus: false })
     onAction({ kind, path, directory })
   }
+
   return (
     <ContextMenu
       open
@@ -205,9 +215,11 @@ export function FileTreeMenu({
               execute((ops) => {
                 const files = ops.read(path)
                 if (!(path in files)) throw new Error('File no longer exists.')
+
                 const url = URL.createObjectURL(
                   new Blob([files[path]], { type: 'application/octet-stream' }),
                 )
+
                 const link = document.createElement('a')
                 link.href = url
                 link.download = item.name
@@ -244,6 +256,7 @@ export function FileTreeMenu({
     </ContextMenu>
   )
 }
+
 const titles = {
   create: 'New file',
   folder: 'New folder',
@@ -252,6 +265,7 @@ const titles = {
   duplicate: 'Duplicate',
   delete: 'Delete',
 }
+
 export function FileActionDialog({
   action,
   operationsRef,
@@ -262,6 +276,7 @@ export function FileActionDialog({
   onClose: () => void
 }) {
   const name = action.path.split('/').at(-1) ?? ''
+
   const [value, setValue] = React.useState(
     action.kind === 'rename'
       ? name
@@ -274,27 +289,35 @@ export function FileActionDialog({
             )
           : '',
   )
+
   const [error, setError] = React.useState('')
+
   const submit = (event: React.FormEvent) => {
     event.preventDefault()
+
     try {
       const ops = operationsRef?.current
       if (!ops) throw new Error('Workspace is unavailable.')
       let operation: FileOperation
+
       if (action.kind === 'delete')
         operation = { kind: 'delete', path: action.path }
       else {
         const input = value.trim()
         if (!input) throw new Error('Enter a name or path.')
+
         if (action.kind === 'rename' && input.includes('/'))
           throw new Error(
             'Enter a name without slashes. Use Move to to change folders.',
           )
+
         const parent = action.directory ? action.path : parentPath(action.path)
+
         const to =
           action.kind === 'rename'
             ? join(parentPath(action.path), input)
             : input
+
         operation =
           action.kind === 'create' || action.kind === 'folder'
             ? {
@@ -311,12 +334,14 @@ export function FileActionDialog({
                 }
               : { kind: 'move', path: action.path, to }
       }
+
       ops.apply(operation)
       onClose()
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason))
     }
   }
+
   return (
     <Dialog
       open

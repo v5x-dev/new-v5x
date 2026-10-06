@@ -29,8 +29,10 @@ async function enrichPortList(
     const { SerialPort: NativeSerialPort } = await import("serialport")
     const details = await NativeSerialPort.list()
     const byPath = new Map(details.map((port) => [port.path, port]))
+
     return ports.map((port) => {
       const detail = byPath.get(port.path)
+
       return detail === undefined
         ? port
         : {
@@ -71,11 +73,13 @@ class BunSerialPort implements AdapterSerialPort {
     if (this.#info.path === undefined) {
       throw new Error("Serial port path is missing.")
     }
+
     const port = new SerialPort({
       path: this.#info.path,
       baudRate: options.baudRate,
       autoOpen: false,
     })
+
     await port.open()
     this.#port = port
 
@@ -85,17 +89,21 @@ class BunSerialPort implements AdapterSerialPort {
       },
       subscribe: (onData, onError, onClose) => {
         const data = (chunk: Uint8Array) => onData(chunk)
+
         const error = (err: Error & { disconnected?: boolean }) => {
           if (err.disconnected) this.#onDisconnect?.()
           onError(err)
         }
+
         const close = (err?: Error & { disconnected?: boolean }) => {
           if (err?.disconnected) this.#onDisconnect?.()
           onClose()
         }
+
         port.on("data", data)
         port.on("error", error)
         port.on("close", close)
+
         return () => {
           port.off("data", data)
           port.off("error", error)
@@ -131,6 +139,7 @@ export function createBunAdapter(
 ): SerialAdapter {
   const listed = async (): Promise<BunSerialPort[]> => {
     const ports = await enrichPortList(await list())
+
     return ports
       .filter(
         (port) => options.path === undefined || port.path === options.path
@@ -150,14 +159,17 @@ export function createBunAdapter(
     async requestPort(request?: RequestPortOptions) {
       const ports = await listed()
       const path = request?.path ?? options.path
+
       const match = ports.find((port) => {
         const info = port.getInfo()
         if (path !== undefined && info.path !== path) return false
         return portMatchesFilters(info, request?.filters)
       })
+
       if (match === undefined) {
         throw new Error("No serial port matched the request.")
       }
+
       return match
     },
   }

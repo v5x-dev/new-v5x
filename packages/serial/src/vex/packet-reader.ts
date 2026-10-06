@@ -24,12 +24,14 @@ export async function runPacketReader({
 
   for (;;) {
     let consumed = 0
+
     try {
       await readData(cache, 5)
 
       while (!encoder.validateHeader(cache.bytes)) {
         const bytes = cache.bytes
         const nextHeader = findHeader(bytes, 1)
+
         if (nextHeader >= 0) {
           cache.discard(nextHeader)
         } else {
@@ -39,6 +41,7 @@ export async function runPacketReader({
               : bytes.length
           )
         }
+
         await readData(cache, 5)
       }
 
@@ -60,16 +63,19 @@ export async function runPacketReader({
           commandExtendedId,
           ack,
         })
+
         continue
       }
 
       const callback = shiftCallback(commandId, commandExtendedId)
+
       if (callback === undefined) {
         reportWarning("received a reply with no matching request", {
           commandId,
           commandExtendedId,
           ack,
         })
+
         continue
       }
 
@@ -77,6 +83,7 @@ export async function runPacketReader({
         callback.wantedCommandId,
         callback.wantedCommandExId
       )
+
       try {
         if (
           callback.wantedCommandId === undefined ||
@@ -91,6 +98,7 @@ export async function runPacketReader({
               }
             )
           }
+
           callback.callback(packet.slice().buffer)
         } else if (packetType.isValidPacket(packet, headerLength)) {
           callback.callback(new packetType(packet))
@@ -100,6 +108,7 @@ export async function runPacketReader({
             commandExtendedId,
             ack,
           })
+
           callback.callback(ack)
         }
       } catch (error) {
@@ -109,6 +118,7 @@ export async function runPacketReader({
           ack,
           error,
         })
+
         callback.callback(ack)
       } finally {
         clearTimeout(callback.timeout)
@@ -118,6 +128,7 @@ export async function runPacketReader({
         error,
         pendingBytes: cache.bytes.slice(),
       })
+
       await close()
       return
     } finally {
@@ -135,5 +146,6 @@ function findHeader(bytes: Uint8Array, from: number): number {
       return index
     }
   }
+
   return -1
 }

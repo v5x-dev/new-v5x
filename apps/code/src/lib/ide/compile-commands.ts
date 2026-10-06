@@ -1,5 +1,6 @@
 export type ProjectTemplate =
   'vexcode' | 'pros' | 'ez-template' | 'jar-template'
+
 export interface CompileCommand {
   directory: string
   file: string
@@ -15,6 +16,7 @@ export function compileCommands(
   // Imported commands must already describe the browser filesystem. Never execute a shell command from a project.
   if (files['compile_commands.json']) {
     const commands: unknown = JSON.parse(files['compile_commands.json'])
+
     if (
       !Array.isArray(commands) ||
       commands.some(
@@ -29,9 +31,12 @@ export function compileCommands(
       throw new Error(
         'compile_commands.json must contain directory, file, and arguments entries mapped to /workspace',
       )
+
     return commands as Array<CompileCommand>
   }
+
   const vex = template === 'vexcode' || template === 'jar-template'
+
   const flags = vex
     ? [
         '--target=thumbv7-none-eabi',
@@ -71,6 +76,7 @@ export function compileCommands(
         '/toolchain/include',
         '-resource-dir=/sdk/vexv5/clang/8.0.0',
       ]
+
   return Object.keys(files)
     .filter((path) => /\.(c|cc|cpp|cxx)$/.test(path))
     .map((path) => ({

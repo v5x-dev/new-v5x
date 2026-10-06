@@ -70,9 +70,11 @@ function RouteComponent() {
   const { programId: rawProgramId } = Route.useParams()
   const navigate = useNavigate()
   const programId = rawProgramId as Id<'program'>
+
   const { data: program, isPending: programIsPending } = useQuery(
     convexQuery(api.program.get, { programId }),
   )
+
   const { data: hasBuildForCurrentCommit, isPending: buildStatusIsPending } =
     useQuery(
       convexQuery(api.program.hasRunForCommit, {
@@ -80,12 +82,14 @@ function RouteComponent() {
         commitSha: program?.currentCommitSha ?? '',
       }),
     )
+
   const { data: cachedBuild } = useQuery(
     convexQuery(api.programBuildCache.getLatest, {
       programId,
       commitSha: program?.currentCommitSha ?? '',
     }),
   )
+
   const getProgramFiles = useAction(api.program.getProgramFiles)
   const buildProgram = useAction(api.programBuild.build)
   const loadWorkspace = useAction(api.program.getWorkspaceSnapshot)
@@ -94,18 +98,23 @@ function RouteComponent() {
   const [loadError, setLoadError] = React.useState<string | null>(null)
   const [selectedFile, setSelectedFile] = React.useState<string | null>(null)
   const [buildFiles, setBuildFiles] = React.useState<Array<string>>([])
+
   const [buildArtifacts, setBuildArtifacts] = React.useState<
     Map<string, Uint8Array>
   >(() => new Map())
+
   const [buildArtifactsCommitSha, setBuildArtifactsCommitSha] = React.useState<
     string | null
   >(null)
+
   const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false)
   const [isSaving, setIsSaving] = React.useState(false)
   const [isBuilding, setIsBuilding] = React.useState(false)
+
   const [buildStartedAt, setBuildStartedAt] = React.useState<number | null>(
     null,
   )
+
   const [buildElapsedSeconds, setBuildElapsedSeconds] = React.useState(0)
   const [isUploading, setIsUploading] = React.useState(false)
   const [brainSlot, setBrainSlot] = React.useState(1)
@@ -113,11 +122,13 @@ function RouteComponent() {
   const [buildOutput, setBuildOutput] = React.useState('')
   const [uploadMessage, setUploadMessage] = React.useState('')
   const [isBrainConnected, setIsBrainConnected] = React.useState(false)
+
   const brainConnectionRef = React.useRef<{
     device: V5SerialDevice
     port: AdapterSerialPort
     onDisconnect: () => void
   } | null>(null)
+
   const fileOperationsRef = React.useRef<FileOperations | null>(null)
   const saveHandlerRef = React.useRef<(() => Promise<void>) | null>(null)
   const buildGenerationRef = React.useRef(0)
@@ -134,6 +145,7 @@ function RouteComponent() {
     setIsBrainConnected(false)
     if (!connection) return
     connection.port.removeEventListener?.('disconnect', connection.onDisconnect)
+
     try {
       await connection.device.dispose()
     } finally {
@@ -156,8 +168,10 @@ function RouteComponent() {
     const started = performance.now()
     const browserTimings: Array<{ stage: string; ms: number }> = []
     let serverTimings: Array<{ stage: string; ms: number }> = []
+
     const measure = async <T,>(stage: string, work: () => Promise<T>) => {
       const stageStarted = performance.now()
+
       try {
         return await work()
       } finally {
@@ -177,24 +191,30 @@ function RouteComponent() {
     setBuildFiles([])
     setBuildArtifacts(new Map())
     setBuildArtifactsCommitSha(null)
+
     try {
       const result = await measure('Build action round trip', () =>
         buildProgram({ programId }),
       )
+
       serverTimings = result.timings
       setBuildOutput([result.stdout, result.stderr].filter(Boolean).join('\n'))
       if (result.commitSha !== currentCommitShaRef.current) return
+
       if (result.exitCode === 0) {
         setBuildFiles(result.binFiles)
+
         try {
           const artifacts = await measure('Download all artifacts', () =>
             Promise.all(
               result.artifacts.map(({ path, url }) =>
                 measure(`Download ${path}`, async () => {
                   const response = await fetch(url)
+
                   if (!response.ok) {
                     throw new Error(`Could not download ${path}`)
                   }
+
                   return [
                     path,
                     new Uint8Array(await response.arrayBuffer()),
@@ -203,9 +223,11 @@ function RouteComponent() {
               ),
             ),
           )
+
           if (result.commitSha !== currentCommitShaRef.current) return
           setBuildArtifacts(new Map(artifacts))
           setBuildArtifactsCommitSha(result.commitSha)
+
           setBuildMessage(
             result.binFiles.length > 0
               ? 'Build succeeded'
@@ -226,6 +248,7 @@ function RouteComponent() {
       setBuildStartedAt(null)
       setIsBuilding(false)
       console.info(`VEX V5 build timings for ${programId}`)
+
       console.table([
         ...serverTimings.map((timing) => ({ source: 'server', ...timing })),
         ...browserTimings.map((timing) => ({ source: 'browser', ...timing })),
@@ -250,6 +273,7 @@ function RouteComponent() {
       return
 
     const hotPath = buildFiles.find((path) => path.endsWith('hot.package.bin'))
+
     const programPath =
       activeFile &&
       buildArtifacts.has(activeFile) &&
@@ -257,24 +281,30 @@ function RouteComponent() {
         ? activeFile
         : (hotPath ??
           buildFiles.find((path) => !path.endsWith('cold.package.bin')))
+
     const programBytes = programPath
       ? buildArtifacts.get(programPath)
       : undefined
+
     if (!programPath || !programBytes) return
 
     const coldPath = programPath.endsWith('hot.package.bin')
       ? buildFiles.find((path) => path.endsWith('cold.package.bin'))
       : undefined
+
     const coldBytes = coldPath ? buildArtifacts.get(coldPath) : undefined
 
     setIsUploading(true)
     setUploadMessage('Connecting to Brain')
+
     try {
       let connection = brainConnectionRef.current
+
       if (!connection) {
         const port = await createBrowserAdapter().requestPort({
           filters: [{ usbVendorId: 10376 }],
         })
+
         const device = new V5SerialDevice(
           {
             getPorts: () => Promise.resolve([port]),
@@ -282,22 +312,27 @@ function RouteComponent() {
           },
           { autoRefresh: false },
         )
+
         const serialConnection = new V5SerialConnection({
           getPorts: () => Promise.resolve([port]),
           requestPort: () => Promise.resolve(port),
         })
+
         device.autoReconnect = false
+
         try {
           if (!(await serialConnection.open(0, false))) {
             throw new Error(
               'Could not open the selected Brain serial port. Close VEXcode or another app using the Brain, then retry.',
             )
           }
+
           if (!(await device.connect(serialConnection))) {
             throw new Error(
               'The Brain serial port opened, but the Brain did not respond to the V5 handshake.',
             )
           }
+
           const onDisconnect = () => {
             if (brainConnectionRef.current?.port !== port) return
             brainConnectionRef.current = null
@@ -305,6 +340,7 @@ function RouteComponent() {
             setUploadMessage('Brain disconnected')
             void device.dispose()
           }
+
           port.addEventListener('disconnect', onDisconnect)
           connection = { device, port, onDisconnect }
           brainConnectionRef.current = connection
@@ -315,6 +351,7 @@ function RouteComponent() {
           throw error
         }
       }
+
       try {
         const ini = new ProgramIniConfig()
         ini.baseName = `slot_${brainSlot}`
@@ -335,9 +372,11 @@ function RouteComponent() {
             setUploadMessage(`Uploading ${state} ${percent}%`)
           },
         )
+
         if (uploaded !== true) {
           throw new Error('Upload failed. Check the Brain connection.')
         }
+
         setUploadMessage(`Uploaded to slot ${brainSlot}`)
       } catch (error) {
         if (!connection.device.isConnected) await disconnectBrain()
@@ -359,6 +398,7 @@ function RouteComponent() {
         Math.floor((performance.now() - buildStartedAt) / 1000),
       )
     }
+
     const interval = window.setInterval(updateElapsedTime, 1000)
     return () => window.clearInterval(interval)
   }, [buildStartedAt, isBuilding])
@@ -393,11 +433,13 @@ function RouteComponent() {
       isCurrent = false
       const connection = brainConnectionRef.current
       brainConnectionRef.current = null
+
       if (connection) {
         connection.port.removeEventListener?.(
           'disconnect',
           connection.onDisconnect,
         )
+
         void connection.device.dispose()
       }
     }
@@ -417,6 +459,7 @@ function RouteComponent() {
 
   React.useEffect(() => {
     const commitSha = program?.currentCommitSha
+
     if (
       !commitSha ||
       isBuilding ||
@@ -432,9 +475,11 @@ function RouteComponent() {
     const generation = buildGenerationRef.current
     restoredBuildCommitRef.current = commitSha
     setBuildFiles(cachedBuild.binFiles)
+
     setBuildOutput(
       [cachedBuild.stdout, cachedBuild.stderr].filter(Boolean).join('\n'),
     )
+
     if (cachedBuild.exitCode !== 0) {
       setBuildArtifacts(new Map())
       setBuildArtifactsCommitSha(commitSha)
@@ -453,6 +498,7 @@ function RouteComponent() {
         if (!isCurrent || generation !== buildGenerationRef.current) return
         setBuildArtifacts(new Map(artifacts))
         setBuildArtifactsCommitSha(commitSha)
+
         setBuildMessage(
           cachedBuild.binFiles.length > 0
             ? 'Build restored'
@@ -478,15 +524,18 @@ function RouteComponent() {
 
   const treePaths =
     paths === null ? null : [...new Set([...paths, ...buildFiles])]
+
   const firstFile = paths?.includes('src/main.cpp')
     ? 'src/main.cpp'
     : (paths?.at(0) ?? buildFiles.at(0))
+
   const activeFile =
     selectedFile === ''
       ? ''
       : selectedFile && treePaths?.includes(selectedFile)
         ? selectedFile
         : firstFile
+
   const buildButtonLabel = isBuilding
     ? `Building program, ${describeBuildElapsed(buildElapsedSeconds)} elapsed`
     : hasUnsavedChanges || isSaving
@@ -496,6 +545,7 @@ function RouteComponent() {
         : hasBuildForCurrentCommit
           ? 'Build already run for this commit'
           : buildMessage || 'Build program'
+
   const uploadUnavailableReason =
     hasUnsavedChanges || isSaving
       ? 'Commit changes before uploading.'

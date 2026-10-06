@@ -15,14 +15,17 @@ export const submit = mutation({
 
     const title = args.title.trim()
     const description = args.description.trim()
+
     if (!title || title.length > 120) {
       throw new ConvexError('Enter a title of 1 to 120 characters.')
     }
+
     if (!description || description.length > 5000) {
       throw new ConvexError('Enter a description of 1 to 5,000 characters.')
     }
 
     const user = await authComponent.getAuthUser(ctx)
+
     return await ctx.db.insert('feedback', {
       kind: args.kind,
       title,

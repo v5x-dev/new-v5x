@@ -4,6 +4,7 @@ export const birdsOfParadiseTheme = 'birds-of-paradise'
 
 registerCustomTheme(birdsOfParadiseTheme, async () => {
   const { default: theme } = await import('~/themes/birds-of-paradise.json')
+
   const tokenColors = theme.tokenColors.map((token, index) =>
     index === 0
       ? {

@@ -40,6 +40,7 @@ export class ReceiveBuffer {
     if (this.storage.length - this.end >= additional) return
 
     const required = this.byteLength + additional
+
     if (this.storage.length >= required) {
       this.storage.copyWithin(0, this.start, this.end)
       this.end = this.byteLength
@@ -50,6 +51,7 @@ export class ReceiveBuffer {
     const storage = new Uint8Array(
       Math.max(required, Math.max(64, this.storage.length * 2))
     )
+
     storage.set(this.bytes)
     this.end = this.byteLength
     this.start = 0

@@ -28,9 +28,11 @@ export function ProgramFileTree({
   const [clipboard, setClipboard] = React.useState<TreeClipboard | null>(null)
   const [action, setAction] = React.useState<TreeAction | null>(null)
   const [error, setError] = React.useState('')
+
   const modelRef = React.useRef<ReturnType<typeof useFileTree>['model'] | null>(
     null,
   )
+
   const pathsRef = React.useRef(paths)
   pathsRef.current = paths
   const onSelectRef = React.useRef(onSelect)
@@ -38,6 +40,7 @@ export function ProgramFileTree({
   const revertingSelectionRef = React.useRef(false)
   onSelectRef.current = onSelect
   selectedFileRef.current = selectedFile
+
   const model = useFileTree({
     paths,
     initialExpansion: 'open',
@@ -50,15 +53,19 @@ export function ProgramFileTree({
     `,
     onSelectionChange: (selectedPaths) => {
       if (revertingSelectionRef.current) return
+
       const path = [...selectedPaths]
         .reverse()
         .find((selected) => pathsRef.current.includes(selected))
+
       if (path && !onSelectRef.current(path)) {
         revertingSelectionRef.current = true
+
         try {
           for (const selectedPath of selectedPaths) {
             modelRef.current?.getItem(selectedPath)?.deselect()
           }
+
           selectedFileRef.current &&
             modelRef.current?.getItem(selectedFileRef.current)?.select()
         } finally {
@@ -67,30 +74,40 @@ export function ProgramFileTree({
       }
     },
   }).model
+
   modelRef.current = model
+
   React.useEffect(() => {
     revertingSelectionRef.current = true
+
     try {
       const directories = new Set<string>()
+
       for (const path of paths) {
         const parts = path.split('/')
+
         for (let index = 1; index < parts.length; index++)
           directories.add(parts.slice(0, index).join('/') + '/')
       }
+
       const initialExpandedPaths = [...directories].filter((path) => {
         const item = model.getItem(path)
         return !item || ('isExpanded' in item && item.isExpanded())
       })
+
       model.resetPaths(paths, { initialExpandedPaths })
     } finally {
       revertingSelectionRef.current = false
     }
   }, [model, paths])
+
   React.useEffect(() => {
     revertingSelectionRef.current = true
+
     try {
       for (const path of model.getSelectedPaths())
         if (path !== selectedFile) model.getItem(path)?.deselect()
+
       if (selectedFile) model.getItem(selectedFile)?.select()
     } finally {
       revertingSelectionRef.current = false
@@ -184,6 +201,7 @@ export function ProgramFileTree({
             disabled={disabled || !clipboard || !fileOperationsRef?.current}
             onClick={() => {
               if (!clipboard || !fileOperationsRef?.current) return
+
               try {
                 pasteFiles(fileOperationsRef.current, clipboard, '')
                 if (clipboard.cut) setClipboard(null)

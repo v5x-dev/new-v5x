@@ -9,8 +9,11 @@ import type { DataModel } from '../_generated/dataModel'
 import { anonymous } from 'better-auth/plugins'
 
 const siteUrl = process.env.SITE_URL!
+
 const isProductionSite = new URL(siteUrl).hostname === 'code.v5x.dev'
+
 const googleClientId = process.env.GOOGLE_CLIENT_ID!
+
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET!
 
 // The component client has methods needed for integrating Convex with Better Auth,

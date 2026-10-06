@@ -2,14 +2,14 @@
 // 0e8c9ce388fe9fd6bb40ea05c36d9eb71ea2df88. MIT licensed; see LICENSE.md.
 // vex/mkenv.mk also reads the VEX_SDK_PATH supplied by apps/code.
 export const jarTemplateFiles: Record<string, string> = {
-  ".gitignore": `/.vscode
+  '.gitignore': `/.vscode
 /bin
 compile_commands.json
 .js
 .html
 .css
 `,
-  "LICENSE.md": `MIT License
+  'LICENSE.md': `MIT License
 
 Copyright (c) 2023 2775Josh
 
@@ -31,7 +31,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 `,
-  "include/vex.h": `/*----------------------------------------------------------------------------*/
+  'include/vex.h': `/*----------------------------------------------------------------------------*/
 /*                                                                            */
 /*    Module:       vex.h                                                     */
 /*    Author:       Vex Robotics                                              */
@@ -65,7 +65,7 @@ SOFTWARE.
 
 #define repeat(iterations)                                                     \\
   for (int iterator = 0; iterator < iterations; iterator++)`,
-  "include/JAR-Template/PID.h": `#pragma once
+  'include/JAR-Template/PID.h': `#pragma once
 #include "vex.h"
 
 /**
@@ -102,7 +102,7 @@ public:
 
   bool is_settled();
 };`,
-  "include/JAR-Template/drive.h": `#pragma once
+  'include/JAR-Template/drive.h': `#pragma once
 #include "vex.h"
 
 enum drive_setup {ZERO_TRACKER_NO_ODOM, ZERO_TRACKER_ODOM, TANK_ONE_FORWARD_ENCODER, TANK_ONE_FORWARD_ROTATION, 
@@ -257,7 +257,7 @@ public:
   void control_tank();
   void control_holonomic();
 };`,
-  "include/JAR-Template/odom.h": `/**
+  'include/JAR-Template/odom.h': `/**
  * General-use odometry class with X_position, Y_position, and
  * orientation_deg being the relevant outputs. This works for one
  * and two-tracker systems, and needs a gyro to get input angle.
@@ -278,7 +278,7 @@ public:
   void update_position(float ForwardTracker_position, float SidewaysTracker_position, float orientation_deg);
   void set_physical_distances(float ForwardTracker_center_distance, float SidewaysTracker_center_distance);
 };`,
-  "include/JAR-Template/util.h": `float reduce_0_to_360(float angle);
+  'include/JAR-Template/util.h': `float reduce_0_to_360(float angle);
 
 float reduce_negative_180_to_180(float angle);
 
@@ -305,7 +305,7 @@ float left_voltage_scaling(float drive_output, float heading_output);
 float right_voltage_scaling(float drive_output, float heading_output);
 
 float clamp_min_voltage(float drive_output, float drive_min_voltage);`,
-  "include/autons.h": `#pragma once
+  'include/autons.h': `#pragma once
 #include "JAR-Template/drive.h"
 
 class Drive;
@@ -321,7 +321,7 @@ void full_test();
 void odom_test();
 void tank_odom_test();
 void holonomic_odom_test();`,
-  "include/robot-config.h": `using namespace vex;
+  'include/robot-config.h': `using namespace vex;
 
 extern brain Brain;
 
@@ -333,7 +333,7 @@ extern brain Brain;
 
 
 void  vexcodeInit( void );`,
-  "makefile": `# VEXcode makefile 2019_03_26_01
+  makefile: `# VEXcode makefile 2019_03_26_01
 
 # show compiler output
 VERBOSE = 0
@@ -364,7 +364,7 @@ all: $(BUILD)/$(PROJECT).bin
 # include build rules
 include vex/mkrules.mk
 `,
-  "src/main.cpp": `#include "vex.h"
+  'src/main.cpp': `#include "vex.h"
 
 using namespace vex;
 competition Competition;
@@ -615,7 +615,7 @@ int main() {
   }
 }
 `,
-  "src/robot-config.cpp": `#include "vex.h"
+  'src/robot-config.cpp': `#include "vex.h"
 
 using namespace vex;
 using signature = vision::signature;
@@ -633,7 +633,7 @@ brain  Brain;
 void vexcodeInit( void ) {
   // nothing to initialize
 }`,
-  "src/autons.cpp": `#include "vex.h"
+  'src/autons.cpp': `#include "vex.h"
 
 /**
  * Resets the constants for auton movement.
@@ -762,7 +762,7 @@ void holonomic_odom_test(){
   chassis.holonomic_drive_to_pose(0, 18, 270);
   chassis.holonomic_drive_to_pose(0, 0, 0);
 }`,
-  "src/JAR-Template/PID.cpp": `#include "vex.h"
+  'src/JAR-Template/PID.cpp': `#include "vex.h"
 
 /**
  * PID constructor with P, I, D, and starti.
@@ -896,7 +896,7 @@ bool PID::is_settled(){
   }
   return(false);
 }`,
-  "src/JAR-Template/drive.cpp": `#include "vex.h"
+  'src/JAR-Template/drive.cpp': `#include "vex.h"
 
 /**
  * Drive constructor for the chassis.
@@ -1628,7 +1628,7 @@ int Drive::position_track_task(){
   chassis.position_track();
   return(0);
 }`,
-  "src/JAR-Template/odom.cpp": `#include "vex.h"
+  'src/JAR-Template/odom.cpp': `#include "vex.h"
 
 /**
  * Setter method for tracker center distances.
@@ -1722,7 +1722,7 @@ void Odom::update_position(float ForwardTracker_position, float SidewaysTracker_
   X_position+=X_position_delta;
   Y_position+=Y_position_delta;
 }`,
-  "src/JAR-Template/util.cpp": `#include "vex.h"
+  'src/JAR-Template/util.cpp': `#include "vex.h"
 
 /**
  * Converts an angle to an equivalent one in the range [0, 360).
@@ -1941,7 +1941,7 @@ float clamp_min_voltage(float drive_output, float drive_min_voltage){
   }
   return drive_output;
 }`,
-  "vex/mkenv.mk": `# VEXcode mkenv.mk 2019_06_06_01
+  'vex/mkenv.mk': `# VEXcode mkenv.mk 2019_06_06_01
 
 # macros to help with windows paths that include spaces
 sp :=
@@ -2044,7 +2044,7 @@ INC += $(addprefix -I, \${INC_F})
 INC += -I"$(TOOLCHAIN)/$(PLATFORM)/include"
 INC += \${TOOL_INC}
 `,
-  "vex/mkrules.mk": `# VEXcode mkrules.mk 2019_03_26_01
+  'vex/mkrules.mk': `# VEXcode mkrules.mk 2019_03_26_01
 
 # compile C files
 $(BUILD)/%.o: %.c $(SRC_H)

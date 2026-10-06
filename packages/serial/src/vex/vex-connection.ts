@@ -82,7 +82,9 @@ import { portMatchesFilters } from "../adapters/serial-adapter"
 import { convertScreenCapture } from "../screen-capture"
 
 export const DEFAULT_MAX_FILE_DOWNLOAD_BYTES = 64 * 1024 * 1024
+
 export const DEFAULT_TRANSFER_WINDOW_SIZE = 4
+
 export const DEFAULT_USER_FIFO_TIMEOUT = 500
 
 export interface VexSerialConnectionOptions {
@@ -147,8 +149,10 @@ export class VexSerialConnection extends VexEventTarget<VexSerialConnectionEvent
   constructor(serial: SerialAdapter, options: VexSerialConnectionOptions = {}) {
     super()
     this.serial = serial
+
     const maxFileDownloadBytes =
       options.maxFileDownloadBytes ?? DEFAULT_MAX_FILE_DOWNLOAD_BYTES
+
     if (
       !Number.isSafeInteger(maxFileDownloadBytes) ||
       maxFileDownloadBytes <= 0
@@ -157,13 +161,16 @@ export class VexSerialConnection extends VexEventTarget<VexSerialConnectionEvent
         "maxFileDownloadBytes must be a positive safe integer"
       )
     }
+
     this.maxFileDownloadBytes = maxFileDownloadBytes
 
     const transferWindowSize =
       options.transferWindowSize ?? DEFAULT_TRANSFER_WINDOW_SIZE
+
     if (!Number.isSafeInteger(transferWindowSize) || transferWindowSize <= 0) {
       throw new RangeError("transferWindowSize must be a positive safe integer")
     }
+
     this.transferWindowSize = transferWindowSize
   }
 
@@ -173,6 +180,7 @@ export class VexSerialConnection extends VexEventTarget<VexSerialConnectionEvent
 
     const closing = this.closeResources()
     this.#closePromise = closing
+
     try {
       await closing
     } finally {
@@ -188,6 +196,7 @@ export class VexSerialConnection extends VexEventTarget<VexSerialConnectionEvent
 
     const disconnectListener = this.#portDisconnectListener
     this.#portDisconnectListener = undefined
+
     if (disconnectListener !== undefined) {
       try {
         this.port?.removeEventListener?.("disconnect", disconnectListener)
@@ -196,10 +205,12 @@ export class VexSerialConnection extends VexEventTarget<VexSerialConnectionEvent
 
     const writer = this.writer
     this.writer = undefined
+
     if (writer !== undefined) {
       try {
         await writer.close()
       } catch {}
+
       try {
         writer.releaseLock()
       } catch {}
@@ -207,10 +218,12 @@ export class VexSerialConnection extends VexEventTarget<VexSerialConnectionEvent
 
     const reader = this.reader
     this.reader = undefined
+
     if (reader !== undefined) {
       try {
         await reader.cancel()
       } catch {}
+
       try {
         reader.releaseLock()
       } catch {}
@@ -218,6 +231,7 @@ export class VexSerialConnection extends VexEventTarget<VexSerialConnectionEvent
 
     const port = this.port
     this.port = undefined
+
     if (port !== undefined) {
       try {
         await port.close()
@@ -240,6 +254,7 @@ export class VexSerialConnection extends VexEventTarget<VexSerialConnectionEvent
 
     const opening = this.openPort(use, askUser)
     this.#openPromise = opening
+
     void opening.then(
       () => {
         if (this.#openPromise === opening) this.#openPromise = undefined
@@ -248,6 +263,7 @@ export class VexSerialConnection extends VexEventTarget<VexSerialConnectionEvent
         if (this.#openPromise === opening) this.#openPromise = undefined
       }
     )
+
     return opening
   }
 
@@ -262,6 +278,7 @@ export class VexSerialConnection extends VexEventTarget<VexSerialConnectionEvent
 
     if (use !== undefined) {
       let matchingPorts: AdapterSerialPort[]
+
       try {
         matchingPorts = (await this.serial.getPorts()).filter((candidate) =>
           portMatchesFilters(candidate.getInfo(), this.filters)
@@ -298,14 +315,17 @@ export class VexSerialConnection extends VexEventTarget<VexSerialConnectionEvent
       this.#portDisconnectListener = () => {
         void this.close()
       }
+
       port.addEventListener("disconnect", this.#portDisconnectListener)
 
       const writable = port.writable as WritableStream<Uint8Array> | null
       const readable = port.readable as ReadableStream<Uint8Array> | null
+
       if (writable == null || readable == null) {
         await this.close()
         return false
       }
+
       this.writer = writable.getWriter()
       this.reader = readable.getReader()
       this.#wasConnected = true
@@ -345,6 +365,7 @@ export class VexSerialConnection extends VexEventTarget<VexSerialConnectionEvent
         () => this.writeDataAsyncUnserialized(rawData, timeout)
       )
     }
+
     return this.writeDataAsyncUnserialized(rawData, timeout)
   }
 
@@ -354,6 +375,7 @@ export class VexSerialConnection extends VexEventTarget<VexSerialConnectionEvent
   ): Promise<HostBoundPacket | ArrayBuffer | Uint8Array | AckType> {
     return new Promise((resolve) => {
       const writer = this.writer
+
       if (writer === undefined || this.#closing) {
         resolve(AckType.NOT_CONNECTED)
         return
@@ -361,6 +383,7 @@ export class VexSerialConnection extends VexEventTarget<VexSerialConnectionEvent
 
       const data = rawData instanceof DeviceBoundPacket ? rawData.data : rawData
       let removePending = (): boolean => false
+
       const callback: IPacketCallback = {
         callback: resolve,
         timeout: setTimeout(() => {
@@ -374,6 +397,7 @@ export class VexSerialConnection extends VexEventTarget<VexSerialConnectionEvent
             ? rawData.commandExtendedId
             : undefined,
       }
+
       removePending = this.pendingRequests.add(callback)
 
       try {
@@ -485,6 +509,7 @@ export class V5SerialConnection extends VexSerialConnection {
       new GetSystemStatusH2DPacket(),
       timeout
     )
+
     return result instanceof GetSystemStatusReplyD2HPacket ? result : null
   }
 
@@ -522,10 +547,13 @@ export class V5SerialConnection extends VexSerialConnection {
     // valid on newer versions and are the safe fallback when the version query
     // is unavailable.
     const systemVersion = await this.getSystemVersion()
+
     const canCompress =
       systemVersion !== null &&
       systemVersion.compare(VexFirmwareVersion.fromString("1.0.5")) >= 0
+
     const hotBuf = canCompress ? await gzipBytes(binFileBuf) : binFileBuf
+
     const coldBuf =
       coldFileBuf !== undefined && canCompress
         ? await gzipBytes(coldFileBuf)
@@ -540,12 +568,14 @@ export class V5SerialConnection extends VexSerialConnection {
       vendor: FileVendor.USER,
       autoRun: false,
     }
+
     const r1 = await this.uploadFileToDeviceUnlocked(
       iniRequest,
       (current, total) => {
         progressCallback("INI", current, total)
       }
     )
+
     if (!r1) return false
 
     // let prjRequest = { filename: basename + '.prj', buf: prjfile, vid: FileVendor.USER, loadAddr: undefined, exttype: 0, linkedFile: undefined };
@@ -567,11 +597,14 @@ export class V5SerialConnection extends VexSerialConnection {
             exttype: "bin",
           }
         : undefined
+
     if (coldRequest != null && coldBuf != null) {
       const metadata = await this.writeDataAsync(
         new GetFileMetadataH2DPacket(FileVendor.DEV2, coldRequest.filename, 0)
       )
+
       const coldCrc = PacketEncoder.getInstance().crcgen.crc32(coldBuf, 0)
+
       const coldIsPresent =
         metadata instanceof GetFileMetadataReplyD2HPacket &&
         metadata.file?.size === coldBuf.byteLength &&
@@ -590,6 +623,7 @@ export class V5SerialConnection extends VexSerialConnection {
             progressCallback("COLD", current, total)
           }
         )
+
         if (!r2) return false
       }
     }
@@ -612,6 +646,7 @@ export class V5SerialConnection extends VexSerialConnection {
       exttype: "bin",
       linkedFile: coldRequest,
     }
+
     const r3 = await this.uploadFileToDeviceUnlocked(
       binRequest,
       (current, total) => {
@@ -664,9 +699,11 @@ export class V5SerialConnection extends VexSerialConnection {
 
     try {
       const fileSize = size ?? p1.fileSize
+
       if (!Number.isSafeInteger(fileSize) || fileSize < 0) {
         throw new Error(`Invalid file size: ${fileSize}`)
       }
+
       if (fileSize > this.maxFileDownloadBytes) {
         throw new Error(
           `File size ${fileSize} exceeds the ${this.maxFileDownloadBytes}-byte download limit`
@@ -678,8 +715,10 @@ export class V5SerialConnection extends VexSerialConnection {
       const fileBuf = new Uint8Array(fileSize)
 
       progressCallback?.(0, fileSize)
+
       while (bufferOffset < fileSize) {
         const remaining = fileSize - bufferOffset
+
         const requestedSize = Math.min(
           0xffff,
           Math.min(bufferChunkSize, (remaining + 3) & ~3)
@@ -708,12 +747,14 @@ export class V5SerialConnection extends VexSerialConnection {
         nextAddress += received
         progressCallback?.(bufferOffset, fileSize)
       }
+
       return fileBuf
     } finally {
       const exit = await this.writeDataAsync(
         new ExitFileTransferH2DPacket(FileExitAction.EXIT_HALT),
         30000
       )
+
       if (!(exit instanceof ExitFileTransferReplyD2HPacket)) {
         this.emitWarning(
           "file download did not exit transfer mode cleanly",
@@ -776,6 +817,7 @@ export class V5SerialConnection extends VexSerialConnection {
 
     let exit: HostBoundPacket | ArrayBuffer | Uint8Array | AckType =
       AckType.NOT_CONNECTED
+
     try {
       if (linkedFile !== undefined) {
         const p3 = await this.writeDataAsync(
@@ -803,12 +845,15 @@ export class V5SerialConnection extends VexSerialConnection {
         tmpbuf.set(buf.subarray(bufferOffset, bufferOffset + chunkLength))
 
         const packet = new WriteFileH2DPacket(nextAddress, tmpbuf)
+
         if (this.port?.fileWritesWithoutReply) {
           if (this.writer === undefined || this.isClosing)
             throw new Error("Not connected")
+
           await this.writer.write(packet.data)
         } else {
           const p2 = await this.writeDataAsync(packet, 3000)
+
           if (!(p2 instanceof WriteFileReplyD2HPacket))
             throw new Error("WriteFileReplyD2HPacket failed")
         }
@@ -832,8 +877,10 @@ export class V5SerialConnection extends VexSerialConnection {
         typeof exit === "number"
           ? (AckType[exit] ?? `code ${exit}`)
           : exit.constructor.name
+
       throw new Error(`Finishing ${filename} failed: ${reason}`)
     }
+
     return true
   }
 
@@ -844,15 +891,19 @@ export class V5SerialConnection extends VexSerialConnection {
   async removeFile(request: IFileBasicInfo | string): Promise<boolean> {
     const vendor =
       typeof request === "string" ? FileVendor.USER : request.vendor
+
     const filename = typeof request === "string" ? request : request.filename
+
     return this.fileTransfers.run(async () => {
       const result = await this.writeDataAsync(
         new EraseFileH2DPacket(vendor, filename)
       )
+
       const exit = await this.writeDataAsync(
         new ExitFileTransferH2DPacket(FileExitAction.EXIT_HALT),
         30000
       )
+
       return (
         result instanceof EraseFileReplyD2HPacket &&
         exit instanceof ExitFileTransferReplyD2HPacket
@@ -863,6 +914,7 @@ export class V5SerialConnection extends VexSerialConnection {
   async removeAllFiles(): Promise<boolean> {
     return this.fileTransfers.run(async () => {
       let result: HostBoundPacket | ArrayBuffer | Uint8Array | AckType
+
       try {
         result = await this.writeDataAsync(
           new FileClearUpH2DPacket(FileVendor.USER),
@@ -874,6 +926,7 @@ export class V5SerialConnection extends VexSerialConnection {
           30000
         )
       }
+
       return result instanceof FileClearUpReplyD2HPacket
     })
   }
@@ -900,17 +953,21 @@ export class V5SerialConnection extends VexSerialConnection {
         FileDownloadTarget.FILE_TARGET_CBUF,
         progressCallback
       )
+
       return convertScreenCapture(framebuffer)
     })
   }
 
   private getFileTransferChunkSize(windowSize: number): number {
     const maxPacketSize = this.port?.maxPacketSize
+
     if (maxPacketSize === undefined)
       return Math.max(4, getTransferChunkSize(windowSize))
+
     // BLE uses half the advertised window and reserves 14 bytes for framing.
     const size =
       Math.floor((Math.min(maxPacketSize, windowSize / 2) - 14) / 4) * 4
+
     if (size < 4) throw new Error("Bluetooth file transfer window is too small")
     return size
   }
@@ -921,16 +978,19 @@ export class V5SerialConnection extends VexSerialConnection {
   ): Promise<Uint8Array | undefined> {
     if (this.port?.readUser !== undefined) {
       if (channel !== UserFifoChannel.STDOUT) return undefined
+
       try {
         return await this.port.readUser()
       } catch {
         return undefined
       }
     }
+
     const result = await this.writeDataAsync(
       new UserFifoH2DPacket(channel),
       timeout
     )
+
     return result instanceof UserFifoReplyD2HPacket
       ? trimTrailingNuls(result.buf)
       : undefined
@@ -943,23 +1003,29 @@ export class V5SerialConnection extends VexSerialConnection {
   ): Promise<number | undefined> {
     const bytes =
       typeof data === "string" ? new TextEncoder().encode(data) : data
+
     if (this.port?.writeUser !== undefined) {
       if (channel !== UserFifoChannel.STDIN) return undefined
+
       try {
         return await this.port.writeUser(bytes)
       } catch {
         return undefined
       }
     }
+
     for (let offset = 0; offset < bytes.byteLength;) {
       const chunk = bytes.subarray(offset, offset + USER_FIFO_MAX_WRITE_SIZE)
+
       const result = await this.writeDataAsync(
         new UserFifoH2DPacket(channel, chunk),
         timeout
       )
+
       if (!(result instanceof UserFifoReplyD2HPacket)) return undefined
       offset += chunk.byteLength
     }
+
     return bytes.byteLength
   }
 
@@ -967,6 +1033,7 @@ export class V5SerialConnection extends VexSerialConnection {
     const result = await this.writeDataAsync(
       new UpdateMatchModeH2DPacket(mode, 0)
     )
+
     return result instanceof MatchModeReplyD2HPacket ? result : null
   }
 
@@ -976,6 +1043,7 @@ export class V5SerialConnection extends VexSerialConnection {
     const result = await this.writeDataAsync(
       new LoadFileActionH2DPacket(FileVendor.USER, FileLoadAction.RUN, value)
     )
+
     return result instanceof LoadFileActionReplyD2HPacket ? result : null
   }
 
@@ -983,6 +1051,7 @@ export class V5SerialConnection extends VexSerialConnection {
     const result = await this.writeDataAsync(
       new LoadFileActionH2DPacket(FileVendor.USER, FileLoadAction.STOP, "")
     )
+
     return result instanceof LoadFileActionReplyD2HPacket ? result : null
   }
 
@@ -1000,6 +1069,7 @@ export class V5SerialConnection extends VexSerialConnection {
     const result = await this.writeDataAsync(
       new SendDashTouchH2DPacket(x, y, press)
     )
+
     return result instanceof SendDashTouchReplyD2HPacket ? result : null
   }
 
@@ -1011,6 +1081,7 @@ export class V5SerialConnection extends VexSerialConnection {
     const result = await this.writeDataAsync(
       new SelectDashH2DPacket(screen, port)
     )
+
     return result instanceof SelectDashReplyD2HPacket ? result : null
   }
 }
@@ -1039,6 +1110,7 @@ function gzipBytes(data: Uint8Array): Promise<Uint8Array> {
       }
     }
   ).Bun
+
   // Same payload as PROS compress_file: gzip.GzipFile(..., mtime=0)
   if (bun?.spawnSync !== undefined) {
     const proc = bun.spawnSync({
@@ -1049,31 +1121,40 @@ function gzipBytes(data: Uint8Array): Promise<Uint8Array> {
       ],
       stdin: data,
     })
+
     if (proc.success && proc.stdout.byteLength > 2) {
       return Promise.resolve(new Uint8Array(proc.stdout))
     }
   }
+
   const finish = (gzipped: Uint8Array): Uint8Array => {
     const out = new Uint8Array(gzipped)
+
     if (out.byteLength >= 8) {
       out[4] = 0
       out[5] = 0
       out[6] = 0
       out[7] = 0
     }
+
     return out
   }
+
   if (bun?.gzipSync !== undefined) {
     return Promise.resolve(finish(bun.gzipSync(data)))
   }
+
   if (typeof CompressionStream === "undefined") {
     return Promise.resolve(data)
   }
+
   const copy = new Uint8Array(data.byteLength)
   copy.set(data)
+
   const stream = new Blob([copy])
     .stream()
     .pipeThrough(new CompressionStream("gzip"))
+
   return new Response(stream)
     .arrayBuffer()
     .then((buffer) => finish(new Uint8Array(buffer)))

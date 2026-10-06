@@ -64,6 +64,7 @@ export async function downloadFileFromInternet(
 ): Promise<ArrayBuffer> {
   const maxBytes = options.maxBytes ?? Number.POSITIVE_INFINITY
   const timeoutMs = options.timeoutMs ?? 30000
+
   if (
     (maxBytes !== Number.POSITIVE_INFINITY &&
       (!Number.isSafeInteger(maxBytes) || maxBytes <= 0)) ||
@@ -76,37 +77,45 @@ export async function downloadFileFromInternet(
 
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), timeoutMs)
+
   try {
     const response = await fetch(link, { signal: controller.signal })
+
     if (!response.ok) {
       throw new Error(`Download failed ${response.status} ${link}`)
     }
 
     const declaredLength = Number(response.headers.get("content-length"))
+
     if (Number.isSafeInteger(declaredLength) && declaredLength > maxBytes) {
       throw new Error(`Download exceeds the ${maxBytes}-byte limit`)
     }
 
     if (response.body == null) {
       const body = await response.arrayBuffer()
+
       if (body.byteLength > maxBytes) {
         throw new Error(`Download exceeds the ${maxBytes}-byte limit`)
       }
+
       return body
     }
 
     const reader = response.body.getReader()
     const chunks: Uint8Array[] = []
     let total = 0
+
     try {
       for (;;) {
         const { value, done } = await reader.read()
         if (done) break
         if (value === undefined) continue
         total += value.byteLength
+
         if (total > maxBytes) {
           throw new Error(`Download exceeds the ${maxBytes}-byte limit`)
         }
+
         chunks.push(value)
       }
     } finally {
@@ -115,22 +124,26 @@ export async function downloadFileFromInternet(
 
     const body = new Uint8Array(total)
     let offset = 0
+
     for (const chunk of chunks) {
       body.set(chunk, offset)
       offset += chunk.byteLength
     }
+
     return body.buffer
   } finally {
     clearTimeout(timeout)
     controller.abort()
   }
 }
+
 export async function sleepUntilAsync(
   f: () => Promise<boolean>,
   timeout: number,
   interval = 20
 ): Promise<boolean> {
   const deadline = Date.now() + Math.max(0, timeout)
+
   for (;;) {
     if (await f()) return true
     const remaining = deadline - Date.now()
@@ -145,6 +158,7 @@ export async function sleepUntil(
   interval = 20
 ): Promise<boolean> {
   const deadline = Date.now() + Math.max(0, timeout)
+
   for (;;) {
     if (f()) return true
     const remaining = deadline - Date.now()
@@ -205,6 +219,7 @@ export class V5SerialDeviceState {
   beginRefreshPause(): () => void {
     this.refreshPauseDepth++
     let released = false
+
     return () => {
       if (released) return
       released = true
@@ -214,6 +229,7 @@ export class V5SerialDeviceState {
 
   async withRefreshPaused<T>(operation: () => Promise<T> | T): Promise<T> {
     const release = this.beginRefreshPause()
+
     try {
       return await operation()
     } finally {
@@ -258,6 +274,7 @@ export class V5SerialDeviceState {
   devices: Array<ISmartDeviceInfo | undefined> = []
   isFieldControllerConnected = false
   matchMode: MatchMode = "disabled"
+
   radio = {
     channel: 0,
     isAvailable: false,
@@ -347,6 +364,7 @@ export class V5Brain {
     const result = await this.state._instance.connection?.writeDataAsync(
       new ReadKeyValueH2DPacket(key)
     )
+
     return result instanceof ReadKeyValueReplyD2HPacket
       ? result.value
       : undefined
@@ -356,6 +374,7 @@ export class V5Brain {
     const result = await this.state._instance.connection?.writeDataAsync(
       new WriteKeyValueH2DPacket(key, value)
     )
+
     return result instanceof WriteKeyValueReplyD2HPacket
   }
 
@@ -370,13 +389,16 @@ export class V5Brain {
         const result = await conn.writeDataAsync(
           new GetDirectoryFileCountH2DPacket(vendor)
         )
+
         if (!(result instanceof GetDirectoryFileCountReplyD2HPacket)) return
 
         const files: IFileHandle[] = []
+
         for (let i = 0; i < result.count; i++) {
           const result2 = await conn.writeDataAsync(
             new GetDirectoryEntryH2DPacket(i)
           )
+
           if (!(result2 instanceof GetDirectoryEntryReplyD2HPacket)) return
 
           // .file is undefined if the file is not found
@@ -417,13 +439,16 @@ export class V5Brain {
       if (ini.size === 0) continue
 
       const programName = /(.+?)(\.[^.]*$|$)/.exec(ini.filename)?.[1] ?? ""
+
       const bin = files.filter(
         (e) => e != null && e.filename === programName + ".bin"
       )[0]
+
       if (bin == null || bin.timestamp === 0 || bin.size === 0) continue
 
       const n = new Date()
       n.setTime(1000 * bin.timestamp)
+
       const program: IProgramInfo = {
         name: programName,
         binfile: bin.filename,
@@ -436,12 +461,15 @@ export class V5Brain {
       const result2 = await conn?.writeDataAsync(
         new GetProgramSlotInfoH2DPacket(FileVendor.USER, program.binfile)
       )
+
       if (result2 instanceof GetProgramSlotInfoReplyD2HPacket) {
         program.slot = result2.slot
         program.requestedSlot = result2.requestedSlot
       }
+
       programList.push(program)
     }
+
     return programList
   }
 
@@ -480,6 +508,7 @@ export class V5Brain {
   ): Promise<boolean | undefined> {
     const conn = this.state._instance.connection
     if (conn == null || !conn.isConnected) return
+
     return this.state._instance.state.withRefreshPaused(() =>
       conn.removeFile(request)
     )
@@ -488,6 +517,7 @@ export class V5Brain {
   async removeAllFiles(): Promise<boolean | undefined> {
     const conn = this.state._instance.connection
     if (conn == null || !conn.isConnected) return undefined
+
     return this.state._instance.state.withRefreshPaused(() =>
       conn.removeAllFiles()
     )
@@ -514,6 +544,7 @@ export class V5Brain {
           publicUrl + "catalog.txt",
           { maxBytes: 4 * 1024 }
         )
+
         const latestVersion = new TextDecoder().decode(catalog).trim()
         usingVersion = latestVersion
 
@@ -521,6 +552,7 @@ export class V5Brain {
 
         pcb("FETCH CATALOG", 1, 1)
       }
+
       if (
         usingVersion === undefined ||
         !/^[A-Za-z0-9._-]+$/.test(usingVersion)
@@ -542,6 +574,7 @@ export class V5Brain {
       const bootEntry = entries[usingVersion + "/BOOT.bin"]
       const assertEntry = entries[usingVersion + "/assets.bin"]
       if (bootEntry == null || assertEntry == null) return false
+
       if (
         bootEntry.encrypted ||
         assertEntry.encrypted ||
@@ -550,8 +583,10 @@ export class V5Brain {
       ) {
         return false
       }
+
       bootBin = await bootEntry.arrayBuffer()
       assertBin = await assertEntry.arrayBuffer()
+
       if (
         bootBin.byteLength === 0 ||
         assertBin.byteLength === 0 ||
@@ -560,6 +595,7 @@ export class V5Brain {
       ) {
         return false
       }
+
       if (bootBin.byteLength + assertBin.byteLength > 48 * 1024 * 1024) {
         return false
       }
@@ -570,6 +606,7 @@ export class V5Brain {
     }
 
     const releaseRefreshPause = this.state.beginRefreshPause()
+
     try {
       pcb("FACTORY ENB BOOT", 0, 0)
 
@@ -593,6 +630,7 @@ export class V5Brain {
           pcb("UPLOAD BOOT", c, t)
         }
       )
+
       if (!result2) return false
 
       while (true) {
@@ -600,6 +638,7 @@ export class V5Brain {
           new FactoryStatusH2DPacket(),
           10000
         )
+
         if (result3 instanceof FactoryStatusReplyD2HPacket) {
           switch (result3.status) {
             case 2:
@@ -615,10 +654,12 @@ export class V5Brain {
               pcb("FINISHING BOOT", result3.percent, 100)
               break
           }
+
           if (result3.status === 0 && result3.percent === 100) break
         } else {
           return false
         }
+
         await sleep(500)
       }
 
@@ -644,6 +685,7 @@ export class V5Brain {
           pcb("UPLOAD ASSERT", c, t)
         }
       )
+
       if (!result6) return false
 
       while (true) {
@@ -651,6 +693,7 @@ export class V5Brain {
           new FactoryStatusH2DPacket(),
           10000
         )
+
         if (result7 instanceof FactoryStatusReplyD2HPacket) {
           switch (result7.status) {
             case 2:
@@ -671,8 +714,10 @@ export class V5Brain {
         } else {
           return false
         }
+
         await sleep(500)
       }
+
       return true
     } finally {
       releaseRefreshPause()
@@ -692,6 +737,7 @@ export class V5Brain {
     const releaseRefreshPause = this.state.beginRefreshPause()
 
     let switchedToDownload = false
+
     try {
       if (device.isV5Controller) {
         await sleep(250)
@@ -704,6 +750,7 @@ export class V5Brain {
         switchedToDownload = true
 
         await sleep(250)
+
         await sleepUntilAsync(
           async () => (await conn?.getSystemStatus(150)) != null,
           10000,
@@ -717,6 +764,7 @@ export class V5Brain {
         coldFileBuf,
         progressCallback
       )
+
       if (!(p2 ?? false)) return false
 
       if (device.isV5Controller) {
@@ -728,6 +776,7 @@ export class V5Brain {
         switchedToDownload = false
 
         await sleep(250)
+
         await sleepUntilAsync(
           async () => (await conn?.getSystemStatus(150)) != null,
           10000,
@@ -742,6 +791,7 @@ export class V5Brain {
           const restored = await device.radio.changeChannel(
             RadioChannelType.PIT
           )
+
           if (!restored) {
             try {
               this.state._instance.emit(
@@ -762,6 +812,7 @@ export class V5Brain {
     progressCallback?: (current: number, total: number) => void
   ): Promise<boolean | undefined> {
     const releaseRefreshPause = this.state.beginRefreshPause()
+
     try {
       const conn = this.state._instance.connection
       if (conn == null || !conn.isConnected) return undefined
@@ -782,6 +833,7 @@ export class V5Brain {
   ): Promise<Uint8Array | undefined> {
     const conn = this.state._instance.connection
     if (conn == null || !conn.isConnected) return undefined
+
     return this.state._instance.state.withRefreshPaused(() =>
       conn.captureScreen(progressCallback)
     )
@@ -931,6 +983,7 @@ export class V5Radio {
     const result = await this.state._instance.connection?.writeDataAsync(
       new FileControlH2DPacket(1, channel)
     )
+
     return result instanceof FileControlReplyD2HPacket
   }
 }
@@ -957,7 +1010,9 @@ export class V5SerialDevice extends VexSerialDevice {
 
     const deviceOptions =
       typeof options === "boolean" ? { autoRefresh: options } : options
+
     const refreshIntervalMs = deviceOptions.refreshIntervalMs ?? 200
+
     if (
       !Number.isFinite(refreshIntervalMs) ||
       refreshIntervalMs <= 0 ||
@@ -965,7 +1020,9 @@ export class V5SerialDevice extends VexSerialDevice {
     ) {
       throw new RangeError("refreshIntervalMs must be a positive finite number")
     }
+
     const maxFileDownloadBytes = deviceOptions.maxFileDownloadBytes
+
     if (
       maxFileDownloadBytes !== undefined &&
       (!Number.isSafeInteger(maxFileDownloadBytes) || maxFileDownloadBytes <= 0)
@@ -974,15 +1031,19 @@ export class V5SerialDevice extends VexSerialDevice {
         "maxFileDownloadBytes must be a positive safe integer"
       )
     }
+
     this.refreshIntervalMs = refreshIntervalMs
     this.connectionOptions = { maxFileDownloadBytes }
+
     if (deviceOptions.autoRefresh !== undefined) {
       this.autoRefresh = deviceOptions.autoRefresh
     }
 
     let isLastRefreshComplete: boolean = true
+
     this.refreshTimer = setInterval(() => {
       if (this.disposed) return
+
       if (this.autoRefresh && isLastRefreshComplete) {
         if (!this.isConnected) {
           this.state.brain.isAvailable = false
@@ -998,6 +1059,7 @@ export class V5SerialDevice extends VexSerialDevice {
         }
       }
     }, this.refreshIntervalMs)
+
     const timer = this.refreshTimer as unknown as { unref?: () => void }
     timer.unref?.()
   }
@@ -1016,10 +1078,12 @@ export class V5SerialDevice extends VexSerialDevice {
 
   get devices(): V5SmartDevice[] {
     const rtn = []
+
     for (let i = 1; i < this.state.devices.length; i++) {
       if (this.state.devices[i] != null)
         rtn.push(new V5SmartDevice(this.state, i))
     }
+
     return rtn
   }
 
@@ -1056,6 +1120,7 @@ export class V5SerialDevice extends VexSerialDevice {
       this.connection = conn
     } else {
       let tryIdx = 0
+
       while (true) {
         const c = new V5SerialConnection(
           this.defaultSerial,
@@ -1067,6 +1132,7 @@ export class V5SerialDevice extends VexSerialDevice {
         const result = await c.open(tryIdx, false)
         if (result === undefined) break // no granted port left
         tryIdx++
+
         if (!result) {
           // has been opened
           await c.close()
@@ -1089,11 +1155,14 @@ export class V5SerialDevice extends VexSerialDevice {
           this.defaultSerial,
           this.connectionOptions
         )
+
         if (!(await c.open(undefined, true))) return false
+
         if ((await c.query1()) === null) {
           await c.close()
           return false
         }
+
         this.clearDisconnectListener(this.connection)
         this.connection = c
       }
@@ -1136,6 +1205,7 @@ export class V5SerialDevice extends VexSerialDevice {
 
     if (this._isReconnecting) {
       let successBeforeTimeout
+
       do {
         successBeforeTimeout = await sleepUntil(
           () => !this._isReconnecting,
@@ -1149,10 +1219,12 @@ export class V5SerialDevice extends VexSerialDevice {
     }
 
     this._isReconnecting = true
+
     try {
       // eslint-disable-next-line no-unmodified-loop-condition
       while (timeout === 0 || new Date().getTime() < endTime) {
         let tryIdx = 0
+
         while (true) {
           const c = new V5SerialConnection(
             this.defaultSerial,
@@ -1162,6 +1234,7 @@ export class V5SerialDevice extends VexSerialDevice {
           const result = await c.open(tryIdx++, false)
 
           if (result === undefined) break // no port left
+
           if (!result) {
             // has been opened
             await c.close()
@@ -1169,6 +1242,7 @@ export class V5SerialDevice extends VexSerialDevice {
           }
 
           const result2 = await c.getSystemStatus(200)
+
           if (result2 === null) {
             // no response
             await c.close()
@@ -1194,7 +1268,9 @@ export class V5SerialDevice extends VexSerialDevice {
         // try again every second or when the number of ports is different
         const getPortCount = async (): Promise<number> =>
           (await this.defaultSerial.getPorts()).length
+
         const portsCount = await getPortCount()
+
         await sleepUntilAsync(
           async () => (await getPortCount()) !== portsCount,
           1000
@@ -1217,9 +1293,11 @@ export class V5SerialDevice extends VexSerialDevice {
     if (this.disconnectListener !== undefined) {
       this.clearDisconnectListener(this.connection)
     }
+
     this.disconnectListener = (_data) => {
       if (this.autoReconnect) void this.reconnect()
     }
+
     this.connection.on("disconnected", this.disconnectListener)
 
     await this.refresh()
@@ -1230,6 +1308,7 @@ export class V5SerialDevice extends VexSerialDevice {
   ): void {
     if (connection === undefined || this.disconnectListener === undefined)
       return
+
     connection.remove("disconnected", this.disconnectListener)
     this.disconnectListener = undefined
   }
@@ -1246,6 +1325,7 @@ export class V5SerialDevice extends VexSerialDevice {
 
   async refresh(): Promise<boolean> {
     const conn = this.connection
+
     if (conn == null || !conn.isConnected) {
       this.state.brain.isAvailable = false
       return false
@@ -1256,6 +1336,7 @@ export class V5SerialDevice extends VexSerialDevice {
       const sfPacket = await conn.getSystemFlags()
       const rdPacket = await conn.getRadioStatus()
       const dsPacket = await conn.getDeviceStatus()
+
       if (
         ssPacket == null ||
         sfPacket == null ||
@@ -1269,8 +1350,10 @@ export class V5SerialDevice extends VexSerialDevice {
       const flags2 = ssPacket.sysflags[2]
       const flags4 = ssPacket.sysflags[4]
       const flags5 = sfPacket.flags
+
       const isController =
         conn.port?.getInfo().usbProductId === SerialDeviceType.V5_CONTROLLER
+
       const radioConnected = (flags5 & Math.pow(2, 32 - 22)) !== 0
       const controllerCharging = (flags2 & 0b10000000) !== 0
 
@@ -1278,12 +1361,14 @@ export class V5SerialDevice extends VexSerialDevice {
       this.state.brain.cpu1Version = ssPacket.cpu1Version
       this.state.brain.systemVersion = ssPacket.systemVersion
       this.state.controllers[0].isCharging = controllerCharging
+
       this.state.matchMode =
         (flags2 & 0b00100000) !== 0
           ? "disabled"
           : (flags2 & 0b01000000) !== 0
             ? "autonomous"
             : "driver"
+
       this.state.isFieldControllerConnected = (flags2 & 0b00010000) !== 0
       this.state.brain.settings.usingLanguage = (flags4 & 0b11110000) >> 4
       this.state.brain.settings.isWhiteTheme = (flags4 & 0b00000100) !== 0
@@ -1291,22 +1376,31 @@ export class V5SerialDevice extends VexSerialDevice {
       this.state.brain.uniqueId = ssPacket.uniqueId
 
       this.state.radio.isRadioData = (flags5 & Math.pow(2, 32 - 12)) !== 0
+
       this.state.brain.button.isDoublePressed =
         (flags5 & Math.pow(2, 32 - 14)) !== 0
+
       this.state.brain.battery.isCharging =
         (flags5 & Math.pow(2, 32 - 15)) !== 0
+
       this.state.brain.button.isPressed = (flags5 & Math.pow(2, 32 - 17)) !== 0
       this.state.radio.isVexNet = (flags5 & Math.pow(2, 32 - 18)) !== 0
+
       this.state.controllers[1].isAvailable =
         (flags5 & Math.pow(2, 32 - 19)) !== 0
+
       this.state.radio.isConnected = radioConnected
       this.state.radio.isAvailable = (flags5 & Math.pow(2, 32 - 23)) !== 0
       this.state.brain.battery.batteryPercent = sfPacket.battery ?? 0
+
       this.state.controllers[0].isAvailable =
         radioConnected || controllerCharging
+
       this.state.controllers[0].battery = sfPacket.controllerBatteryPercent ?? 0
+
       this.state.controllers[1].battery =
         sfPacket.partnerControllerBatteryPercent ?? 0
+
       this.state.brain.activeProgram = sfPacket.currentProgram
       this.state.brain.isAvailable = !isController || radioConnected
       this.state.radio.channel = rdPacket.channel
@@ -1316,15 +1410,18 @@ export class V5SerialDevice extends VexSerialDevice {
 
       const devices = [...this.state.devices]
       const presentPorts = new Set<number>()
+
       for (const device of dsPacket.devices) {
         devices[device.port] = device
         presentPorts.add(device.port)
       }
+
       for (let port = 0; port < devices.length; port++) {
         if (devices[port] !== undefined && !presentPorts.has(port)) {
           devices[port] = undefined
         }
       }
+
       this.state.devices = devices
       return true
     } catch {

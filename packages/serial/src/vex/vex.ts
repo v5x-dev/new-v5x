@@ -2,15 +2,25 @@ import { type VexFirmwareVersion } from "./vex-firmware-version"
 import { type HostBoundPacket } from "./vex-packet"
 
 export const USER_PROG_CHUNK_SIZE = 4096 // chunk size
+
 export const USER_FIFO_MAX_WRITE_SIZE = 224
+
 export const USER_FLASH_START = 0x03000000 // start address of memory
+
 export const USER_FLASH_SYS_CODE_START = 0x03400000 // start address of system code
+
 export const USER_FLASH_USR_CODE_START = 0x03800000 // start address of user code
+
 export const USER_FLASH_END = 0x08000000 // end address of memory
+
 export const USER_FLASH_MAX_FILE_SIZE = 0x200000 // maximum file size for qspi
+
 export const USER_FLASH_START_B = 0x10200000 // special app flash start
+
 export const USER_FLASH_END_B = 0x10400000 // special app flash end
+
 export const USER_FLASH_START_C = 0x30200000 // special app flash start
+
 export const USER_FLASH_END_C = 0x31000000 // special app flash end
 
 export interface ISmartDeviceInfo {

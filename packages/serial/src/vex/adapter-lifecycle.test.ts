@@ -34,7 +34,9 @@ test("opens, closes, and reopens an adapter port", async () => {
     getPorts: async () => [port],
     requestPort: async () => port,
   })
+
   let connectedState = false
+
   connection.on("connected", () => {
     connectedState = connection.isConnected
   })

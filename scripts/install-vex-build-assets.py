@@ -11,26 +11,18 @@ import urllib.request
 import zipfile
 from pathlib import Path, PurePosixPath
 
-PROS_KERNEL_URL = (
-    "https://pros.cs.purdue.edu/v5/_static/releases/kernel@3.8.3.zip"
-)
-PROS_KERNEL_SHA256 = (
-    "fa0eddc8c9493ba1fca73ff7648227f8e84ec1784627f22e37a55445e5f2ecc8"
-)
+PROS_KERNEL_URL = "https://pros.cs.purdue.edu/v5/_static/releases/kernel@3.8.3.zip"
+PROS_KERNEL_SHA256 = "fa0eddc8c9493ba1fca73ff7648227f8e84ec1784627f22e37a55445e5f2ecc8"
 EZ_TEMPLATE_URL = (
     "https://github.com/EZ-Robotics/EZ-Template/releases/download/v3.2.2/"
     "EZ-Template-Example-Project.zip"
 )
-EZ_TEMPLATE_SHA256 = (
-    "41ec47dc65588cf7efae84771965a4803611f5db88ed5465bbb829a5eb8d7822"
-)
+EZ_TEMPLATE_SHA256 = "41ec47dc65588cf7efae84771965a4803611f5db88ed5465bbb829a5eb8d7822"
 ASSET_ROOT = Path("opt/vex-build")
 
 
 def download_checked(url: str, expected_sha256: str, destination: Path) -> None:
-    request = urllib.request.Request(
-        url, headers={"User-Agent": "v5x-vex-build-image"}
-    )
+    request = urllib.request.Request(url, headers={"User-Agent": "v5x-vex-build-image"})
     digest = hashlib.sha256()
     with urllib.request.urlopen(request, timeout=120) as response:
         with destination.open("wb") as output:
@@ -101,17 +93,11 @@ def main() -> None:
         Path("usr/bin/arm-none-eabi-gcc"),
         Path("usr/bin/arm-none-eabi-g++"),
     )
-    missing = [
-        str(path)
-        for path in required_files
-        if not (rootfs / path).is_file()
-    ]
+    missing = [str(path) for path in required_files if not (rootfs / path).is_file()]
     if not rootfs.is_dir():
         parser.error(f"rootfs is not a directory: {rootfs}")
     if missing:
-        parser.error(
-            "rootfs is missing required build tools: " + ", ".join(missing)
-        )
+        parser.error("rootfs is missing required build tools: " + ", ".join(missing))
 
     asset_root = rootfs / ASSET_ROOT
     pros_destination = asset_root / "pros-kernel-3.8.3"

@@ -18,19 +18,31 @@ else
   build_dir="$work_dir/build"
   prefix=${1:-"$work_dir/install"}
 fi
+
 jobs=${JOBS:-$(getconf _NPROCESSORS_ONLN)}
 
 for tool in git cmake ninja c++ python3 strip; do
-  command -v "$tool" >/dev/null || { echo "Missing build tool: $tool" >&2; exit 1; }
+  command -v "$tool" >/dev/null || {
+    echo "Missing build tool: $tool" >&2
+    exit 1
+  }
 done
-[[ $jobs =~ ^[1-9][0-9]*$ ]] || { echo 'JOBS must be a positive integer' >&2; exit 1; }
+
+[[ $jobs =~ ^[1-9][0-9]*$ ]] || {
+  echo 'JOBS must be a positive integer' >&2
+  exit 1
+}
+
 mkdir -p "$work_dir"
 prefix=$(mkdir -p "$prefix" && cd "$prefix" && pwd)
 
 compiler_args=()
 if [[ $musl == 1 ]]; then
   for tool in curl sha256sum tar; do
-    command -v "$tool" >/dev/null || { echo "Missing build tool: $tool" >&2; exit 1; }
+    command -v "$tool" >/dev/null || {
+      echo "Missing build tool: $tool" >&2
+      exit 1
+    }
   done
   musl_dir="$work_dir/musl-cross"
   musl_archive="$musl_dir/toolchain.tgz"

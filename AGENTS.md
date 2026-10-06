@@ -10,3 +10,9 @@
 
 - Never replace `@pierre/diffs` with another editor engine. All editor work in `apps/code` must build on top of Pierre.
 - Before adding editor behavior, check Pierre's APIs and supported extension points. Extend Pierre or add complementary UI and adapters around it; do not migrate editor rendering, input handling, or state to a competing engine.
+
+## Readability
+
+- Keep handwritten code readable with consistent indentation and line wrapping.
+- Separate top-level declarations and longer logical steps with blank lines. Keep related short statements together.
+- Run the relevant formatter after editing code. Preserve behavior during formatting and exclude generated files and build output.

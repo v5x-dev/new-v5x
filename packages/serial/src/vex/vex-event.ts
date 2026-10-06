@@ -1,5 +1,7 @@
 type EventName = string | symbol
+
 type EventKey<TEvents> = Extract<keyof TEvents, EventName>
+
 type EventListener<TValue> = (data: TValue) => void
 
 /** A small typed event emitter used by connections, devices, and terminals. */
@@ -38,6 +40,7 @@ export class VexEventEmitter<
     if (listeners === undefined || listeners.length === 0) return
 
     const errors: unknown[] = []
+
     for (const listener of [...listeners]) {
       try {
         listener(data)
@@ -45,11 +48,14 @@ export class VexEventEmitter<
         errors.push(error)
       }
     }
+
     if (errors.length === 1) throw errors[0]
+
     if (errors.length > 1) {
       const aggregate = new Error(
         `listeners for ${String(eventName)} failed`
       ) as Error & { errors: unknown[] }
+
       aggregate.name = "AggregateError"
       aggregate.errors = errors
       throw aggregate

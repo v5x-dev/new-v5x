@@ -25,17 +25,22 @@ declare module "bun-serialport" {
     readonly isOpen: boolean
     open(): Promise<void>
     close(): Promise<void>
+
     write(
       data: Uint8Array | ArrayBuffer | number[] | string
     ): Promise<number | void>
+
     on(event: "data", listener: (chunk: Uint8Array) => void): this
     on(event: "error", listener: (err: Error) => void): this
+
     on(
       event: "close",
       listener: (err?: Error & { disconnected?: boolean }) => void
     ): this
+
     off(event: "data", listener: (chunk: Uint8Array) => void): this
     off(event: "error", listener: (err: Error) => void): this
+
     off(
       event: "close",
       listener: (err?: Error & { disconnected?: boolean }) => void

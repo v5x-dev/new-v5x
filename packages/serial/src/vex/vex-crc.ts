@@ -56,6 +56,7 @@ export class CrcGenerator {
       i = ((accumulator >>> 8) ^ buf[j]) & 0xff
       accumulator = ((accumulator << 8) ^ CRC16TABLE[i]) >>> 0
     }
+
     return (accumulator & 0xffff) >>> 0
   }
 
@@ -66,13 +67,16 @@ export class CrcGenerator {
     let i
     let j
     let crcAccumulator
+
     for (i = 0; i < 256; i++) {
       crcAccumulator = i << 24
+
       for (j = 0; j < 8; j++) {
         if ((crcAccumulator & 0x80000000) !== 0)
           crcAccumulator = (crcAccumulator << 1) ^ CrcGenerator.POLYNOMIAL_CRC32
         else crcAccumulator = crcAccumulator << 1
       }
+
       this.crc32Table[i] = crcAccumulator
     }
   }
@@ -91,6 +95,7 @@ export class CrcGenerator {
       i = ((crcAccumulator >>> 24) ^ buf[j]) & 0xff
       crcAccumulator = ((crcAccumulator << 8) ^ this.crc32Table[i]) >>> 0
     }
+
     return (crcAccumulator & 0xffffffff) >>> 0
   }
 }

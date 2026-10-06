@@ -2,21 +2,21 @@
 // https://github.com/EZ-Robotics/EZ-Template/releases/tag/v3.2.2
 // project.pros is kept portable; the release file contains local Windows paths.
 export const ezTemplateFiles: Record<string, string> = {
-  ".ez-template": `3.2.2
+  '.ez-template': `3.2.2
 `,
-  "project.pros": `{
+  'project.pros': `{
   "target": "v5",
   "templates": {},
   "upload_options": {},
   "project_name": "EZ-Template-Example"
 }
 `,
-  ".clang-format": `BasedOnStyle: Google
+  '.clang-format': `BasedOnStyle: Google
 ColumnLimit: 0
 TabWidth: 2
 IndentWidth: 2
 `,
-  ".gitignore": `# Compiled Object files
+  '.gitignore': `# Compiled Object files
 *.o
 *.obj
 
@@ -33,7 +33,7 @@ temp.log
 temp.errors
 *.ini
 .d/`,
-  "Makefile": `################################################################################
+  Makefile: `################################################################################
 ######################### User configurable parameters #########################
 # filename extensions
 CEXTS:=c
@@ -79,7 +79,7 @@ TEMPLATE_FILES=$(INCDIR)/**/*.h $(INCDIR)/**/*.hpp
 ########## Nothing below this line should be edited by typical users ###########
 -include ./common.mk
 `,
-  "include/autons.hpp": `#pragma once
+  'include/autons.hpp': `#pragma once
 
 void default_constants();
 
@@ -97,7 +97,7 @@ void odom_pure_pursuit_wait_until_example();
 void odom_boomerang_example();
 void odom_boomerang_injected_pure_pursuit_example();
 void measure_offsets();`,
-  "include/main.h": `/**
+  'include/main.h': `/**
  * \\file main.h
  *
  * Contains common definitions and header files used throughout your PROS
@@ -188,7 +188,7 @@ void opcontrol(void);
 
 #endif  // _PROS_MAIN_H_
 `,
-  "include/subsystems.hpp": `#pragma once
+  'include/subsystems.hpp': `#pragma once
 
 #include "EZ-Template/api.hpp"
 #include "api.h"
@@ -199,7 +199,7 @@ extern Drive chassis;
 
 // inline pros::Motor intake(1);
 // inline pros::adi::DigitalIn limit_switch('A');`,
-  "src/autons.cpp": `#include "main.h"
+  'src/autons.cpp': `#include "main.h"
 
 /////
 // For installation, upgrading, documentations, and tutorials, check out our website!
@@ -577,7 +577,7 @@ void measure_offsets() {
 // . . .
 // Make your own autonomous functions here!
 // . . .`,
-  "src/main.cpp": `#include "main.h"
+  'src/main.cpp': `#include "main.h"
 
 /////
 // For installation, upgrading, documentations, and tutorials, check out our website!

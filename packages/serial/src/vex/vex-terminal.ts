@@ -3,6 +3,7 @@ import { V5SerialConnection } from "./vex-connection"
 import { VexEventTarget } from "./vex-event"
 
 export const DEFAULT_TERMINAL_IDLE_POLL_MS = 50
+
 export const DEFAULT_TERMINAL_MAX_CONSECUTIVE_ERRORS = 20
 
 export interface V5TerminalOptions {
@@ -34,15 +35,19 @@ export class V5UserProgramTerminal extends VexEventTarget<V5TerminalEvents> {
 
   constructor(connection: V5SerialConnection, options: V5TerminalOptions = {}) {
     super()
+
     const idlePollIntervalMs =
       options.idlePollIntervalMs ?? DEFAULT_TERMINAL_IDLE_POLL_MS
+
     const timeoutMs = options.timeoutMs ?? 500
+
     const maxConsecutiveErrors =
       options.maxConsecutiveErrors ?? DEFAULT_TERMINAL_MAX_CONSECUTIVE_ERRORS
 
     if (!Number.isFinite(idlePollIntervalMs) || idlePollIntervalMs < 0) {
       throw new RangeError("idlePollIntervalMs must be non-negative")
     }
+
     if (
       !Number.isFinite(timeoutMs) ||
       timeoutMs < 0 ||
@@ -50,6 +55,7 @@ export class V5UserProgramTerminal extends VexEventTarget<V5TerminalEvents> {
     ) {
       throw new RangeError("timeoutMs must be between 0 and 2147483647 ms")
     }
+
     if (
       !Number.isSafeInteger(maxConsecutiveErrors) ||
       maxConsecutiveErrors < 1
@@ -80,6 +86,7 @@ export class V5UserProgramTerminal extends VexEventTarget<V5TerminalEvents> {
     this.running = false
     this.wakeIdleWait?.()
     const polling = this.polling
+
     const closing = (async () => {
       try {
         await polling
@@ -88,6 +95,7 @@ export class V5UserProgramTerminal extends VexEventTarget<V5TerminalEvents> {
         this.closing = undefined
       }
     })()
+
     this.closing = closing
     await closing
   }
@@ -102,6 +110,7 @@ export class V5UserProgramTerminal extends VexEventTarget<V5TerminalEvents> {
 
   private async poll(): Promise<void> {
     let consecutiveErrors = 0
+
     try {
       while (this.running) {
         if (!this.connection.isConnected) {
@@ -113,6 +122,7 @@ export class V5UserProgramTerminal extends VexEventTarget<V5TerminalEvents> {
           UserFifoChannel.STDOUT,
           this.timeoutMs
         )
+
         if (!this.running) break
 
         if (bytes === undefined) {
@@ -124,6 +134,7 @@ export class V5UserProgramTerminal extends VexEventTarget<V5TerminalEvents> {
         }
 
         consecutiveErrors = 0
+
         if (bytes.byteLength === 0) {
           await this.waitIdle()
           continue
@@ -136,6 +147,7 @@ export class V5UserProgramTerminal extends VexEventTarget<V5TerminalEvents> {
       this.running = false
       const trailingText = this.decoder.decode()
       if (trailingText !== "") this.emitSafely("text", trailingText)
+
       if (!this.emittedClosed) {
         this.emittedClosed = true
         this.emitSafely("closed", undefined)
@@ -149,8 +161,10 @@ export class V5UserProgramTerminal extends VexEventTarget<V5TerminalEvents> {
     if (this.idlePollIntervalMs === 0) {
       return new Promise((resolve) => setTimeout(resolve, 0))
     }
+
     return new Promise((resolve) => {
       let timer: ReturnType<typeof setTimeout> | undefined
+
       const finish = (): void => {
         if (timer === undefined) return
         clearTimeout(timer)
@@ -158,6 +172,7 @@ export class V5UserProgramTerminal extends VexEventTarget<V5TerminalEvents> {
         if (this.wakeIdleWait === finish) this.wakeIdleWait = undefined
         resolve()
       }
+
       timer = setTimeout(finish, this.idlePollIntervalMs)
       this.wakeIdleWait = finish
     })

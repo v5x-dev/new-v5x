@@ -48,6 +48,7 @@ function RouteComponent() {
   const [signOutError, setSignOutError] = useState<string | null>(null)
   const user = session?.user
   const userName = user?.name || user?.email || 'Guest'
+
   const initials = userName
     .trim()
     .split(/\s+/)
@@ -59,6 +60,7 @@ function RouteComponent() {
   async function signOut() {
     setIsSigningOut(true)
     setSignOutError(null)
+
     try {
       const { error } = await authClient.signOut()
       if (error) throw new Error(error.message || 'Unable to sign out')

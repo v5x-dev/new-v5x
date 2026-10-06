@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Copy a VEXcode rootfs and retain the ARM libraries used by V5 builds."""
+
 import argparse
 import shutil
 from pathlib import Path
@@ -14,8 +15,10 @@ if not (args.source / "usr/local/bin/clang").exists():
     parser.error("source must contain the custom VEX Clang")
 library_paths = [
     Path("usr/arm-none-eabi/lib"),
-    *(path.relative_to(args.source) for path in
-      (args.source / "usr/lib/gcc/arm-none-eabi").iterdir()),
+    *(
+        path.relative_to(args.source)
+        for path in (args.source / "usr/lib/gcc/arm-none-eabi").iterdir()
+    ),
 ]
 for path in library_paths:
     if not (args.source / path / "thumb/v7+fp/softfp").is_dir():
@@ -23,11 +26,13 @@ for path in library_paths:
 shutil.copytree(args.source, args.destination, symlinks=True)
 root = args.destination
 
+
 def remove(path):
     if path.is_symlink() or path.is_file():
         path.unlink()
     elif path.is_dir():
         shutil.rmtree(path)
+
 
 # Remove native compiler files by APK ownership, preserving shared runtime libs.
 database = (root / "lib/apk/db/installed").read_text()

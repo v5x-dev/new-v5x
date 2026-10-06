@@ -10,12 +10,14 @@ export class TailQueue {
   async run<T>(operation: () => Promise<T> | T): Promise<T> {
     const previous = this.tail
     let release = (): void => {}
+
     const current = new Promise<void>((resolve) => {
       release = resolve
     })
 
     this.tail = previous.then(() => current)
     this.depth++
+
     try {
       await previous
       return await operation()

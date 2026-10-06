@@ -28,9 +28,11 @@ export class VexFirmwareVersion {
       .replace(/b/g, "")
       .split(".")
       .map((x) => parseInt(x, 10))
+
     while (parts.length < 4) {
       parts.push(0)
     }
+
     return new VexFirmwareVersion(parts[0], parts[1], parts[2], parts[3])
   }
 
@@ -119,6 +121,7 @@ export class VexFirmwareVersion {
     } else if (betaComp !== 0) {
       return betaComp
     }
+
     return 0
   }
 }

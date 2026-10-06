@@ -2,7 +2,7 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { useAction } from 'convex/react'
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
-import { QuestionMark } from '@phosphor-icons/react'
+import { QuestionMark, SignOut } from '@phosphor-icons/react'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
@@ -23,12 +23,12 @@ import {
   SidebarGroupLabel,
   SidebarInset,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
 } from '~/components/ui/sidebar'
 import { FeedbackDialog } from '~/components/feedback-dialog'
-import { Button } from '~/components/ui/button'
 import { authClient } from '~/lib/auth-client'
 
 const templateInfo = {
@@ -146,15 +146,15 @@ function RouteComponent() {
                   <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
                 <span title={userName}>{userName}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={isSigningOut}
-                  onClick={signOut}
-                >
-                  {isSigningOut ? 'Signing out…' : 'Sign out'}
-                </Button>
               </SidebarMenuButton>
+              <SidebarMenuAction
+                aria-label="Sign out"
+                title="Sign out"
+                disabled={isSigningOut}
+                onClick={signOut}
+              >
+                <SignOut aria-hidden="true" />
+              </SidebarMenuAction>
             </SidebarMenuItem>
           </SidebarMenu>
           {signOutError && <p role="alert">{signOutError}</p>}
@@ -165,14 +165,14 @@ function RouteComponent() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-6 px-0" aria-label="Template" />
+              <TableHead className="w-6 px-2" aria-label="Template" />
               <TableHead>Name</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {programs?.map((program) => (
               <TableRow key={program._id}>
-                <TableCell className="w-6 px-0">
+                <TableCell className="w-6 px-2">
                   {program.template ? (
                     <img
                       src={templateInfo[program.template].icon}

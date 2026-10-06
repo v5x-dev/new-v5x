@@ -10,6 +10,7 @@ export default defineConfig({
   cacheDir: 'node_modules/.vite/app',
   server: {
     port: 3000,
+    allowedHosts: ['k4xs74x6-3000.use.devtunnels.ms'],
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'credentialless',

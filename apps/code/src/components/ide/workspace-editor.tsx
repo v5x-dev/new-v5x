@@ -129,13 +129,12 @@ export function WorkspaceEditor(props: Props) {
   const [panel, setPanel] = React.useState<'problems' | 'output' | null>(null)
   const [searchQuery, setSearchQuery] = React.useState('')
   const [searchOpen, setSearchOpen] = React.useState(false)
-  const [searchActive, setSearchActive] = React.useState(false)
   const [matchCase, setMatchCase] = React.useState(false)
   const searchInputRef = React.useRef<HTMLInputElement>(null)
   const searchResults = React.useMemo(
     () =>
-      searchActive ? searchWorkspace(documents, searchQuery, matchCase) : [],
-    [documents, searchQuery, matchCase, searchActive],
+      searchOpen ? searchWorkspace(documents, searchQuery, matchCase) : [],
+    [documents, searchQuery, matchCase, searchOpen],
   )
   const searchGroups = React.useMemo(() => {
     const groups = new Map<string, typeof searchResults>()
@@ -148,7 +147,6 @@ export function WorkspaceEditor(props: Props) {
   }, [searchResults])
   const openSearch = () => {
     setSearchOpen(true)
-    setSearchActive(true)
     requestAnimationFrame(() => {
       searchInputRef.current?.focus()
       searchInputRef.current?.select()
@@ -284,7 +282,9 @@ export function WorkspaceEditor(props: Props) {
       conflictsRef.current = recovered.conflicts
       setConflicts(recovered.conflicts)
       commitRef.current = loaded.commitSha
-      publish(next)
+      // Initial documents must land with the loaded flag, not in a later transition.
+      documentsRef.current = next
+      setDocuments(next)
       const restoredTabs = (cached?.tabs ?? []).filter(
         (path) => next[path] && !next[path].deleted,
       )
@@ -456,7 +456,7 @@ export function WorkspaceEditor(props: Props) {
     return () => clearTimeout(timer)
   }, [documents, props.selectedFile, conflicts, tabs])
   React.useEffect(() => {
-    setSearchActive(false)
+    setSearchOpen(false)
     setSdkHeader(null)
     setCompletions([])
     snippet.current = null
@@ -795,36 +795,16 @@ export function WorkspaceEditor(props: Props) {
       <div className="flex h-9 shrink-0 items-stretch font-mono text-[11px]">
         <div className="min-w-0 flex-1 overflow-x-auto">
           <EditorTabs
-            value={
-              searchActive ? 'project-search' : `file:${props.selectedFile}`
-            }
+            value={`file:${props.selectedFile}`}
             onValueChange={(value) => {
-              if (value === 'project-search') openSearch()
-              else if (typeof value === 'string' && value.startsWith('file:')) {
+              if (typeof value === 'string' && value.startsWith('file:')) {
                 setSdkHeader(null)
-                setSearchActive(false)
+                setSearchOpen(false)
                 props.onSelect(value.slice(5))
               }
             }}
           >
             <TabsList aria-label="Open files" variant="line">
-              {searchOpen && (
-                <div className="flex shrink-0 items-center">
-                  <TabsTrigger value="project-search">Search</TabsTrigger>
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    aria-label="Close project search"
-
-                    onClick={() => {
-                      setSearchOpen(false)
-                      setSearchActive(false)
-                    }}
-                  >
-                    <XIcon />
-                  </Button>
-                </div>
-              )}
               {tabs.map((path) => (
                 <div key={path} className="flex shrink-0 items-center">
                   <TabsTrigger value={`file:${path}`} title={path}>
@@ -900,7 +880,7 @@ export function WorkspaceEditor(props: Props) {
                   value={doc.path}
                   onSelect={() => {
                     setSdkHeader(null)
-                    setSearchActive(false)
+                    setSearchOpen(false)
                     props.onSelect(doc.path)
                     setFileQuery(null)
                   }}
@@ -986,11 +966,18 @@ export function WorkspaceEditor(props: Props) {
         </div>
       ))}
       <div className="relative flex min-h-0 flex-1 flex-col">
-        {searchActive && (
-          <section
-            aria-label="Search"
-            className="absolute inset-0 z-10 flex min-h-0 flex-col bg-background"
+        <Sheet open={searchOpen} onOpenChange={setSearchOpen}>
+          <SheetContent
+            side="right"
+            className="gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-xl"
+            initialFocus={searchInputRef}
           >
+            <SheetHeader>
+              <SheetTitle>Search project</SheetTitle>
+              <SheetDescription>
+                Search across project files, including unsaved changes.
+              </SheetDescription>
+            </SheetHeader>
             <div className="flex shrink-0 items-center gap-2 border-b p-3">
               <Input
                 ref={searchInputRef}
@@ -1036,7 +1023,7 @@ export function WorkspaceEditor(props: Props) {
                       key={`${result.line}:${result.character}`}
 
                       onClick={() => {
-                        setSearchActive(false)
+                        setSearchOpen(false)
                         setSdkHeader(null)
                         props.onSelect(result.path)
                         setTarget({
@@ -1068,17 +1055,9 @@ export function WorkspaceEditor(props: Props) {
                 </div>
               ))}
             </div>
-          </section>
-        )}
-        <div
-          className={
-            searchActive
-              ? 'pointer-events-none invisible relative flex min-h-0 flex-1 flex-col'
-              : 'relative flex min-h-0 flex-1 flex-col'
-          }
-          inert={searchActive}
-          aria-hidden={searchActive}
-        >
+          </SheetContent>
+        </Sheet>
+        <div className="relative flex min-h-0 flex-1 flex-col">
           {!workspaceLoaded && !error && (
             <div className="grid min-h-0 flex-1 place-items-center">
               <Spinner aria-label="Loading editor" />
@@ -1104,7 +1083,7 @@ export function WorkspaceEditor(props: Props) {
               }),
               ...(sdkHeader ? [sdkHeader] : []),
             ].map((doc) => {
-              const active = doc.path === shown?.path && !searchActive
+              const active = doc.path === shown?.path
               const readOnly = doc === sdkHeader
               return (
                 <div
@@ -1278,7 +1257,7 @@ export function WorkspaceEditor(props: Props) {
           </SheetContent>
         </Sheet>
       ))}
-      <div className="absolute bottom-3 right-3 z-20 flex items-center gap-2 rounded-lg border border-border bg-card p-2 text-[11px] text-muted-foreground shadow-sm backdrop-blur-sm">
+      <div className="absolute bottom-3 right-3 z-20 flex flex-col items-center gap-1 rounded-lg border border-border bg-card p-1 text-[11px] text-muted-foreground shadow-sm backdrop-blur-sm">
         {problems.some(
           ({ diagnostic }) =>
             diagnostic.severity === 1 || diagnostic.severity === 2,
@@ -1307,8 +1286,8 @@ export function WorkspaceEditor(props: Props) {
           size="icon-sm"
           title="Search project (Ctrl+Shift+F)"
           aria-label="Search project"
-          aria-pressed={searchActive}
-          className={searchActive ? 'bg-muted text-foreground' : undefined}
+          aria-pressed={searchOpen}
+          className={searchOpen ? 'bg-muted text-foreground' : undefined}
           onClick={openSearch}
         >
           <MagnifyingGlassIcon />

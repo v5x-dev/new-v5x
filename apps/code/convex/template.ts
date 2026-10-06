@@ -32,7 +32,7 @@ const prosTemplateFiles: Record<string, string> = {
     '#include "main.h"\n\nvoid initialize() {}\n\nvoid disabled() {}\n\nvoid competition_initialize() {}\n\nvoid autonomous() {}\n\nvoid opcontrol() {\n  while (true) {\n    pros::delay(20);\n  }\n}\n',
 }
 
-const templateFiles: Record<ProgramTemplate, Record<string, string>> = {
+export const templateFiles: Record<ProgramTemplate, Record<string, string>> = {
   vexcode: vexcodeTemplateFiles,
   pros: prosTemplateFiles,
   'ez-template': ezTemplateFiles,

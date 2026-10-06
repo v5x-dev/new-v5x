@@ -6,6 +6,8 @@ import viteReact from '@vitejs/plugin-react'
 import { nitro } from 'nitro/vite'
 
 export default defineConfig({
+  // Other Vite entry points must not overwrite the running app's dependencies.
+  cacheDir: 'node_modules/.vite/app',
   server: {
     port: 3000,
     headers: {

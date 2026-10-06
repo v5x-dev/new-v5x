@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { EditProvider, File } from '@pierre/diffs/react'
+import { EditProvider, File, Virtualizer } from '@pierre/diffs/react'
 import { getFiletypeFromFileName, preloadHighlighter } from '@pierre/diffs'
 import { Editor } from '@pierre/diffs/edit'
 import type { FileOptions, PostRenderPhase } from '@pierre/diffs'
@@ -10,7 +10,14 @@ import type {
   InlayHint,
 } from 'vscode-languageserver-protocol'
 import type { SemanticColor } from '~/lib/ide/semantic-tokens'
+import { Spinner } from '~/components/ui/spinner'
 import { birdsOfParadiseTheme } from '~/lib/birds-of-paradise-theme'
+
+const MemoFile = React.memo(File<undefined, undefined>)
+const emptySemanticTokens: Array<SemanticColor> = []
+const emptyInlayHints: Array<InlayHint> = []
+const emptyFoldingRanges: Array<FoldingRange> = []
+const acceptEdit = () => 'accept' as const
 
 const bracketPairs = new Map([
   ['(', ')'],
@@ -46,6 +53,7 @@ function getPositionAtTextOffset(text: string, offset: number) {
 
 export type PierreEditor = Editor<'file', undefined, undefined>
 export function PierreDocument({
+  active = true,
   path,
   contents,
   sessionKey,
@@ -58,11 +66,12 @@ export function PierreDocument({
   onNavigate,
   fontSize = 13,
   tabSize = 2,
-  semanticTokens = [],
-  inlayHints = [],
-  foldingRanges = [],
+  semanticTokens = emptySemanticTokens,
+  inlayHints = emptyInlayHints,
+  foldingRanges = emptyFoldingRanges,
   focusPosition,
 }: {
+  active?: boolean
   path: string
   contents: string
   sessionKey: string
@@ -84,6 +93,7 @@ export function PierreDocument({
   focusPosition?: Position
 }) {
   const [ready, setReady] = React.useState(false)
+  const [editorAttached, setEditorAttached] = React.useState(false)
   const [error, setError] = React.useState('')
   const [hoveredLine, setHoveredLine] = React.useState<number | null>(null)
   const editorRef = React.useRef<PierreEditor | null>(null)
@@ -95,6 +105,7 @@ export function PierreDocument({
   const nativeChanges = React.useRef<Array<string>>([])
   const applyingExternal = React.useRef(false)
   const callbacks = React.useRef({
+    active,
     onChange,
     onEditor,
     onPosition,
@@ -106,6 +117,7 @@ export function PierreDocument({
     focusPosition,
   })
   callbacks.current = {
+    active,
     onChange,
     onEditor,
     onPosition,
@@ -207,6 +219,8 @@ export function PierreDocument({
         return
       }
 
+      if (node.shadowRoot?.querySelector('[role="textbox"]'))
+        setEditorAttached(true)
       const target =
         node.shadowRoot?.querySelector<HTMLElement>('[data-content]')
       if (!target || (attached?.host === node && attached.target === target)) {
@@ -234,7 +248,8 @@ export function PierreDocument({
       const editor = new Editor(type, options, key)
       if (type === 'file') {
         editorRef.current = editor as PierreEditor
-        callbacks.current.onEditor(editor as PierreEditor)
+        if (callbacks.current.active)
+          callbacks.current.onEditor(editor as PierreEditor)
       }
       return editor
     },
@@ -267,6 +282,7 @@ export function PierreDocument({
     () => ({
       matchBrackets: true,
       onAttach(editor: PierreEditor) {
+        setEditorAttached(true)
         editorRef.current = editor
         markers(editor, callbacks.current.diagnostics)
         if (editor.getText() !== callbacks.current.contents) {
@@ -287,8 +303,8 @@ export function PierreDocument({
         editor.setSemanticTokens(callbacks.current.semanticTokens)
         editor.setReadOnly(callbacks.current.readOnly ?? false)
         editor.setFoldingRanges(callbacks.current.foldingRanges)
-        callbacks.current.onEditor(editor)
-        if (callbacks.current.focusPosition)
+        if (callbacks.current.active) callbacks.current.onEditor(editor)
+        if (callbacks.current.active && callbacks.current.focusPosition)
           editor.focus({
             lineNumber: callbacks.current.focusPosition.line + 1,
             character: callbacks.current.focusPosition.character,
@@ -323,20 +339,29 @@ export function PierreDocument({
     [],
   )
   React.useEffect(() => {
-    let active = true
+    let live = true
+    let frame = 0
+    let mountTimer: ReturnType<typeof setTimeout> | undefined
     void preloadHighlighter({
       langs: [getFiletypeFromFileName(path)],
       themes: [birdsOfParadiseTheme],
       preferredHighlighter: 'shiki-js',
     })
       .then(() => {
-        if (active) setReady(true)
+        if (!live) return
+        frame = requestAnimationFrame(() => {
+          mountTimer = setTimeout(() => {
+            if (live) setReady(true)
+          }, 0)
+        })
       })
       .catch((reason) => {
-        if (active) setError(String(reason))
+        if (live) setError(String(reason))
       })
     return () => {
-      active = false
+      live = false
+      cancelAnimationFrame(frame)
+      clearTimeout(mountTimer)
       const attached = bracketInputListenerRef.current
       attached?.target.removeEventListener(
         'beforeinput',
@@ -345,15 +370,22 @@ export function PierreDocument({
       )
       bracketInputListenerRef.current = null
       editorRef.current = null
-      callbacks.current.onEditor(null)
+      if (callbacks.current.active) callbacks.current.onEditor(null)
     }
   }, [path])
   React.useEffect(() => {
-    if (!ready || !focusPosition) return
+    if (!active || !editorAttached) return
+    const editor = editorRef.current
+    if (!editor) return
+    callbacks.current.onEditor(editor)
+    reportPosition()
+  }, [active, editorAttached])
+  React.useEffect(() => {
+    if (!active || !ready || !focusPosition) return
     const frame = window.setTimeout(() => {
       const editor = editorRef.current
       if (!editor) return
-      callbacks.current.onEditor(editor)
+      if (callbacks.current.active) callbacks.current.onEditor(editor)
       editor.focus({
         lineNumber: focusPosition.line + 1,
         character: focusPosition.character,
@@ -361,7 +393,7 @@ export function PierreDocument({
       callbacks.current.onPosition(focusPosition)
     })
     return () => window.clearTimeout(frame)
-  }, [ready, focusPosition])
+  }, [active, ready, focusPosition])
   React.useEffect(() => {
     if (editorRef.current) markers(editorRef.current, diagnostics)
   }, [diagnostics])
@@ -410,8 +442,72 @@ export function PierreDocument({
         disableFileHeader: true,
         disableLineNumbers: false,
         enableGutterUtility: true,
+        unsafeCSS: `
+          * { scrollbar-width: none; }
+          *::-webkit-scrollbar { display: none; }
+        `,
       }) satisfies FileOptions<undefined, undefined>,
     [onFilePostRender],
+  )
+  const lineAnnotations = React.useMemo(
+    () =>
+      Array.from(new Set(inlayHints.map((hint) => hint.position.line + 1))).map(
+        (lineNumber) => ({ lineNumber }),
+      ),
+    [inlayHints],
+  )
+  const renderGutterUtility = React.useCallback(() => {
+    const line = hoveredLine === null ? undefined : hoveredLine + 1
+    if (
+      line === undefined ||
+      !foldingRanges.some((range) => range.startLine === line - 1)
+    )
+      return null
+    return (
+      <button
+        aria-label={`Toggle fold at line ${line}`}
+        onClick={() => {
+          editorRef.current?.toggleFold(line - 1)
+        }}
+        className="px-1 text-xs"
+      >
+        ⌄
+      </button>
+    )
+  }, [hoveredLine, foldingRanges])
+  const renderAnnotation = React.useCallback<
+    NonNullable<
+      React.ComponentProps<
+        typeof File<undefined, undefined>
+      >['renderAnnotation']
+    >
+  >(
+    (annotation) => (
+      <div className="px-3 py-0.5 font-mono text-[11px] text-muted-foreground">
+        {inlayHints
+          .filter((hint) => hint.position.line + 1 === annotation.lineNumber)
+          .map((hint, index) => (
+            <span key={index} className="mr-3">
+              {typeof hint.label === 'string'
+                ? hint.label
+                : hint.label.map((part) => part.value).join('')}{' '}
+              <span className="opacity-50">
+                col {hint.position.character + 1}
+              </span>
+            </span>
+          ))}
+      </div>
+    ),
+    [inlayHints],
+  )
+  const fileStyle = React.useMemo(
+    () =>
+      ({
+        '--diffs-font-family': 'var(--font-mono)',
+        '--diffs-font-size': `${fontSize}px`,
+        '--diffs-tab-size': tabSize,
+      }) as React.CSSProperties,
+    [fontSize, tabSize],
   )
   if (error)
     return (
@@ -420,10 +516,14 @@ export function PierreDocument({
       </p>
     )
   if (!ready)
-    return <p className="p-4 text-muted-foreground">Preparing editor…</p>
+    return (
+      <div className="grid min-h-0 flex-1 place-items-center">
+        <Spinner className="size-5" aria-label="Loading editor" />
+      </div>
+    )
   return (
     <div
-      className="min-h-0 flex-1 overflow-auto"
+      className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
       onKeyDownCapture={onCommand}
       onPointerMove={(event) => {
         const row = event.nativeEvent
@@ -477,64 +577,31 @@ export function PierreDocument({
         })
       }}
     >
-      <EditProvider createEditor={createEditor}>
-        <File
-          file={initial.current}
-          edit
-          editStateKey={sessionKey}
-          editorOptions={options}
-          onEditComplete={() => 'accept'}
-          renderGutterUtility={() => {
-            const line = hoveredLine === null ? undefined : hoveredLine + 1
-            if (
-              line === undefined ||
-              !foldingRanges.some((range) => range.startLine === line - 1)
-            )
-              return null
-            return (
-              <button
-                aria-label={`Toggle fold at line ${line}`}
-                onClick={() => {
-                  editorRef.current?.toggleFold(line - 1)
-                }}
-                className="px-1 text-xs"
-              >
-                ⌄
-              </button>
-            )
-          }}
-          lineAnnotations={Array.from(
-            new Set(inlayHints.map((hint) => hint.position.line + 1)),
-          ).map((lineNumber) => ({ lineNumber }))}
-          renderAnnotation={(annotation) => (
-            <div className="px-3 py-0.5 font-mono text-[11px] text-muted-foreground">
-              {inlayHints
-                .filter(
-                  (hint) => hint.position.line + 1 === annotation.lineNumber,
-                )
-                .map((hint, index) => (
-                  <span key={index} className="mr-3">
-                    {typeof hint.label === 'string'
-                      ? hint.label
-                      : hint.label.map((part) => part.value).join('')}{' '}
-                    <span className="opacity-50">
-                      col {hint.position.character + 1}
-                    </span>
-                  </span>
-                ))}
-            </div>
-          )}
-          options={fileOptions}
-          className="block min-h-full"
-          style={
-            {
-              '--diffs-font-family': 'var(--font-mono)',
-              '--diffs-font-size': `${fontSize}px`,
-              '--diffs-tab-size': tabSize,
-            } as React.CSSProperties
-          }
-        />
-      </EditProvider>
+      {!editorAttached && (
+        <div className="absolute inset-0 z-10 grid place-items-center bg-background">
+          <Spinner className="size-5" aria-label="Loading editor" />
+        </div>
+      )}
+      <Virtualizer
+        className="min-h-0 flex-1 overflow-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        contentClassName="min-h-full"
+      >
+        <EditProvider createEditor={createEditor}>
+          <MemoFile
+            file={initial.current}
+            edit
+            editStateKey={sessionKey}
+            editorOptions={options}
+            onEditComplete={acceptEdit}
+            renderGutterUtility={renderGutterUtility}
+            lineAnnotations={lineAnnotations}
+            renderAnnotation={renderAnnotation}
+            options={fileOptions}
+            className="block min-h-full"
+            style={fileStyle}
+          />
+        </EditProvider>
+      </Virtualizer>
     </div>
   )
 }

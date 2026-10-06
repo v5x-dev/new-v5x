@@ -1,4 +1,12 @@
 import * as React from 'react'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { CheckmarkCircle01Icon } from '@hugeicons/core-free-icons'
+import {
+  MagnifyingGlassIcon,
+  TerminalIcon,
+  TextAlignLeftIcon,
+  XIcon,
+} from '@phosphor-icons/react'
 import { PierreDocument } from './pierre-document'
 import type { PierreEditor } from './pierre-document'
 import type {
@@ -19,6 +27,27 @@ import type { Documents } from '~/lib/ide/workspace'
 import type { SemanticColor } from '~/lib/ide/semantic-tokens'
 import type { SnippetStop } from '~/lib/ide/snippets'
 import type { FileOperations } from '~/lib/ide/file-operations'
+import { Button } from '~/components/ui/button'
+import { Card, CardContent } from '~/components/ui/card'
+import { Input } from '~/components/ui/input'
+import { Toggle } from '~/components/ui/toggle'
+import { Tabs as EditorTabs, TabsList, TabsTrigger } from '~/components/ui/tabs'
+import { Spinner } from '~/components/ui/spinner'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '~/components/ui/sheet'
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '~/components/ui/command'
 import { decodeSemanticTokens } from '~/lib/ide/semantic-tokens'
 import { ClangdClient } from '~/lib/ide/clangd-client'
 import { symbolFoldingRanges } from '~/lib/ide/folding'
@@ -29,6 +58,7 @@ import {
   isDirty,
   positionOffset,
   recoverDocuments,
+  searchWorkspace,
   updateDocument,
   uriPath,
   workspaceDocuments,
@@ -73,9 +103,13 @@ interface Props {
   saveHandlerRef: { current: (() => Promise<void>) | null }
 }
 const emptyDiagnostics: Array<Diagnostic> = []
+const emptyTokens: Array<SemanticColor> = []
+const emptyFolds: Array<FoldingRange> = []
 export function WorkspaceEditor(props: Props) {
   const propsRef = React.useRef(props)
   propsRef.current = props
+  const [tabs, setTabs] = React.useState<Array<string>>([])
+  const [workspaceLoaded, setWorkspaceLoaded] = React.useState(false)
   const [documents, setDocuments] = React.useState<Documents>({})
   const documentsRef = React.useRef(documents)
   const commitRef = React.useRef('')
@@ -91,11 +125,65 @@ export function WorkspaceEditor(props: Props) {
   const clientRef = React.useRef<ClangdClient | null>(null)
   const editorRef = React.useRef<PierreEditor | null>(null)
   const [ready, setReady] = React.useState(false)
+  const [panel, setPanel] = React.useState<'problems' | 'output' | null>(null)
+  const [searchQuery, setSearchQuery] = React.useState('')
+  const [searchOpen, setSearchOpen] = React.useState(false)
+  const [searchActive, setSearchActive] = React.useState(false)
+  const [matchCase, setMatchCase] = React.useState(false)
+  const searchInputRef = React.useRef<HTMLInputElement>(null)
+  const searchResults = React.useMemo(
+    () =>
+      searchActive ? searchWorkspace(documents, searchQuery, matchCase) : [],
+    [documents, searchQuery, matchCase, searchActive],
+  )
+  const searchGroups = React.useMemo(() => {
+    const groups = new Map<string, typeof searchResults>()
+    for (const result of searchResults) {
+      const group = groups.get(result.path)
+      if (group) group.push(result)
+      else groups.set(result.path, [result])
+    }
+    return groups
+  }, [searchResults])
+  const openSearch = () => {
+    setSearchOpen(true)
+    setSearchActive(true)
+    requestAnimationFrame(() => {
+      searchInputRef.current?.focus()
+      searchInputRef.current?.select()
+    })
+  }
+  const [fileQuery, setFileQuery] = React.useState<string | null>(null)
+  React.useEffect(() => {
+    const openFile = (event: KeyboardEvent) => {
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        !event.shiftKey &&
+        event.key.toLowerCase() === 'p'
+      ) {
+        event.preventDefault()
+        setCompletions([])
+        setFileQuery('')
+      }
+    }
+    window.addEventListener('keydown', openFile)
+    return () => window.removeEventListener('keydown', openFile)
+  }, [])
+
   const [editorRevision, setEditorRevision] = React.useState(0)
   const [error, setError] = React.useState('')
   const [diagnostics, setDiagnostics] = React.useState<
     Record<string, Array<Diagnostic>>
   >({})
+  const problems = Object.entries(diagnostics)
+    .filter(([path]) => documents[path] && !documents[path].deleted)
+    .flatMap(([path, entries]) =>
+      entries.map((diagnostic) => ({ path, diagnostic })),
+    )
+    .sort((a, b) => (a.diagnostic.severity ?? 3) - (b.diagnostic.severity ?? 3))
+  React.useEffect(() => {
+    if (props.buildOutput) setPanel('output')
+  }, [props.buildOutput])
   const [position, setPosition] = React.useState<Position>({
     line: 0,
     character: 0,
@@ -146,6 +234,8 @@ export function WorkspaceEditor(props: Props) {
   React.useEffect(() => {
     let active = true
     setReady(false)
+    setWorkspaceLoaded(false)
+    setTabs([])
     setAnalysis(null)
     const isActive = () => active
     const client = new ClangdClient({
@@ -194,6 +284,21 @@ export function WorkspaceEditor(props: Props) {
       setConflicts(recovered.conflicts)
       commitRef.current = loaded.commitSha
       publish(next)
+      const restoredTabs = (cached?.tabs ?? []).filter(
+        (path) => next[path] && !next[path].deleted,
+      )
+      const initialPath =
+        cached?.selectedFile &&
+        next[cached.selectedFile] &&
+        !next[cached.selectedFile]?.deleted
+          ? cached.selectedFile
+          : propsRef.current.selectedFile
+      setTabs([
+        ...new Set([...restoredTabs, ...(initialPath ? [initialPath] : [])]),
+      ])
+      if (initialPath !== propsRef.current.selectedFile)
+        propsRef.current.onSelect(initialPath)
+      setWorkspaceLoaded(true)
       const files = Object.fromEntries(
         workspaceDocuments(next)
           .filter((doc) => !doc.deleted)
@@ -306,28 +411,51 @@ export function WorkspaceEditor(props: Props) {
     }
   }, [ready, selected?.path, selected?.version, sdkHeader])
   React.useEffect(() => {
-    props.onDirtyChange(workspaceDocuments(documents).some(isDirty))
-    if (commitRef.current)
-      props.onPathsChange(
-        workspaceDocuments(documents)
-          .filter((doc) => !doc.deleted)
-          .map((doc) => doc.path)
-          .sort(),
+    if (!workspaceLoaded) return
+    setTabs((current) => {
+      const live = current.filter(
+        (path) => documents[path] && !documents[path].deleted,
       )
+      const path = props.selectedFile
+      if (
+        path &&
+        documents[path] &&
+        !documents[path].deleted &&
+        !live.includes(path)
+      )
+        live.push(path)
+      return live.length === current.length &&
+        live.every((entry, index) => entry === current[index])
+        ? current
+        : live
+    })
+  }, [documents, props.selectedFile, workspaceLoaded])
+  const pathsKey = JSON.stringify(
+    workspaceDocuments(documents)
+      .filter((doc) => !doc.deleted)
+      .map((doc) => doc.path)
+      .sort(),
+  )
+  React.useEffect(() => {
+    if (workspaceLoaded) propsRef.current.onPathsChange(JSON.parse(pathsKey))
+  }, [pathsKey, workspaceLoaded])
+  React.useEffect(() => {
+    props.onDirtyChange(workspaceDocuments(documents).some(isDirty))
     if (!commitRef.current) return
     const timer = setTimeout(() => {
       void writeWorkspace(props.workspaceId, {
         documents,
         conflicts,
         commitSha: commitRef.current,
-        tabs: [],
+        tabs,
         selectedFile: props.selectedFile,
         template: props.template,
       }).catch(() => {})
     }, 250)
     return () => clearTimeout(timer)
-  }, [documents, props.selectedFile, conflicts])
+  }, [documents, props.selectedFile, conflicts, tabs])
   React.useEffect(() => {
+    setSearchActive(false)
     setSdkHeader(null)
     setCompletions([])
     snippet.current = null
@@ -563,8 +691,54 @@ export function WorkspaceEditor(props: Props) {
       setTarget({ path: nextPath, position: at })
     }
   }
+  const formatDocument = async () => {
+    const client = clientRef.current
+    const doc = documentsRef.current[propsRef.current.selectedFile]
+    const editor = editorRef.current
+    if (!client?.ready || !doc || !editor || sdkHeader) return
+    if (!client.capabilities.documentFormattingProvider)
+      throw new Error('Formatting is unavailable for this language.')
+    const edits = await client.request<Array<TextEdit> | null>(
+      'textDocument/formatting',
+      {
+        textDocument: { uri: fileUri(doc.path) },
+        options: { tabSize: 2, insertSpaces: true },
+      },
+    )
+    if (
+      propsRef.current.selectedFile !== doc.path ||
+      documentsRef.current[doc.path]?.version !== doc.version
+    )
+      return
+    if (edits?.length) editor.applyEdits(edits)
+    editor.focus()
+  }
   const keyboard = (event: React.KeyboardEvent) => {
     const mod = event.ctrlKey || event.metaKey
+    if (mod && event.shiftKey && event.key.toLowerCase() === 'f') {
+      event.preventDefault()
+      event.stopPropagation()
+      openSearch()
+      return
+    }
+    if (mod && event.key.toLowerCase() === 'j') {
+      event.preventDefault()
+      event.stopPropagation()
+      setPanel(panel ? null : 'problems')
+      return
+    }
+    if (event.shiftKey && event.altKey && event.key.toLowerCase() === 'f') {
+      event.preventDefault()
+      event.stopPropagation()
+      void run(formatDocument)
+      return
+    }
+    if (event.key === 'F12') {
+      event.preventDefault()
+      event.stopPropagation()
+      void run(() => navigate(position))
+      return
+    }
     if (event.key === 'Escape') {
       setCompletions([])
       setSdkHeader(null)
@@ -601,7 +775,138 @@ export function WorkspaceEditor(props: Props) {
   }
   const shown = sdkHeader ?? selected
   return (
-    <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
+    <div
+      className="relative flex h-full min-h-0 flex-col overflow-hidden"
+      onKeyDown={(event) => {
+        if (
+          !event.defaultPrevented &&
+          (event.ctrlKey || event.metaKey) &&
+          ((event.shiftKey && event.key.toLowerCase() === 'f') ||
+            event.key.toLowerCase() === 'j')
+        )
+          keyboard(event)
+      }}
+    >
+      <div className="flex h-9 shrink-0 items-stretch font-mono text-[11px]">
+        <div className="min-w-0 flex-1 overflow-x-auto">
+          <EditorTabs
+            value={
+              searchActive ? 'project-search' : `file:${props.selectedFile}`
+            }
+            onValueChange={(value) => {
+              if (value === 'project-search') openSearch()
+              else if (typeof value === 'string' && value.startsWith('file:')) {
+                setSdkHeader(null)
+                setSearchActive(false)
+                props.onSelect(value.slice(5))
+              }
+            }}
+          >
+            <TabsList aria-label="Open files" variant="line">
+              {searchOpen && (
+                <div className="flex shrink-0 items-center">
+                  <TabsTrigger value="project-search">Search</TabsTrigger>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label="Close project search"
+
+                    onClick={() => {
+                      setSearchOpen(false)
+                      setSearchActive(false)
+                    }}
+                  >
+                    <XIcon />
+                  </Button>
+                </div>
+              )}
+              {tabs.map((path) => (
+                <div key={path} className="flex shrink-0 items-center">
+                  <TabsTrigger value={`file:${path}`} title={path}>
+                    {path.split('/').at(-1)}
+                    {tabs.some(
+                      (other) =>
+                        other !== path &&
+                        other.split('/').at(-1) === path.split('/').at(-1),
+                    ) && (
+                      <span className="ml-2 text-muted-foreground">
+                        {path.slice(0, path.lastIndexOf('/'))}
+                      </span>
+                    )}
+                    {documents[path] && isDirty(documents[path]) && (
+                      <span aria-label="Unsaved changes" className="ml-2">
+                        •
+                      </span>
+                    )}
+                  </TabsTrigger>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={`Close ${path}`}
+                    title="Close file"
+
+                    onClick={() => {
+                      const remaining = tabs.filter((entry) => entry !== path)
+                      setTabs(remaining)
+                      if (props.selectedFile === path) {
+                        setSdkHeader(null)
+                        props.onSelect(
+                          remaining[
+                            Math.min(tabs.indexOf(path), remaining.length - 1)
+                          ] ?? '',
+                        )
+                      }
+                    }}
+                  >
+                    <XIcon />
+                  </Button>
+                </div>
+              ))}
+            </TabsList>
+          </EditorTabs>
+        </div>
+        {sdkHeader ? (
+          <Button variant="ghost" size="sm" onClick={() => setSdkHeader(null)}>
+            Back to source
+          </Button>
+        ) : null}
+      </div>
+      <CommandDialog
+        title="Open file"
+        description="Find and open a project file."
+        open={fileQuery !== null}
+        onOpenChange={(open) => setFileQuery(open ? '' : null)}
+        className="sm:max-w-xl"
+      >
+        <Command>
+          <CommandInput
+            aria-label="Find file"
+            placeholder="Find a file…"
+            value={fileQuery ?? ''}
+            onValueChange={setFileQuery}
+          />
+          <CommandList>
+            <CommandEmpty>No matching files.</CommandEmpty>
+            {workspaceDocuments(documents)
+              .filter((doc) => !doc.deleted)
+              .map((doc) => (
+                <CommandItem
+                  key={doc.path}
+                  value={doc.path}
+                  onSelect={() => {
+                    setSdkHeader(null)
+                    setSearchActive(false)
+                    props.onSelect(doc.path)
+                    setFileQuery(null)
+                  }}
+                >
+                  <span className="truncate font-mono text-xs">{doc.path}</span>
+                  {isDirty(doc) && <span aria-label="Unsaved changes">•</span>}
+                </CommandItem>
+              ))}
+          </CommandList>
+        </Command>
+      </CommandDialog>
       {error && (
         <p role="alert" className="px-3 py-2 text-xs text-destructive">
           {error}
@@ -617,13 +922,20 @@ export function WorkspaceEditor(props: Props) {
             {path} changed remotely. Your draft is preserved. Review it before
             committing.
           </span>
-          <button className="underline" onClick={() => props.onSelect(path)}>
+          <Button
+            variant="ghost"
+            size="sm"
+
+            onClick={() => props.onSelect(path)}
+          >
             Review draft
-          </button>
+          </Button>
           {['Keep draft', 'Use incoming'].map((label) => (
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               key={label}
-              className="underline"
+
               onClick={() => {
                 if (label === 'Use incoming') {
                   const next = { ...documentsRef.current }
@@ -664,58 +976,377 @@ export function WorkspaceEditor(props: Props) {
               }}
             >
               {label}
-            </button>
+            </Button>
           ))}
         </div>
       ))}
-      {shown && !('deleted' in shown && shown.deleted) && (
-        <PierreDocument
-          key={`${shown.path}:${editorRevision}`}
-          path={shown.path}
-          contents={shown.contents}
-          sessionKey={`${props.workspaceId}:${shown.path}:${editorRevision}`}
-          diagnostics={
-            sdkHeader
-              ? emptyDiagnostics
-              : (diagnostics[shown.path] ?? emptyDiagnostics)
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        {searchActive && (
+          <section
+            aria-label="Search"
+            className="absolute inset-0 z-10 flex min-h-0 flex-col bg-background"
+          >
+            <div className="flex shrink-0 items-center gap-2 border-b p-3">
+              <Input
+                ref={searchInputRef}
+                aria-label="Search workspace"
+                placeholder="Search project…"
+
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+              />
+              <Toggle
+                size="icon"
+                aria-label="Match case"
+                pressed={matchCase}
+                title="Match case"
+                onPressedChange={setMatchCase}
+              >
+                Aa
+              </Toggle>
+            </div>
+            <div className="min-h-0 flex-1 overflow-auto">
+              <p
+                role="status"
+                className="px-4 py-3 text-xs text-muted-foreground"
+              >
+                {!searchQuery
+                  ? 'Search across project files, including unsaved changes.'
+                  : searchResults.length
+                    ? `${searchResults.length === 2000 ? 'First ' : ''}${searchResults.length} matches in ${searchGroups.size} files`
+                    : 'No matches.'}
+              </p>
+              {Array.from(searchGroups, ([path, results]) => (
+                <div key={path} className="mb-4">
+                  <div className="sticky top-0 flex items-center gap-3 border-y bg-muted px-4 py-2 font-mono text-xs">
+                    <span className="truncate">{path}</span>
+                    <span className="ml-auto text-muted-foreground">
+                      {results.length}
+                    </span>
+                  </div>
+                  {results.map((result) => (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      key={`${result.line}:${result.character}`}
+
+                      onClick={() => {
+                        setSearchActive(false)
+                        setSdkHeader(null)
+                        props.onSelect(result.path)
+                        setTarget({
+                          path: result.path,
+                          position: {
+                            line: result.line,
+                            character: result.character,
+                          },
+                        })
+                      }}
+                    >
+                      <span className="w-10 shrink-0 text-right text-muted-foreground">
+                        {result.line + 1}
+                      </span>
+                      <span className="whitespace-pre-wrap break-all">
+                        {result.text.slice(0, result.character)}
+                        <mark className="rounded bg-primary/20 text-foreground">
+                          {result.text.slice(
+                            result.character,
+                            result.character + searchQuery.length,
+                          )}
+                        </mark>
+                        {result.text.slice(
+                          result.character + searchQuery.length,
+                        )}
+                      </span>
+                    </Button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+        <div
+          className={
+            searchActive
+              ? 'pointer-events-none invisible relative flex min-h-0 flex-1 flex-col'
+              : 'relative flex min-h-0 flex-1 flex-col'
           }
-          semanticTokens={
-            analysis?.path === shown.path &&
-            analysis.version === selected?.version &&
-            !sdkHeader
-              ? analysis.tokens
-              : []
-          }
-          foldingRanges={
-            analysis?.path === shown.path &&
-            analysis.version === selected?.version &&
-            !sdkHeader
-              ? analysis.folds
-              : []
-          }
-          readOnly={!!sdkHeader}
-          focusPosition={
-            target?.path === shown.path ? target.position : undefined
-          }
-          onEditor={(editor) => {
-            editorRef.current = editor
-          }}
-          onPosition={setPosition}
-          onCommand={keyboard}
-          onNavigate={(at) => void run(() => navigate(at))}
-          onChange={(contents, changes) => {
-            if (sdkHeader) return
-            if (snippet.current && changes)
-              snippet.current.stops = remapSnippetStops(
-                snippet.current.stops,
-                changes,
+          inert={searchActive}
+          aria-hidden={searchActive}
+        >
+          {!workspaceLoaded && !error && (
+            <div className="grid min-h-0 flex-1 place-items-center">
+              <Spinner aria-label="Loading editor" />
+            </div>
+          )}
+          {workspaceLoaded && !shown && (
+            <div className="grid min-h-0 flex-1 place-items-center">
+              <Button
+                variant="ghost"
+                size="sm"
+
+                onClick={() => setFileQuery('')}
+              >
+                Open a file to start editing
+              </Button>
+            </div>
+          )}
+          {workspaceLoaded &&
+            [
+              ...tabs.flatMap((path) => {
+                const doc = documents[path]
+                return doc && !doc.deleted ? [doc] : []
+              }),
+              ...(sdkHeader ? [sdkHeader] : []),
+            ].map((doc) => {
+              const active = doc.path === shown?.path && !searchActive
+              const readOnly = doc === sdkHeader
+              return (
+                <div
+                  key={`${doc.path}:${editorRevision}`}
+                  // Keep each virtualizer's viewport measurable between tab switches.
+                  // display:none makes Pierre discard its rendered lines.
+                  className={
+                    active
+                      ? 'relative flex min-h-0 flex-1 flex-col'
+                      : 'pointer-events-none invisible absolute inset-0 flex min-h-0 flex-col'
+                  }
+                  inert={!active}
+                  aria-hidden={!active}
+                >
+                  <PierreDocument
+                    active={active}
+                    path={doc.path}
+                    contents={doc.contents}
+                    sessionKey={`${props.workspaceId}:${doc.path}:${editorRevision}`}
+                    diagnostics={
+                      readOnly
+                        ? emptyDiagnostics
+                        : (diagnostics[doc.path] ?? emptyDiagnostics)
+                    }
+                    semanticTokens={
+                      analysis?.path === doc.path &&
+                      'version' in doc &&
+                      analysis.version === doc.version &&
+                      !readOnly
+                        ? analysis.tokens
+                        : emptyTokens
+                    }
+                    foldingRanges={
+                      analysis?.path === doc.path &&
+                      'version' in doc &&
+                      analysis.version === doc.version &&
+                      !readOnly
+                        ? analysis.folds
+                        : emptyFolds
+                    }
+                    readOnly={!!readOnly}
+                    focusPosition={
+                      active && target?.path === doc.path
+                        ? target.position
+                        : undefined
+                    }
+                    onEditor={(editor) => {
+                      editorRef.current = editor
+                    }}
+                    onPosition={(at) => {
+                      if (active)
+                        setPosition((previous) =>
+                          previous.line === at.line &&
+                          previous.character === at.character
+                            ? previous
+                            : at,
+                        )
+                    }}
+                    onCommand={keyboard}
+                    onNavigate={(at) => void run(() => navigate(at))}
+                    onChange={(contents, changes) => {
+                      if (readOnly) return
+                      if (active && snippet.current && changes)
+                        snippet.current.stops = remapSnippetStops(
+                          snippet.current.stops,
+                          changes,
+                        )
+                      if (active)
+                        setCompletions((current) =>
+                          current.length ? [] : current,
+                        )
+                      publish(
+                        updateDocument(
+                          documentsRef.current,
+                          doc.path,
+                          contents,
+                        ),
+                      )
+                      setDiagnostics((old) =>
+                        Object.hasOwn(old, doc.path) && old[doc.path].length
+                          ? { ...old, [doc.path]: emptyDiagnostics }
+                          : old,
+                      )
+                    }}
+                  />
+                </div>
               )
-            setCompletions([])
-            publish(updateDocument(documentsRef.current, shown.path, contents))
-            setDiagnostics((old) => ({ ...old, [shown.path]: [] }))
+            })}
+        </div>
+      </div>
+      {(['problems', 'output'] as const).map((sheetPanel) => (
+        <Sheet
+          key={sheetPanel}
+          open={panel === sheetPanel}
+          onOpenChange={(open) => {
+            if (!open)
+              setPanel((current) => (current === sheetPanel ? null : current))
           }}
-        />
-      )}
+        >
+          <SheetContent
+            side="bottom"
+            className="max-h-[80vh] gap-0 data-[side=bottom]:h-[50vh]"
+          >
+            <SheetHeader>
+              <SheetTitle>
+                {sheetPanel === 'problems'
+                  ? `Problems${problems.length ? ` (${problems.length})` : ''}`
+                  : 'Output'}
+              </SheetTitle>
+              <SheetDescription>
+                {sheetPanel === 'problems'
+                  ? 'Diagnostics for project files.'
+                  : 'Compiler output from the latest build.'}
+              </SheetDescription>
+            </SheetHeader>
+            <div className="min-h-0 flex-1 overflow-auto px-4 pb-4">
+              {sheetPanel === 'output' ? (
+                <Card size="sm" className="h-full bg-background ring-inset">
+                  <CardContent className="min-h-0 flex-1 overflow-auto">
+                    <pre className="whitespace-pre-wrap break-words font-mono text-xs">
+                      {props.buildOutput ||
+                        'Build the project to see compiler output.'}
+                    </pre>
+                  </CardContent>
+                </Card>
+              ) : problems.length ? (
+                problems.map(({ path, diagnostic }, index) => (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    key={`${path}:${index}`}
+                    className="mb-1 h-auto w-full items-start justify-start gap-3 whitespace-normal px-3 py-3 text-left"
+
+                    onClick={() => {
+                      setPanel(null)
+                      setSdkHeader(null)
+                      props.onSelect(path)
+                      setTarget({ path, position: diagnostic.range.start })
+                    }}
+                  >
+                    <span
+                      className={
+                        diagnostic.severity === 1
+                          ? 'text-destructive'
+                          : 'text-muted-foreground'
+                      }
+                    >
+                      {diagnostic.severity === 1
+                        ? 'Error'
+                        : diagnostic.severity === 2
+                          ? 'Warning'
+                          : 'Info'}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      {diagnostic.message}
+                      <span className="mt-1 block text-muted-foreground">
+                        {path}:{diagnostic.range.start.line + 1}:
+                        {diagnostic.range.start.character + 1}
+                      </span>
+                    </span>
+                  </Button>
+                ))
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {ready
+                    ? 'No problems reported.'
+                    : 'Waiting for C++ analysis…'}
+                </p>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+      ))}
+      <div className="absolute bottom-3 right-3 z-20 flex items-center gap-2 rounded-lg border border-border bg-background/90 p-2 text-[11px] text-muted-foreground shadow-sm backdrop-blur-sm">
+        {problems.some(
+          ({ diagnostic }) =>
+            diagnostic.severity === 1 || diagnostic.severity === 2,
+        ) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            title="Toggle panel (Ctrl+J)"
+            onClick={() => setPanel(panel ? null : 'problems')}
+          >
+            {
+              problems.filter(({ diagnostic }) => diagnostic.severity === 1)
+                .length
+            }{' '}
+            errors ·{' '}
+            {
+              problems.filter(({ diagnostic }) => diagnostic.severity === 2)
+                .length
+            }{' '}
+            warnings
+          </Button>
+        )}
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Output"
+          title="Output"
+          onClick={() => setPanel(panel === 'output' ? null : 'output')}
+        >
+          <TerminalIcon />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          title="Search project (Ctrl+Shift+F)"
+          aria-label="Search project"
+          aria-pressed={searchActive}
+          className={searchActive ? 'bg-muted text-foreground' : undefined}
+          onClick={openSearch}
+        >
+          <MagnifyingGlassIcon />
+        </Button>
+        {!sdkHeader && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            disabled={!ready || !selected}
+            title="Format document (Shift+Alt+F)"
+            aria-label="Format document"
+            onClick={() => void run(formatDocument)}
+          >
+            <TextAlignLeftIcon />
+          </Button>
+        )}
+        <span role="status" title={ready ? 'C++ ready' : undefined}>
+          {ready ? (
+            <>
+              <HugeiconsIcon
+                icon={CheckmarkCircle01Icon}
+                size={16}
+                className="text-emerald-500"
+                aria-hidden="true"
+              />
+              <span className="sr-only">C++ ready</span>
+            </>
+          ) : (
+            'Starting C++'
+          )}
+        </span>
+        <span className="shrink-0 font-mono">
+          {position.line + 1}:{position.character + 1}
+        </span>
+      </div>
       {completions.length > 0 && (
         <div
           role="listbox"
@@ -724,17 +1355,19 @@ export function WorkspaceEditor(props: Props) {
           style={anchor}
         >
           {completions.map((item, index) => (
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               key={`${item.label}:${index}`}
               role="option"
               aria-selected={index === completionIndex}
-              className={`block w-full rounded px-3 py-1.5 text-left font-mono text-xs ${index === completionIndex ? 'bg-accent' : 'hover:bg-accent'}`}
+
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => void run(() => accept(item))}
             >
               {item.label}
               <span className="ml-2 text-muted-foreground">{item.detail}</span>
-            </button>
+            </Button>
           ))}
         </div>
       )}

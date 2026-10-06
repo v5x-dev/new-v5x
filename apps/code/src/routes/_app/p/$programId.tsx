@@ -481,7 +481,11 @@ function RouteComponent() {
     ? 'src/main.cpp'
     : (paths?.at(0) ?? buildFiles.at(0))
   const activeFile =
-    selectedFile && treePaths?.includes(selectedFile) ? selectedFile : firstFile
+    selectedFile === ''
+      ? ''
+      : selectedFile && treePaths?.includes(selectedFile)
+        ? selectedFile
+        : firstFile
   const buildButtonLabel = isBuilding
     ? `Building program, ${describeBuildElapsed(buildElapsedSeconds)} elapsed`
     : hasUnsavedChanges || isSaving

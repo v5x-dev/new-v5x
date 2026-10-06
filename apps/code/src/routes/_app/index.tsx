@@ -3,6 +3,8 @@ import { useAction } from 'convex/react'
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { QuestionMark } from '@phosphor-icons/react'
+import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
+import { useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import {
   Table,
@@ -26,6 +28,8 @@ import {
   SidebarProvider,
 } from '~/components/ui/sidebar'
 import { FeedbackDialog } from '~/components/feedback-dialog'
+import { Button } from '~/components/ui/button'
+import { authClient } from '~/lib/auth-client'
 
 const templateInfo = {
   vexcode: { label: 'VEXcode', icon: '/template-icons/vexcode.png' },
@@ -39,6 +43,32 @@ export const Route = createFileRoute('/_app/')({
 })
 
 function RouteComponent() {
+  const { data: session } = authClient.useSession()
+  const [isSigningOut, setIsSigningOut] = useState(false)
+  const [signOutError, setSignOutError] = useState<string | null>(null)
+  const user = session?.user
+  const userName = user?.name || user?.email || 'Guest'
+  const initials = userName
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase()
+
+  async function signOut() {
+    setIsSigningOut(true)
+    setSignOutError(null)
+    try {
+      const { error } = await authClient.signOut()
+      if (error) throw new Error(error.message || 'Unable to sign out')
+      window.location.assign('/login')
+    } catch {
+      setSignOutError('Unable to sign out. Try again.')
+      setIsSigningOut(false)
+    }
+  }
+
   const createProgram = useAction(api.program.createProgram)
   const { data: programs } = useQuery(convexQuery(api.program.list))
 
@@ -108,6 +138,26 @@ function RouteComponent() {
         </SidebarContent>
         <SidebarFooter>
           <FeedbackDialog />
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton render={<div />}>
+                <Avatar size="sm">
+                  <AvatarImage src={user?.image || undefined} alt="" />
+                  <AvatarFallback>{initials}</AvatarFallback>
+                </Avatar>
+                <span title={userName}>{userName}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={isSigningOut}
+                  onClick={signOut}
+                >
+                  {isSigningOut ? 'Signing out…' : 'Sign out'}
+                </Button>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+          {signOutError && <p role="alert">{signOutError}</p>}
         </SidebarFooter>
       </Sidebar>
 
@@ -115,19 +165,14 @@ function RouteComponent() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-6 px-0" aria-label="Template" />
               <TableHead>Name</TableHead>
-              <TableHead>Template</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {programs?.map((program) => (
               <TableRow key={program._id}>
-                <TableCell>
-                  <Link to="/p/$programId" params={{ programId: program._id }}>
-                    {program.name}
-                  </Link>
-                </TableCell>
-                <TableCell>
+                <TableCell className="w-6 px-0">
                   {program.template ? (
                     <img
                       src={templateInfo[program.template].icon}
@@ -142,6 +187,11 @@ function RouteComponent() {
                       aria-label="Unknown template"
                     />
                   )}
+                </TableCell>
+                <TableCell>
+                  <Link to="/p/$programId" params={{ programId: program._id }}>
+                    {program.name}
+                  </Link>
                 </TableCell>
               </TableRow>
             ))}

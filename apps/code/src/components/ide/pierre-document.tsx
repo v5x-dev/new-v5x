@@ -518,7 +518,7 @@ export function PierreDocument({
   if (!ready)
     return (
       <div className="grid min-h-0 flex-1 place-items-center">
-        <Spinner className="size-5" aria-label="Loading editor" />
+        <Spinner aria-label="Loading editor" />
       </div>
     )
   return (
@@ -579,7 +579,7 @@ export function PierreDocument({
     >
       {!editorAttached && (
         <div className="absolute inset-0 z-10 grid place-items-center bg-background">
-          <Spinner className="size-5" aria-label="Loading editor" />
+          <Spinner aria-label="Loading editor" />
         </div>
       )}
       <Virtualizer

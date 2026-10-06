@@ -1338,7 +1338,7 @@ export function WorkspaceEditor(props: Props) {
               aria-hidden="true"
             />
           ) : (
-            <Spinner className="size-4" aria-hidden="true" />
+            <Spinner aria-hidden="true" />
           )}
         </span>
         <span className="shrink-0 font-mono">

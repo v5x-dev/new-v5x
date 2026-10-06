@@ -294,3 +294,26 @@ index 2585a93cda92ee9cd970e141061914ce25d62890..00000000000000000000000000000000
 diff --git a/dist/node_modules/.pnpm/@types_unist@3.0.3/node_modules/@types/unist/index.d.ts.map b/home/pingu/.cache/.bun/install/cache/@pierre/diffs@1.4.3@@@1/dist/node_modules/.pnpm/@types_unist@3.0.3/node_modules/@types/unist/index.d.ts.map
 deleted file mode 100644
 index ed62f9a073e6c6911b7b8d35adfc8eaaebb345e9..0000000000000000000000000000000000000000
+diff --git a/dist/editor/tokenizer.js b/dist/editor/tokenizer.js
+--- a/dist/editor/tokenizer.js
++++ b/dist/editor/tokenizer.js
+@@ -30,0 +31 @@
++	#hasInterruptedHighlight = false;
+@@ -193,0 +195,13 @@
++		// A new edit can cancel unfinished highlighting after a large replacement.
++		// Cached grammar states alone do not mean those rows have colored markup.
++		if (this.#hasInterruptedHighlight) {
++			this.#hasInterruptedHighlight = false;
++			this.#stateStack = [INITIAL];
++			this.#bracketIgnoredRanges = [];
++			change = {
++				...change,
++				startLine: 0,
++				endLine: lineCount - 1,
++				changedLineRanges: [[0, lineCount - 1]]
++			};
++		}
+@@ -308,0 +323 @@
++		if (this.#backgroundPrebuildEndLine < 0) this.#hasInterruptedHighlight = true;
+@@ -542,0 +558 @@
++			this.#hasInterruptedHighlight = false;

@@ -546,7 +546,10 @@ export class V5SerialConnection extends VexSerialConnection {
     // VEXos added compressed file support in 1.0.5. Raw binaries are still
     // valid on newer versions and are the safe fallback when the version query
     // is unavailable.
-    const systemVersion = await this.getSystemVersion()
+    // System version queries identify the USB device, which may be a controller.
+    // Compression support belongs to the Brain receiving the program.
+    const systemVersion =
+      (await this.getSystemStatus(2000))?.systemVersion ?? null
 
     const canCompress =
       systemVersion !== null &&
@@ -600,7 +603,9 @@ export class V5SerialConnection extends VexSerialConnection {
 
     if (coldRequest != null && coldBuf != null) {
       const metadata = await this.writeDataAsync(
-        new GetFileMetadataH2DPacket(FileVendor.DEV2, coldRequest.filename, 0)
+        new GetFileMetadataH2DPacket(FileVendor.DEV2, coldRequest.filename, 0),
+        // Allow the controller radio hop to complete before declaring a cache miss.
+        2000
       )
 
       const coldCrc = PacketEncoder.getInstance().crcgen.crc32(coldBuf, 0)

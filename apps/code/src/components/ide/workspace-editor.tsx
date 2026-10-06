@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { BrainTerminal } from './brain-terminal'
 import { WorkspaceEditorTabs } from './workspace-editor-tabs'
 import { WorkspaceFilePicker } from './workspace-file-picker'
 import { WorkspaceSearch } from './workspace-search'
@@ -6,6 +7,7 @@ import { WorkspacePanels } from './workspace-panels'
 import { WorkspaceEditorToolbar } from './workspace-editor-toolbar'
 import { WorkspaceCompletions } from './workspace-completions'
 import { PierreDocument } from './pierre-document'
+import type { BrainTerminalProps } from './brain-terminal'
 import type { PierreEditor } from './pierre-document'
 import type {
   CompletionItem,
@@ -65,6 +67,7 @@ export interface CommitChange {
 }
 
 interface Props {
+  brainTerminal?: BrainTerminalProps
   workspaceId: string
   template: ProjectTemplate
   selectedFile: string
@@ -112,7 +115,9 @@ export function WorkspaceEditor(props: Props) {
   const clientRef = React.useRef<ClangdClient | null>(null)
   const editorRef = React.useRef<PierreEditor | null>(null)
   const [ready, setReady] = React.useState(false)
-  const [panel, setPanel] = React.useState<'problems' | 'output' | null>(null)
+  const [panel, setPanel] = React.useState<
+    'problems' | 'output' | 'terminal' | null
+  >(null)
   const [searchQuery, setSearchQuery] = React.useState('')
   const [searchOpen, setSearchOpen] = React.useState(false)
   const [matchCase, setMatchCase] = React.useState(false)
@@ -206,7 +211,12 @@ export function WorkspaceEditor(props: Props) {
     position: Position
   } | null>(null)
 
-  const [anchor, setAnchor] = React.useState({ left: 12, top: 12 })
+  const getCompletionAnchor = React.useCallback(() => {
+    const current = context.current
+    return current
+      ? editorRef.current?.getPositionRect(current.position)
+      : undefined
+  }, [])
 
   const snippet = React.useRef<{
     path: string
@@ -620,6 +630,19 @@ export function WorkspaceEditor(props: Props) {
     )
       return
 
+    const currentSelection = editorRef.current.getViewState().selections?.at(-1)
+    const currentCursor =
+      currentSelection?.direction === -1
+        ? currentSelection.start
+        : currentSelection?.end
+
+    if (
+      !currentCursor ||
+      currentCursor.line !== cursor.line ||
+      currentCursor.character !== cursor.character
+    )
+      return
+
     context.current = { path: doc.path, version: doc.version, position: cursor }
 
     setCompletions(
@@ -631,13 +654,6 @@ export function WorkspaceEditor(props: Props) {
     )
 
     setCompletionIndex(0)
-    const rect = editorRef.current.getPositionRect(cursor)
-
-    if (rect)
-      setAnchor({
-        left: Math.max(0, Math.min(rect.left, window.innerWidth - 400)),
-        top: Math.max(0, Math.min(rect.bottom + 4, window.innerHeight - 300)),
-      })
   }
 
   React.useEffect(() => {
@@ -1128,6 +1144,17 @@ export function WorkspaceEditor(props: Props) {
                       editorRef.current = editor
                     }}
                     onPosition={(at) => {
+                      const completionCursor = context.current?.position
+                      if (
+                        active &&
+                        completionCursor &&
+                        (completionCursor.line !== at.line ||
+                          completionCursor.character !== at.character)
+                      ) {
+                        setCompletions((current) =>
+                          current.length ? [] : current,
+                        )
+                      }
                       if (active)
                         setPosition((previous) =>
                           previous.line === at.line &&
@@ -1172,6 +1199,16 @@ export function WorkspaceEditor(props: Props) {
             })}
         </div>
       </div>
+      {props.brainTerminal && (
+        <BrainTerminal
+          {...props.brainTerminal}
+          open={panel === 'terminal'}
+          onOpenChange={(open) => {
+            if (!open)
+              setPanel((current) => (current === 'terminal' ? null : current))
+          }}
+        />
+      )}
       <WorkspacePanels
         panel={panel}
         setPanel={setPanel}
@@ -1186,6 +1223,7 @@ export function WorkspaceEditor(props: Props) {
         }}
       />
       <WorkspaceEditorToolbar
+        hasBrainTerminal={!!props.brainTerminal}
         problems={problems}
         panel={panel}
         setPanel={setPanel}
@@ -1199,7 +1237,7 @@ export function WorkspaceEditor(props: Props) {
       <WorkspaceCompletions
         completions={completions}
         completionIndex={completionIndex}
-        anchor={anchor}
+        getAnchor={getCompletionAnchor}
         onAccept={(item) => void run(() => accept(item))}
       />
     </div>

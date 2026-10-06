@@ -17,6 +17,8 @@ import {
   UserFifoReplyD2HPacket,
 } from "./vex-packet"
 import { V5SerialConnection } from "./vex-connection"
+import { VexFirmwareVersion } from "./vex-firmware-version"
+import { V5SerialDevice } from "./vex-device"
 import { V5UserProgramTerminal } from "./vex-terminal"
 
 function reply(
@@ -174,74 +176,102 @@ test("accepts a fragmented V5 Brain Query1 reply without a CDC2 ACK", async () =
   await reading
 })
 
-test("reuses a matching cold library and transfers hot on every upload", async () => {
-  const cold = Uint8Array.from([1, 2, 3, 4])
-  const crc = PacketEncoder.getInstance().crcgen.crc32(cold, 0)
+test.each([null, "1.0.4", "1.0.5"])(
+  "reuses cold library with Brain firmware %s",
+  async (brainVersion) => {
+    const cold = Uint8Array.from([1, 2, 3, 4])
+    const storedCold =
+      brainVersion === "1.0.5"
+        ? new Uint8Array(
+            Bun.spawnSync({
+              cmd: [
+                "python3",
+                "-c",
+                "import sys,gzip;sys.stdout.buffer.write(gzip.compress(sys.stdin.buffer.read(),mtime=0))",
+              ],
+              stdin: cold,
+            }).stdout
+          )
+        : cold
+    const crc = PacketEncoder.getInstance().crcgen.crc32(storedCold, 0)
 
-  class TransferConnection extends V5SerialConnection {
-    uploaded: string[] = []
-    metadataCrc = crc
+    class TransferConnection extends V5SerialConnection {
+      uploaded: string[] = []
+      metadataCrc = crc
 
-    override async stopProgram() {
-      return {} as NonNullable<
-        Awaited<ReturnType<V5SerialConnection["stopProgram"]>>
-      >
-    }
-
-    override async getSystemVersion() {
-      return null
-    }
-
-    override async writeDataAsync(
-      packet: Parameters<V5SerialConnection["writeDataAsync"]>[0]
-    ): Promise<Awaited<ReturnType<V5SerialConnection["writeDataAsync"]>>> {
-      if (!(packet instanceof GetFileMetadataH2DPacket)) {
-        throw new Error("Unexpected packet")
+      override async stopProgram() {
+        return {} as NonNullable<
+          Awaited<ReturnType<V5SerialConnection["stopProgram"]>>
+        >
       }
 
-      const body = new Uint8Array(25)
-      const view = new DataView(body.buffer)
-      view.setUint8(0, 24)
-      view.setUint32(1, cold.byteLength, true)
-      view.setUint32(9, this.metadataCrc, true)
-      return new GetFileMetadataReplyD2HPacket(reply(86, 25, body))
+      override async getSystemStatus() {
+        return brainVersion === null
+          ? null
+          : ({
+              systemVersion: VexFirmwareVersion.fromString(brainVersion),
+            } as NonNullable<
+              Awaited<ReturnType<V5SerialConnection["getSystemStatus"]>>
+            >)
+      }
+
+      override async getSystemVersion() {
+        throw new Error("Upload must query the Brain, not the USB device")
+      }
+
+      override async writeDataAsync(
+        packet: Parameters<V5SerialConnection["writeDataAsync"]>[0],
+        timeout?: number
+      ): Promise<Awaited<ReturnType<V5SerialConnection["writeDataAsync"]>>> {
+        expect(timeout).toBe(2000)
+        if (!(packet instanceof GetFileMetadataH2DPacket)) {
+          throw new Error("Unexpected packet")
+        }
+
+        const body = new Uint8Array(25)
+        const view = new DataView(body.buffer)
+        view.setUint8(0, 24)
+        view.setUint32(1, storedCold.byteLength, true)
+        view.setUint32(9, this.metadataCrc, true)
+        return new GetFileMetadataReplyD2HPacket(reply(86, 25, body))
+      }
+
+      override async uploadFileToDeviceUnlocked(request: IFileWriteRequest) {
+        this.uploaded.push(request.filename)
+        return true
+      }
     }
 
-    override async uploadFileToDeviceUnlocked(request: IFileWriteRequest) {
-      this.uploaded.push(request.filename)
-      return true
-    }
+    const connection = new TransferConnection({} as never)
+    const ini = new ProgramIniConfig()
+    ini.libraryName = "cold-library"
+    const progress: string[] = []
+
+    const upload = () =>
+      connection.uploadProgramToDevice(
+        ini,
+        Uint8Array.from([5, 6]),
+        cold,
+        (state) => {
+          progress.push(state)
+        }
+      )
+
+    expect(await upload()).toBe(true)
+    expect(connection.uploaded).toEqual(["slot_1.ini", "slot_1.bin"])
+    expect(progress).toContain("COLD (cached)")
+
+    connection.uploaded = []
+    connection.metadataCrc = crc ^ 1
+    expect(await upload()).toBe(true)
+
+    expect(connection.uploaded).toEqual([
+      "slot_1.ini",
+      "cold-library",
+      "slot_1.bin",
+    ])
   }
-
-  const connection = new TransferConnection({} as never)
-  const ini = new ProgramIniConfig()
-  ini.libraryName = "cold-library"
-  const progress: string[] = []
-
-  const upload = () =>
-    connection.uploadProgramToDevice(
-      ini,
-      Uint8Array.from([5, 6]),
-      cold,
-      (state) => {
-        progress.push(state)
-      }
-    )
-
-  expect(await upload()).toBe(true)
-  expect(connection.uploaded).toEqual(["slot_1.ini", "slot_1.bin"])
-  expect(progress).toContain("COLD (cached)")
-
-  connection.uploaded = []
-  connection.metadataCrc = crc ^ 1
-  expect(await upload()).toBe(true)
-
-  expect(connection.uploaded).toEqual([
-    "slot_1.ini",
-    "cold-library",
-    "slot_1.bin",
-  ])
-})
+)
 
 test("closing a connection resolves pending requests", async () => {
   const connection = new V5SerialConnection({} as never)
@@ -373,4 +403,49 @@ test("terminal decodes output and writes stdin", async () => {
   expect(await terminal.write("in")).toBe(2)
   expect(connection.writes[0]).toEqual(new TextEncoder().encode("in"))
   await terminal.close()
+})
+
+test("device terminals stay open until closed or disposed", async () => {
+  class FakeConnection extends V5SerialConnection {
+    override get isConnected(): boolean {
+      return true
+    }
+
+    override async query1() {
+      return {} as NonNullable<
+        Awaited<ReturnType<V5SerialConnection["query1"]>>
+      >
+    }
+
+    override async readUserFifo() {
+      return new TextEncoder().encode("log\n")
+    }
+
+    override async close() {}
+  }
+
+  class FakeDevice extends V5SerialDevice {
+    override async refresh() {
+      return true
+    }
+  }
+
+  const device = new FakeDevice({} as never, { autoRefresh: false })
+  await device.connect(new FakeConnection({} as never))
+  const terminal = device.openTerminal()
+  expect(terminal).toBeDefined()
+  expect(terminal!.isRunning).toBe(true)
+  const output: string[] = []
+  terminal!.on("text", (text) => {
+    output.push(text)
+    void terminal!.close()
+  })
+  await Bun.sleep(5)
+  expect(output.join("")).toBe("log\n")
+  expect(terminal!.isRunning).toBe(false)
+
+  const second = device.openTerminal()
+  expect(second!.isRunning).toBe(true)
+  await device.dispose()
+  expect(second!.isRunning).toBe(false)
 })

@@ -6,6 +6,7 @@ import {
   ArrowLeftIcon,
   GitCommitIcon,
   HammerIcon,
+  PlugsIcon,
   UploadSimpleIcon,
 } from '@phosphor-icons/react'
 import * as React from 'react'
@@ -122,6 +123,9 @@ function RouteComponent() {
   const [buildOutput, setBuildOutput] = React.useState('')
   const [uploadMessage, setUploadMessage] = React.useState('')
   const [isBrainConnected, setIsBrainConnected] = React.useState(false)
+  const [brainDevice, setBrainDevice] = React.useState<V5SerialDevice | null>(
+    null,
+  )
 
   const brainConnectionRef = React.useRef<{
     device: V5SerialDevice
@@ -143,6 +147,7 @@ function RouteComponent() {
     const connection = brainConnectionRef.current
     brainConnectionRef.current = null
     setIsBrainConnected(false)
+    setBrainDevice(null)
     if (!connection) return
     connection.port.removeEventListener?.('disconnect', connection.onDisconnect)
 
@@ -261,6 +266,66 @@ function RouteComponent() {
     }
   }
 
+  const connectBrain = async () => {
+    let connection = brainConnectionRef.current
+
+    if (!connection) {
+      const port = await createBrowserAdapter().requestPort({
+        filters: [{ usbVendorId: 10376 }],
+      })
+
+      const device = new V5SerialDevice(
+        {
+          getPorts: () => Promise.resolve([port]),
+          requestPort: () => Promise.resolve(port),
+        },
+        { autoRefresh: false },
+      )
+
+      const serialConnection = new V5SerialConnection({
+        getPorts: () => Promise.resolve([port]),
+        requestPort: () => Promise.resolve(port),
+      })
+
+      device.autoReconnect = false
+
+      try {
+        if (!(await serialConnection.open(0, false))) {
+          throw new Error(
+            'Could not open the selected Brain serial port. Close VEXcode or another app using the Brain, then retry.',
+          )
+        }
+
+        if (!(await device.connect(serialConnection))) {
+          throw new Error(
+            'The Brain serial port opened, but the Brain did not respond to the V5 handshake.',
+          )
+        }
+
+        const onDisconnect = () => {
+          if (brainConnectionRef.current?.port !== port) return
+          brainConnectionRef.current = null
+          setIsBrainConnected(false)
+          setBrainDevice(null)
+          setUploadMessage('Brain disconnected')
+          void device.dispose()
+        }
+
+        port.addEventListener('disconnect', onDisconnect)
+        connection = { device, port, onDisconnect }
+        brainConnectionRef.current = connection
+        setIsBrainConnected(true)
+        setBrainDevice(device)
+      } catch (error) {
+        await device.dispose()
+        await serialConnection.close()
+        throw error
+      }
+    }
+
+    return connection.device
+  }
+
   const uploadToBrain = async () => {
     if (
       !program ||
@@ -298,59 +363,7 @@ function RouteComponent() {
     setUploadMessage('Connecting to Brain')
 
     try {
-      let connection = brainConnectionRef.current
-
-      if (!connection) {
-        const port = await createBrowserAdapter().requestPort({
-          filters: [{ usbVendorId: 10376 }],
-        })
-
-        const device = new V5SerialDevice(
-          {
-            getPorts: () => Promise.resolve([port]),
-            requestPort: () => Promise.resolve(port),
-          },
-          { autoRefresh: false },
-        )
-
-        const serialConnection = new V5SerialConnection({
-          getPorts: () => Promise.resolve([port]),
-          requestPort: () => Promise.resolve(port),
-        })
-
-        device.autoReconnect = false
-
-        try {
-          if (!(await serialConnection.open(0, false))) {
-            throw new Error(
-              'Could not open the selected Brain serial port. Close VEXcode or another app using the Brain, then retry.',
-            )
-          }
-
-          if (!(await device.connect(serialConnection))) {
-            throw new Error(
-              'The Brain serial port opened, but the Brain did not respond to the V5 handshake.',
-            )
-          }
-
-          const onDisconnect = () => {
-            if (brainConnectionRef.current?.port !== port) return
-            brainConnectionRef.current = null
-            setIsBrainConnected(false)
-            setUploadMessage('Brain disconnected')
-            void device.dispose()
-          }
-
-          port.addEventListener('disconnect', onDisconnect)
-          connection = { device, port, onDisconnect }
-          brainConnectionRef.current = connection
-          setIsBrainConnected(true)
-        } catch (error) {
-          await device.dispose()
-          await serialConnection.close()
-          throw error
-        }
-      }
+      const device = await connectBrain()
 
       try {
         const ini = new ProgramIniConfig()
@@ -363,7 +376,7 @@ function RouteComponent() {
         ini.after = FileExitAction.EXIT_NONE
         ini.setProgramDate(new Date())
 
-        const uploaded = await connection.device.brain.uploadProgram(
+        const uploaded = await device.brain.uploadProgram(
           ini,
           programBytes,
           coldBytes,
@@ -379,7 +392,7 @@ function RouteComponent() {
 
         setUploadMessage(`Uploaded to slot ${brainSlot}`)
       } catch (error) {
-        if (!connection.device.isConnected) await disconnectBrain()
+        if (!device.isConnected) await disconnectBrain()
         throw error
       }
     } catch (error) {
@@ -695,32 +708,40 @@ function RouteComponent() {
                         ),
                       )}
                     </div>
-                    <Button
-                      className="w-full"
-                      onClick={() => void uploadToBrain()}
-                      disabled={
-                        !program ||
-                        buildArtifacts.size === 0 ||
-                        buildArtifactsCommitSha !== program.currentCommitSha ||
-                        isBuilding ||
-                        isSaving ||
-                        isUploading ||
-                        hasUnsavedChanges
-                      }
-                    >
-                      {isUploading ? <Spinner /> : <UploadSimpleIcon />}
-                      {isUploading ? 'Uploading to Brain' : 'Upload to Brain'}
-                    </Button>
-                    {isBrainConnected ? (
+                    <div className="flex items-center gap-2">
                       <Button
-                        variant="outline"
-                        className="w-full"
-                        disabled={isUploading}
-                        onClick={() => void disconnectBrain()}
+                        size="icon"
+                        aria-label="Upload to Brain"
+                        title={
+                          isUploading ? 'Uploading to Brain' : 'Upload to Brain'
+                        }
+                        onClick={() => void uploadToBrain()}
+                        disabled={
+                          !program ||
+                          buildArtifacts.size === 0 ||
+                          buildArtifactsCommitSha !==
+                            program.currentCommitSha ||
+                          isBuilding ||
+                          isSaving ||
+                          isUploading ||
+                          hasUnsavedChanges
+                        }
                       >
-                        Disconnect Brain
+                        {isUploading ? <Spinner /> : <UploadSimpleIcon />}
                       </Button>
-                    ) : null}
+                      {isBrainConnected ? (
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          aria-label="Disconnect Brain"
+                          title="Disconnect Brain"
+                          disabled={isUploading}
+                          onClick={() => void disconnectBrain()}
+                        >
+                          <PlugsIcon />
+                        </Button>
+                      ) : null}
+                    </div>
                     {uploadMessage ? (
                       <p className="text-xs text-muted-foreground">
                         {uploadMessage}
@@ -776,6 +797,12 @@ function RouteComponent() {
                   template={program.template ?? 'vexcode'}
                   commitSha={program.currentCommitSha}
                   buildOutput={buildOutput}
+                  brainTerminal={{
+                    brainDevice,
+                    connectBrain,
+                    disconnectBrain,
+                    isUploading,
+                  }}
                   loadSnapshot={() => loadWorkspace({ programId })}
                   commitChanges={(changes, expectedCommitSha, message) =>
                     commitWorkspace({

@@ -10,7 +10,7 @@
     "start": "node .output/server/index.mjs",
     "format": "prettier --write .",
     "lint": "bun run typecheck && eslint .  --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "prepare:language": "bun ../../scripts/prepare-clangd.ts && bun ../../scripts/prepare-browser-compiler.ts && bun ../../scripts/prepare-ez-pch.ts",
+    "prepare:language": "bun ../../scripts/prepare-clangd.ts && bun ../../scripts/prepare-browser-compiler.ts && bun scripts/prepare-ez-pch.ts",
     "dev:ide": "bun run prepare:language && vite --config vite.ide.config.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

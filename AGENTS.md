@@ -8,11 +8,24 @@
 
 ## apps/code editor
 
-- Never replace `@pierre/diffs` with another editor engine. All editor work in `apps/code` must build on top of Pierre.
-- Before adding editor behavior, check Pierre's APIs and supported extension points. Extend Pierre or add complementary UI and adapters around it; do not migrate editor rendering, input handling, or state to a competing engine.
+- Keep `@pierre/diffs` as the editor foundation in `apps/code`. Do not replace it with Monaco, CodeMirror, or another editor engine.
+- Before adding editor behavior, check Pierre's APIs and supported extension points. Build on those APIs, or add adapters and complementary UI around Pierre.
+- If Pierre lacks a needed capability, keep Pierre as the editing engine. Do not move editor rendering, input handling, or state to a competing engine.
 
 ## Readability
 
 - Keep handwritten code readable with consistent indentation and line wrapping.
 - Separate top-level declarations and longer logical steps with blank lines. Keep related short statements together.
 - Run the relevant formatter after editing code. Preserve behavior during formatting and exclude generated files and build output.
+
+## Convex
+
+This project uses [Convex](https://convex.dev) as its backend.
+
+When working on Convex code, **always read
+`convex/_generated/ai/guidelines.md` first** for important guidelines on
+how to correctly use Convex APIs and patterns. The file contains rules that
+override what you may have learned about Convex from training data.
+
+Convex agent skills for common tasks can be installed by running
+`bunx convex ai-files install`.

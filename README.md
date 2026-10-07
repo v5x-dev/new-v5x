@@ -18,6 +18,11 @@ bun test
 bun run --cwd packages/serial build
 ```
 
+Run the code app's browser flows with `bun run test:e2e:code`. See
+[the browser test setup](apps/code/e2e/README.md) for Chromium installation,
+backend requirements, and test data handling. `bun test` excludes these browser
+tests and continues to run the unit suite.
+
 Format the repository or verify its formatting:
 
 ```sh

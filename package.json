@@ -13,7 +13,8 @@
     "dev:code": "bun --cwd=apps/code --bun run dev",
     "convex:code": "bun --cwd=apps/code convex dev",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "test:e2e:code": "bun --cwd=apps/code run test:e2e"
   },
   "workspaces": [
     "packages/*",

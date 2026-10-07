@@ -54,6 +54,10 @@ export const Route = createRootRouteWithContext<{
     ],
   }),
   beforeLoad: async (ctx) => {
+    if (ctx.location.pathname === '/build-demo') {
+      return { isAuthenticated: false, token: null }
+    }
+
     const token = await getAuth()
 
     // all queries, mutations and actions through TanStack Query will be
@@ -62,7 +66,7 @@ export const Route = createRootRouteWithContext<{
       // During SSR only (the only time serverHttpClient exists),
       // set the auth token to make HTTP queries with.
       ctx.context.convexQueryClient.serverHttpClient?.setAuth(token)
-    } else if (ctx.location.href !== '/login') {
+    } else if (ctx.location.pathname !== '/login') {
       throw redirect({ to: '/login' })
     }
 

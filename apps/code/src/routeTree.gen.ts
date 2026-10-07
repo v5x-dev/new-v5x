@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as BuildDemoRouteImport } from './routes/build-demo'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppPProgramIdRouteImport } from './routes/_app/p/$programId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
+const BuildDemoRoute = BuildDemoRouteImport.update({
+  id: '/build-demo',
+  path: '/build-demo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -36,12 +42,14 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
+  '/build-demo': typeof BuildDemoRoute
   '/login': typeof LoginRoute
   '/': typeof AppIndexRoute
   '/p/$programId': typeof AppPProgramIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
+  '/build-demo': typeof BuildDemoRoute
   '/login': typeof LoginRoute
   '/': typeof AppIndexRoute
   '/p/$programId': typeof AppPProgramIdRoute
@@ -49,6 +57,7 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/build-demo': typeof BuildDemoRoute
   '/login': typeof LoginRoute
   '/_app/': typeof AppIndexRoute
   '/_app/p/$programId': typeof AppPProgramIdRoute
@@ -56,13 +65,20 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/login' | '/' | '/p/$programId' | '/api/auth/$'
+  fullPaths: '/build-demo' | '/login' | '/' | '/p/$programId' | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/' | '/p/$programId' | '/api/auth/$'
-  id: '__root__' | '/login' | '/_app/' | '/_app/p/$programId' | '/api/auth/$'
+  to: '/build-demo' | '/login' | '/' | '/p/$programId' | '/api/auth/$'
+  id:
+    | '__root__'
+    | '/build-demo'
+    | '/login'
+    | '/_app/'
+    | '/_app/p/$programId'
+    | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  BuildDemoRoute: typeof BuildDemoRoute
   LoginRoute: typeof LoginRoute
   AppIndexRoute: typeof AppIndexRoute
   AppPProgramIdRoute: typeof AppPProgramIdRoute
@@ -71,6 +87,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/build-demo': {
+      id: '/build-demo'
+      path: '/build-demo'
+      fullPath: '/build-demo'
+      preLoaderRoute: typeof BuildDemoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -103,6 +126,7 @@ declare module '@tanstack/react-router' {
 }
 
 const rootRouteChildren: RootRouteChildren = {
+  BuildDemoRoute: BuildDemoRoute,
   LoginRoute: LoginRoute,
   AppIndexRoute: AppIndexRoute,
   AppPProgramIdRoute: AppPProgramIdRoute,

@@ -7,10 +7,9 @@ import { query } from '../_generated/server'
 import type { GenericCtx } from '@convex-dev/better-auth'
 import type { DataModel } from '../_generated/dataModel'
 import { anonymous } from 'better-auth/plugins'
+import { appHosts, previewHostPattern } from '../../auth-origins'
 
 const siteUrl = process.env.SITE_URL!
-
-const isProductionSite = new URL(siteUrl).hostname === 'code.v5x.dev'
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID!
 
@@ -22,19 +21,11 @@ export const authComponent = createClient<DataModel>(components.betterAuth)
 
 export const createAuth = (ctx: GenericCtx<DataModel>) => {
   return betterAuth({
-    // Production has one canonical origin. Only development needs request-based
-    // origins so OAuth can return to localhost or the development tunnel.
-    baseURL: isProductionSite
-      ? siteUrl
-      : {
-          allowedHosts: [
-            new URL(siteUrl).host,
-            'code.v5x.dev',
-            'localhost:3000',
-            'k4xs74x6-3000.use.devtunnels.ms',
-          ],
-          fallback: siteUrl,
-        },
+    // Preview requests must keep their own origin for cookies and redirects.
+    baseURL: {
+      allowedHosts: [new URL(siteUrl).host, ...appHosts, previewHostPattern],
+      fallback: siteUrl,
+    },
     advanced: {
       trustedProxyHeaders: true,
       // Convex does not provide Node's production environment. Keep cookie names
@@ -46,6 +37,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
       'https://code.v5x.dev',
       'http://localhost:3000',
       'https://k4xs74x6-3000.use.devtunnels.ms',
+      `https://${previewHostPattern}`,
     ],
     database: authComponent.adapter(ctx),
     // Configure simple, non-verified email/password to get started

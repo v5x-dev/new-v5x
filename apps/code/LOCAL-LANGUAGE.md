@@ -2,7 +2,7 @@
 
 Pierre remains the editor. The Bun patch to `@pierre/diffs@1.4.3` adds selection callbacks, cursor rectangles, semantic colors, folding and read-only navigation. External edits use Pierre's undo history.
 
-clangd 15.0.7 executes in a browser worker using WebAssembly pthreads. Project sources, real SDK headers and ARM compile commands live in its virtual filesystem. Language requests never go to a remote language server. Repository operations and existing builds still use the backend.
+clangd 15.0.7 executes in a browser worker using WebAssembly pthreads. Project sources, real SDK headers and ARM compile commands live in its virtual filesystem. Language requests never go to a remote language server. [Builds also execute in a browser worker](docs/browser-builds.md). Repository operations still use the backend.
 
 ## Build and deployment
 
@@ -20,7 +20,7 @@ The workspace loads project sources into the local clangd filesystem and preserv
 
 The editor adds IntelliSense completion, Ctrl+click definition navigation and diagnostic underlines with Pierre's native hover tooltip. It retains the existing Pierre tree and floating sidebar. There are no added toolbars, tabs, problems panels or fix-action UI.
 
-The production build emits an independent `/offline.html` shell and explicit asset manifest. The service worker caches static assets without caching authenticated SSR or API responses. Previously opened projects can recover locally; commits and builds require connectivity. Language assets and index shards are cached. Browser eviction can remove drafts, so commit work regularly.
+The service worker caches language and compiler assets without caching authenticated SSR or API responses. An already-open project can build without connectivity after the compiler and SDK assets have been cached. Opening or reloading a project and committing changes require connectivity. Browser eviction can remove drafts, so commit work regularly.
 
 ## Verification
 

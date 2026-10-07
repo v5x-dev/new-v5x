@@ -1,0 +1,65 @@
+diff --git a/gen/bundle.js b/gen/bundle.js
+--- a/gen/bundle.js
++++ b/gen/bundle.js
+@@ -1,3 +1,4 @@
++const assetBase = import.meta.url;
+ // node_modules/@yowasp/runtime/lib/fetch.js
+ var fetch2;
+ if (typeof process === "object" && process.release?.name === "node") {
+@@ -147,6 +148,10 @@
+   constructor(files = {}) {
+     this.id = nextFilesystemId();
+     this.files = files;
++    this.parent = null;
++    for (const entry of Object.values(files)) {
++      if (entry instanceof _Directory) entry.parent = this;
++    }
+   }
+   get size() {
+     return Object.keys(this.files).length;
+@@ -165,11 +170,14 @@
+       else if (segment === "" || segment === ".")
+         ;
+       else if (segment === "..")
+-        ;
++        entry = entry.parent ?? entry;
+       else if (Object.hasOwn(files, segment))
+         entry = files[segment];
+-      else if (create === "directory" || create !== null && separatorAt !== -1)
+-        entry = files[segment] = new _Directory({});
++      else if (create === "directory" || create !== null && separatorAt !== -1) {
++        const child = new _Directory({});
++        child.parent = entry;
++        entry = files[segment] = child;
++      }
+       else if (create === "file")
+         entry = files[segment] = new File(new Uint8Array());
+       else if (create instanceof File || create instanceof _Directory)
+@@ -698,13 +706,13 @@
+   return root;
+ }
+ var modules = async (fetch3) => ({
+-  "llvm.core.wasm": await fetch3(new URL("./llvm.core.wasm", import.meta.url)).then(compileWasmModule),
+-  "llvm.core2.wasm": await fetch3(new URL("./llvm.core2.wasm", import.meta.url)).then(compileWasmModule),
+-  "llvm.core3.wasm": await fetch3(new URL("./llvm.core3.wasm", import.meta.url)).then(compileWasmModule),
+-  "llvm.core4.wasm": await fetch3(new URL("./llvm.core4.wasm", import.meta.url)).then(compileWasmModule)
++  "llvm.core.wasm": await fetch3(new URL("./llvm.core.wasm", assetBase)).then(compileWasmModule),
++  "llvm.core2.wasm": await fetch3(new URL("./llvm.core2.wasm", assetBase)).then(compileWasmModule),
++  "llvm.core3.wasm": await fetch3(new URL("./llvm.core3.wasm", assetBase)).then(compileWasmModule),
++  "llvm.core4.wasm": await fetch3(new URL("./llvm.core4.wasm", assetBase)).then(compileWasmModule)
+ });
+ var filesystem = async (fetch3) => ({
+-  "usr": await fetch3(new URL("./llvm-resources.tar", import.meta.url)).then((resp) => resp.arrayBuffer()).then(unpackTarFilesystem)
++  "usr": await fetch3(new URL("./llvm-resources.tar", assetBase)).then((resp) => resp.arrayBuffer()).then(unpackTarFilesystem)
+ });
+ var totalSize = 98154369;
+ 
+@@ -1328,7 +1336,7 @@
+     }
+   }
+   const hasOwnProperty = Object.prototype.hasOwnProperty;
+-  if (!getCoreModule) getCoreModule = (name) => fetchCompile(new URL(`./${name}`, import.meta.url));
++  if (!getCoreModule) getCoreModule = (name) => fetchCompile(new URL(`./${name}`, assetBase));
+   const module0 = getCoreModule("llvm.core.wasm");
+   const module1 = getCoreModule("llvm.core2.wasm");
+   const module2 = getCoreModule("llvm.core3.wasm");

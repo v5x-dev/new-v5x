@@ -18,9 +18,16 @@ import {
 } from '@v5x/serial'
 import { createBrowserAdapter } from '@v5x/serial/browser'
 import { api } from '../../../../convex/_generated/api'
+import type { ProjectSnapshot } from '~/components/ide/workspace-editor'
 import type { FileOperations } from '~/lib/ide/file-operations'
 import type { AdapterSerialPort } from '@v5x/serial'
 import type { Id } from '../../../../convex/_generated/dataModel'
+import {
+  buildInBrowser,
+  readBrowserBuild,
+  releaseBrowserCompiler,
+  writeBrowserBuild,
+} from '~/lib/ide/build-client'
 import { WorkspaceEditor } from '~/components/ide/workspace-editor'
 import { ProgramFileTree } from '~/components/ide/program-file-tree'
 import { Button } from '~/components/ui/button'
@@ -76,23 +83,7 @@ function RouteComponent() {
     convexQuery(api.program.get, { programId }),
   )
 
-  const { data: hasBuildForCurrentCommit, isPending: buildStatusIsPending } =
-    useQuery(
-      convexQuery(api.program.hasRunForCommit, {
-        programId,
-        commitSha: program?.currentCommitSha ?? '',
-      }),
-    )
-
-  const { data: cachedBuild } = useQuery(
-    convexQuery(api.programBuildCache.getLatest, {
-      programId,
-      commitSha: program?.currentCommitSha ?? '',
-    }),
-  )
-
   const getProgramFiles = useAction(api.program.getProgramFiles)
-  const buildProgram = useAction(api.programBuild.build)
   const loadWorkspace = useAction(api.program.getWorkspaceSnapshot)
   const commitWorkspace = useAction(api.program.commitWorkspace)
   const [paths, setPaths] = React.useState<Array<string> | null>(null)
@@ -103,6 +94,8 @@ function RouteComponent() {
   const [buildArtifacts, setBuildArtifacts] = React.useState<
     Map<string, Uint8Array>
   >(() => new Map())
+
+  const attemptedBuildRef = React.useRef('')
 
   const [buildArtifactsCommitSha, setBuildArtifactsCommitSha] = React.useState<
     string | null
@@ -136,7 +129,8 @@ function RouteComponent() {
   const fileOperationsRef = React.useRef<FileOperations | null>(null)
   const saveHandlerRef = React.useRef<(() => Promise<void>) | null>(null)
   const buildGenerationRef = React.useRef(0)
-  const restoredBuildCommitRef = React.useRef<string | null>(null)
+  const buildSnapshotRef = React.useRef<(() => ProjectSnapshot) | null>(null)
+  const buildAbortRef = React.useRef<AbortController | null>(null)
   const currentCommitShaRef = React.useRef(program?.currentCommitSha)
 
   React.useEffect(() => {
@@ -161,8 +155,6 @@ function RouteComponent() {
   const build = async () => {
     if (
       !program?.currentCommitSha ||
-      hasBuildForCurrentCommit ||
-      buildStatusIsPending ||
       hasUnsavedChanges ||
       isSaving ||
       isBuilding ||
@@ -171,23 +163,12 @@ function RouteComponent() {
       return
 
     const started = performance.now()
-    const browserTimings: Array<{ stage: string; ms: number }> = []
-    let serverTimings: Array<{ stage: string; ms: number }> = []
-
-    const measure = async <T,>(stage: string, work: () => Promise<T>) => {
-      const stageStarted = performance.now()
-
-      try {
-        return await work()
-      } finally {
-        browserTimings.push({
-          stage,
-          ms: Math.round(performance.now() - stageStarted),
-        })
-      }
-    }
-
-    buildGenerationRef.current++
+    const snapshot = buildSnapshotRef.current?.()
+    if (!snapshot || snapshot.commitSha !== program.currentCommitSha) return
+    attemptedBuildRef.current = `${programId}:${snapshot.commitSha}`
+    const controller = new AbortController()
+    buildAbortRef.current = controller
+    const generation = ++buildGenerationRef.current
     setBuildStartedAt(started)
     setBuildElapsedSeconds(0)
     setIsBuilding(true)
@@ -197,72 +178,56 @@ function RouteComponent() {
     setBuildArtifacts(new Map())
     setBuildArtifactsCommitSha(null)
 
+    setBuildOutput('')
     try {
-      const result = await measure('Build action round trip', () =>
-        buildProgram({ programId }),
+      const result = await buildInBrowser(
+        {
+          ...snapshot,
+          template: program.template ?? 'vexcode',
+        },
+        (text) => {
+          if (generation === buildGenerationRef.current)
+            setBuildOutput((output) => (output + text).slice(-400 * 1024))
+        },
+        controller.signal,
       )
-
-      serverTimings = result.timings
-      setBuildOutput([result.stdout, result.stderr].filter(Boolean).join('\n'))
-      if (result.commitSha !== currentCommitShaRef.current) return
-
-      if (result.exitCode === 0) {
-        setBuildFiles(result.binFiles)
-
-        try {
-          const artifacts = await measure('Download all artifacts', () =>
-            Promise.all(
-              result.artifacts.map(({ path, url }) =>
-                measure(`Download ${path}`, async () => {
-                  const response = await fetch(url)
-
-                  if (!response.ok) {
-                    throw new Error(`Could not download ${path}`)
-                  }
-
-                  return [
-                    path,
-                    new Uint8Array(await response.arrayBuffer()),
-                  ] as const
-                }),
-              ),
-            ),
-          )
-
-          if (result.commitSha !== currentCommitShaRef.current) return
-          setBuildArtifacts(new Map(artifacts))
-          setBuildArtifactsCommitSha(result.commitSha)
-
-          setBuildMessage(
-            result.binFiles.length > 0
-              ? 'Build succeeded'
-              : 'Build succeeded, no .bin files found',
-          )
-        } catch (error) {
-          setBuildMessage('Build succeeded, but artifacts could not be loaded')
-          console.error('Could not load VEX V5 build artifacts:', error)
-        }
-      } else {
-        setBuildMessage(`Build failed (exit code ${result.exitCode})`)
-        console.error('VEX V5 build failed:', result.stderr)
+      if (
+        generation !== buildGenerationRef.current ||
+        result.commitSha !== currentCommitShaRef.current
+      )
+        return
+      setBuildOutput(result.output)
+      setBuildFiles(result.artifacts.map((artifact) => artifact.path))
+      setBuildArtifacts(
+        new Map(result.artifacts.map(({ path, bytes }) => [path, bytes])),
+      )
+      setBuildArtifactsCommitSha(result.commitSha)
+      setBuildMessage(
+        result.exitCode === 0
+          ? 'Build succeeded'
+          : `Build failed (exit code ${result.exitCode})`,
+      )
+      // Persistence failure must not discard a binary that is already ready to upload.
+      try {
+        await writeBrowserBuild(programId, result)
+      } catch (error) {
+        console.error('Could not cache browser build:', error)
       }
     } catch (error) {
+      if (generation !== buildGenerationRef.current) return
+      const message = error instanceof Error ? error.message : String(error)
       setBuildMessage('Build failed')
-      console.error('VEX V5 build failed:', error)
+      setBuildOutput((output) => `${output}\n${message}`)
+      console.error('Browser build failed:', error)
     } finally {
-      setBuildStartedAt(null)
-      setIsBuilding(false)
-      console.info(`VEX V5 build timings for ${programId}`)
-
-      console.table([
-        ...serverTimings.map((timing) => ({ source: 'server', ...timing })),
-        ...browserTimings.map((timing) => ({ source: 'browser', ...timing })),
-        {
-          source: 'browser',
-          stage: 'Total build click to ready',
-          ms: Math.round(performance.now() - started),
-        },
-      ])
+      if (buildAbortRef.current === controller) {
+        buildAbortRef.current = null
+        setBuildStartedAt(null)
+        setIsBuilding(false)
+      }
+      console.info(
+        `Browser build finished in ${Math.round(performance.now() - started)} ms`,
+      )
     }
   }
 
@@ -371,7 +336,13 @@ function RouteComponent() {
         ini.program.name = program.name
         ini.program.slot = (brainSlot - 1) as typeof ini.program.slot
         ini.program.description = 'Built with v5x'
-        ini.project.ide = 'VEXcode'
+        ini.project.ide = coldBytes ? 'PROS' : 'VEXcode'
+        if (coldBytes) {
+          ini.libraryTemplates =
+            program.template === 'ez-template'
+              ? ['kernel', 'liblvgl', 'EZ-Template', 'okapilib']
+              : ['kernel']
+        }
         ini.autorun = false
         ini.after = FileExitAction.EXIT_NONE
         ini.setProgramDate(new Date())
@@ -444,6 +415,8 @@ function RouteComponent() {
 
     return () => {
       isCurrent = false
+      buildAbortRef.current?.abort()
+      releaseBrowserCompiler()
       const connection = brainConnectionRef.current
       brainConnectionRef.current = null
 
@@ -463,7 +436,7 @@ function RouteComponent() {
     if (!commitSha) return
 
     buildGenerationRef.current++
-    restoredBuildCommitRef.current = null
+    attemptedBuildRef.current = ''
     setBuildFiles([])
     setBuildArtifacts(new Map())
     setBuildArtifactsCommitSha(null)
@@ -472,67 +445,43 @@ function RouteComponent() {
 
   React.useEffect(() => {
     const commitSha = program?.currentCommitSha
-
-    if (
-      !commitSha ||
-      isBuilding ||
-      !cachedBuild ||
-      cachedBuild.commitSha !== commitSha ||
-      buildArtifactsCommitSha === commitSha ||
-      restoredBuildCommitRef.current === commitSha
-    ) {
+    if (!commitSha || isBuilding || buildArtifactsCommitSha === commitSha)
       return
-    }
-
+    const restoreKey = `${programId}:${commitSha}`
+    if (attemptedBuildRef.current === restoreKey) return
     let isCurrent = true
     const generation = buildGenerationRef.current
-    restoredBuildCommitRef.current = commitSha
-    setBuildFiles(cachedBuild.binFiles)
-
-    setBuildOutput(
-      [cachedBuild.stdout, cachedBuild.stderr].filter(Boolean).join('\n'),
-    )
-
-    if (cachedBuild.exitCode !== 0) {
-      setBuildArtifacts(new Map())
-      setBuildArtifactsCommitSha(commitSha)
-      setBuildMessage(`Build failed (exit code ${cachedBuild.exitCode})`)
-      return
-    }
-
-    Promise.all(
-      cachedBuild.artifacts.map(async ({ path, url }) => {
-        const response = await fetch(url)
-        if (!response.ok) throw new Error(`Could not download ${path}`)
-        return [path, new Uint8Array(await response.arrayBuffer())] as const
-      }),
-    )
-      .then((artifacts) => {
-        if (!isCurrent || generation !== buildGenerationRef.current) return
-        setBuildArtifacts(new Map(artifacts))
+    void readBrowserBuild(programId)
+      .then((cached) => {
+        if (
+          !isCurrent ||
+          generation !== buildGenerationRef.current ||
+          cached?.commitSha !== commitSha
+        )
+          return
+        setBuildOutput(cached.output)
+        setBuildFiles(cached.artifacts.map((artifact) => artifact.path))
+        setBuildArtifacts(
+          new Map(cached.artifacts.map(({ path, bytes }) => [path, bytes])),
+        )
         setBuildArtifactsCommitSha(commitSha)
-
         setBuildMessage(
-          cachedBuild.binFiles.length > 0
+          cached.exitCode === 0
             ? 'Build restored'
-            : 'Build restored, no .bin files found',
+            : `Build failed (exit code ${cached.exitCode})`,
         )
       })
-      .catch((error: unknown) => {
-        if (!isCurrent || generation !== buildGenerationRef.current) return
-        setBuildArtifactsCommitSha(commitSha)
-        setBuildMessage('Build succeeded, but artifacts could not be loaded')
-        console.error('Could not restore VEX V5 build artifacts:', error)
-      })
-
+      .catch((error) =>
+        console.error('Could not restore browser build:', error),
+      )
     return () => {
       isCurrent = false
     }
   }, [
-    buildArtifactsCommitSha,
-    cachedBuild,
     isBuilding,
+    buildArtifactsCommitSha,
     program?.currentCommitSha,
+    programId,
   ])
 
   const treePaths =
@@ -553,11 +502,9 @@ function RouteComponent() {
     ? `Building program, ${describeBuildElapsed(buildElapsedSeconds)} elapsed`
     : hasUnsavedChanges || isSaving
       ? 'Commit changes before building'
-      : !program?.currentCommitSha || buildStatusIsPending
+      : !program?.currentCommitSha
         ? 'Loading build status'
-        : hasBuildForCurrentCommit
-          ? 'Build already run for this commit'
-          : buildMessage || 'Build program'
+        : buildMessage || 'Build program'
 
   const uploadUnavailableReason =
     hasUnsavedChanges || isSaving
@@ -640,8 +587,6 @@ function RouteComponent() {
                 disabled={
                   !program ||
                   !program.currentCommitSha ||
-                  buildStatusIsPending ||
-                  hasBuildForCurrentCommit ||
                   isBuilding ||
                   isSaving ||
                   hasUnsavedChanges ||
@@ -797,6 +742,7 @@ function RouteComponent() {
                   template={program.template ?? 'vexcode'}
                   commitSha={program.currentCommitSha}
                   buildOutput={buildOutput}
+                  buildSnapshotRef={buildSnapshotRef}
                   brainTerminal={{
                     brainDevice,
                     connectBrain,

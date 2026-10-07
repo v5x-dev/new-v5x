@@ -38,6 +38,7 @@
         "cmdk": "^1.1.1",
         "cn": "^0.4.0",
         "convex": "^1.46.0",
+        "microbit-clang-wasm": "21.11.0-alpha.1",
         "nitro": "^3.0.260903-beta",
         "react": "^19.2.8",
         "react-dom": "^19.2.8",
@@ -96,6 +97,7 @@
   },
   "patchedDependencies": {
     "@pierre/diffs@1.4.3": "patches/@pierre%2Fdiffs@1.4.3.patch",
+    "microbit-clang-wasm@21.11.0-alpha.1": "patches/microbit-clang-wasm@21.11.0-alpha.1.patch",
     "smolmachines@1.17.0": "patches/smolmachines@1.17.0.patch",
   },
   "packages": {
@@ -1270,6 +1272,8 @@
     "merge-stream": ["merge-stream@2.0.0", "", {}, "sha512-abv/qOcuPfk3URPfDzmZU1LKmuw8kT+0nIHvKrKgFrwifol/doWcdA4ZqsWQ8ENrFKkd67Mfpo/LovbIUsbt3w=="],
 
     "merge2": ["merge2@1.4.1", "", {}, "sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg=="],
+
+    "microbit-clang-wasm": ["microbit-clang-wasm@21.11.0-alpha.1", "", {}, "sha512-7T7Yh24xpH2p9iq1s+9m9ep+Igo5r/qtuwLWWSpFtdBG+4QiamxK+hRTPJSUYI4km9Y46j5lllqOMpahKbYjsQ=="],
 
     "micromark-util-character": ["micromark-util-character@2.1.1", "", { "dependencies": { "micromark-util-symbol": "^2.0.0", "micromark-util-types": "^2.0.0" } }, "sha512-wv8tdUTJ3thSFFFJKtpYKOYiGP2+v96Hvk4Tu8KpCAsTMs6yi+nVmGh1syvSCsaxz45J6Jbw+9DD6g97+NV67Q=="],
 

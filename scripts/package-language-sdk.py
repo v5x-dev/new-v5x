@@ -7,6 +7,7 @@ import hashlib
 import json
 from pathlib import Path
 import runpy
+from sdk_headers import v5_builtin_header, v5_cxx_header
 
 assets = runpy.run_path(str(Path(__file__).with_name("install-vex-build-assets.py")))
 download_checked = assets["download_checked"]
@@ -57,11 +58,29 @@ def write(name, files, provenance):
 
 
 vex = {}
-for name in ["include", "gcc/include", "clang/8.0.0/include"]:
+for name in ["include", "gcc/include"]:
     vex.update(directory(args.sdk / "vexv5" / name, "/sdk/vexv5/" + name))
+vex = {
+    path: contents
+    for path, contents in vex.items()
+    if v5_cxx_header(path, "armv7-ar/thumb")
+}
+clang = {
+    path: contents
+    for path, contents in directory(
+        args.sdk / "vexv5/clang/8.0.0/include", "/sdk/vexv5/clang/8.0.0/include"
+    ).items()
+    if v5_builtin_header(path)
+}
 versions = sorted((args.rootfs / "usr/arm-none-eabi/include/c++").iterdir())
 version = versions[-1].name
-arm = directory(args.rootfs / "usr/arm-none-eabi/include", "/toolchain/include")
+arm = {
+    path: contents
+    for path, contents in directory(
+        args.rootfs / "usr/arm-none-eabi/include", "/toolchain/include"
+    ).items()
+    if v5_cxx_header(path, "thumb/v7+fp/softfp")
+}
 # GCC 16's hidden friend return type eagerly accesses an incomplete iterator in
 # clang 15. declval expresses the same pointer subtraction without that access.
 iterator_path = f"/toolchain/include/c++/{version}/bits/stl_iterator.h"
@@ -69,13 +88,27 @@ needle = "operator-(const __normal_iterator& __lhs,\n\t\t  const __normal_iterat
 replacement = "operator-(const __normal_iterator& __lhs,\n\t\t  const __normal_iterator<_Iter, _Container>& __rhs) noexcept\n\t-> decltype(std::declval<_Iterator>() - std::declval<_Iter>())"
 arm[iterator_path] = arm[iterator_path].replace(needle, replacement)
 manifest = {
-    "version": 1,
+    "version": 2,
     "gccVersion": version,
+    "templates": {
+        "vexcode": ["clang", "vexcode"],
+        "jar-template": ["clang", "vexcode"],
+        "pros": ["clang", "arm", "pros"],
+        "ez-template": ["clang", "arm", "pros", "ez-template"],
+    },
     "bundles": {
+        "clang": write(
+            "clang",
+            clang,
+            {
+                "clangHeaders": "8.0.0",
+                "target": "V5 ARM; host and other target headers omitted",
+            },
+        ),
         "vexcode": write(
             "vexcode",
             vex,
-            {"sdk": "vexv5", "clangHeaders": "8.0.0", "gccHeaders": "4.9.3"},
+            {"sdk": "vexv5", "gccHeaders": "4.9.3", "abi": "armv7-ar/thumb"},
         ),
         "arm": write(
             "arm",

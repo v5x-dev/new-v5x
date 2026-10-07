@@ -78,7 +78,7 @@ export function compileCommands(
       ]
 
   return Object.keys(files)
-    .filter((path) => /\.(c|cc|cpp|cxx)$/.test(path))
+    .filter((path) => /\.(c|cc|cpp|cxx|c\+\+)$/.test(path))
     .map((path) => ({
       directory: '/workspace',
       file: `/workspace/${path}`,

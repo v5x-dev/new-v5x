@@ -78,6 +78,16 @@ export const Route = createRootRouteWithContext<{
 function RootComponent() {
   const context = useRouteContext({ from: Route.id })
 
+  React.useEffect(() => {
+    if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+      void navigator.serviceWorker
+        .register('/workspace-sw.js')
+        .catch((error) => {
+          console.error('Could not register workspace asset cache:', error)
+        })
+    }
+  }, [])
+
   return (
     <ConvexBetterAuthProvider
       client={context.convexQueryClient.convexClient}

@@ -27,6 +27,8 @@ export default defineConfig({
     tanstackStart(),
     nitro({
       routeRules: {
+        '/compiler/**': { headers: { vary: 'Accept-Encoding' } },
+        '/language/**': { headers: { vary: 'Accept-Encoding' } },
         '/**': {
           headers: {
             'Cross-Origin-Opener-Policy': 'same-origin',

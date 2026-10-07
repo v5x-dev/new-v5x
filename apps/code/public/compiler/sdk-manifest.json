@@ -1,0 +1,91 @@
+{
+  "version": 2,
+  "gccVersion": "16.1.0",
+  "templates": {
+    "vexcode": [
+      "vexcode"
+    ],
+    "jar-template": [
+      "vexcode"
+    ],
+    "pros": [
+      "arm",
+      "pros"
+    ],
+    "ez-template": [
+      "arm",
+      "pros",
+      "ez-template"
+    ]
+  },
+  "bundles": {
+    "vexcode": {
+      "url": "/compiler/vexcode-f0144e0917ce55a5.bundle",
+      "sha256": "f0144e0917ce55a530736ff50d54fc3994b4f0f4fe156311ca5028e06d9c5de8",
+      "bytes": 1562603,
+      "provenance": {
+        "sdk": "vexv5",
+        "debugSections": "removed with arm-none-eabi-objcopy --strip-debug"
+      }
+    },
+    "arm": {
+      "url": "/compiler/arm-34a6bf73930bf02a.bundle",
+      "sha256": "34a6bf73930bf02a0e09fbd7bc8fb91df2e0838459560a2324f7abd1f65a4b19",
+      "bytes": 1820746,
+      "provenance": {
+        "gccVersion": "16.1.0",
+        "abi": "thumb/v7+fp/softfp",
+        "debugSections": "removed with arm-none-eabi-objcopy --strip-debug"
+      }
+    },
+    "pros": {
+      "url": "/compiler/pros-4c59cfcc6ff8b7f5.bundle",
+      "sha256": "4c59cfcc6ff8b7f52d3b707d3a4db759c3742d3d6e2a68742504c34f28f63b6e",
+      "bytes": 1143215,
+      "provenance": {
+        "url": "https://pros.cs.purdue.edu/v5/_static/releases/kernel@3.8.3.zip",
+        "archiveSha256": "fa0eddc8c9493ba1fca73ff7648227f8e84ec1784627f22e37a55445e5f2ecc8",
+        "lldCompatibility": ".freertos_vectors marked allocatable/executable",
+        "debugSections": "removed with arm-none-eabi-objcopy --strip-debug"
+      }
+    },
+    "ez-template": {
+      "url": "/compiler/ez-template-76596e18d1526baf.bundle",
+      "sha256": "76596e18d1526baf467da438578476e684d627e60457d68722f0538931ab61a9",
+      "bytes": 2140616,
+      "provenance": {
+        "url": "https://github.com/EZ-Robotics/EZ-Template/releases/download/v3.2.2/EZ-Template-Example-Project.zip",
+        "archiveSha256": "41ec47dc65588cf7efae84771965a4803611f5db88ed5465bbb829a5eb8d7822",
+        "lldCompatibility": ".freertos_vectors marked allocatable/executable",
+        "inheritedBundle": "pros",
+        "inheritedFiles": [
+          "/workspace/firmware/libc.a",
+          "/workspace/firmware/libm.a",
+          "/workspace/firmware/v5.ld",
+          "/workspace/firmware/v5-common.ld",
+          "/workspace/firmware/v5-hot.ld"
+        ],
+        "debugSections": "removed with arm-none-eabi-objcopy --strip-debug"
+      }
+    }
+  },
+  "precompiled": {
+    "ez-template": {
+      "binary": {
+        "url": "/compiler/ez-pch-0546dc674275590b.pch.bundle",
+        "sha256": "0546dc674275590bf8af4253d8a726c2cbb102c7b34ebb2e15adc0b06ce4ae8f",
+        "bytes": 13690386
+      },
+      "metadata": {
+        "url": "/compiler/ez-pch-e0600a2ce071eee3.json",
+        "sha256": "e0600a2ce071eee36c2f0c6973154d54e3d9d9f65d93933e4fcf6df9ef35b606",
+        "bytes": 27899
+      },
+      "provenance": {
+        "compiler": "21.11.0-alpha.1",
+        "signature": "aa13cf3dee1bd532402ce4cf3e0d06790560dfa031eb688b2205e667eeb3551d",
+        "source": "checked template and SDK headers; no user program code"
+      }
+    }
+  }
+}

@@ -86,6 +86,7 @@ interface Props {
   buildOutput?: string
   fileOperationsRef?: { current: FileOperations | null }
   saveHandlerRef: { current: (() => Promise<void>) | null }
+  buildSnapshotRef?: { current: (() => ProjectSnapshot) | null }
 }
 
 const emptyDiagnostics: Array<Diagnostic> = []
@@ -103,6 +104,22 @@ export function WorkspaceEditor(props: Props) {
   const documentsRef = React.useRef(documents)
   const commitRef = React.useRef('')
   const conflictsRef = React.useRef<Array<string>>([])
+
+  React.useEffect(() => {
+    const ref = props.buildSnapshotRef
+    if (!ref) return
+    ref.current = () => ({
+      files: Object.fromEntries(
+        workspaceDocuments(documentsRef.current)
+          .filter((doc) => !doc.deleted)
+          .map((doc) => [doc.path, doc.contents]),
+      ),
+      commitSha: commitRef.current,
+    })
+    return () => {
+      ref.current = null
+    }
+  }, [props.buildSnapshotRef])
   const [conflicts, setConflicts] = React.useState<Array<string>>([])
 
   const [analysis, setAnalysis] = React.useState<{

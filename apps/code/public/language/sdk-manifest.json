@@ -1,21 +1,51 @@
 {
-  "version": 1,
+  "version": 2,
   "gccVersion": "16.1.0",
+  "templates": {
+    "vexcode": [
+      "clang",
+      "vexcode"
+    ],
+    "jar-template": [
+      "clang",
+      "vexcode"
+    ],
+    "pros": [
+      "clang",
+      "arm",
+      "pros"
+    ],
+    "ez-template": [
+      "clang",
+      "arm",
+      "pros",
+      "ez-template"
+    ]
+  },
   "bundles": {
+    "clang": {
+      "url": "/language/clang-82125a5bdd1499a3.bundle",
+      "sha256": "82125a5bdd1499a3f0ff6d73dda2257d71e1da06da7bdece1fbb23b72745ffd6",
+      "bytes": 176116,
+      "provenance": {
+        "clangHeaders": "8.0.0",
+        "target": "V5 ARM; host and other target headers omitted"
+      }
+    },
     "vexcode": {
-      "url": "/language/vexcode-6e11719ed0af963c.bundle",
-      "sha256": "6e11719ed0af963cdc746ce0372b86d8839b318c066465b13e49a715e9476a06",
-      "bytes": 2224332,
+      "url": "/language/vexcode-6b321a279acf3653.bundle",
+      "sha256": "6b321a279acf3653eda8584c9c9defa17daadee80c50f6e6a55a46253c75bbef",
+      "bytes": 1377915,
       "provenance": {
         "sdk": "vexv5",
-        "clangHeaders": "8.0.0",
-        "gccHeaders": "4.9.3"
+        "gccHeaders": "4.9.3",
+        "abi": "armv7-ar/thumb"
       }
     },
     "arm": {
-      "url": "/language/arm-b4a399a4ae03e23a.bundle",
-      "sha256": "b4a399a4ae03e23ada91afdb22f62fdf2fb411b8437fb2d320411a0af2bcbf62",
-      "bytes": 3207230,
+      "url": "/language/arm-f0fcf9908659815d.bundle",
+      "sha256": "f0fcf9908659815db5fc8dc9ddef55520ab92b9b39f259aecb5b55c1591e1104",
+      "bytes": 2417939,
       "provenance": {
         "gccHeaders": "16.1.0",
         "source": "VEX build image",

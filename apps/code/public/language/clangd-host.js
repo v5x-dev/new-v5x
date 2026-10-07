@@ -106,11 +106,13 @@ self.onmessage = async ({ data }) => {
       const sdkResponse = await fetch('/language/sdk-manifest.json')
       if (!sdkResponse.ok) throw new Error('Language SDK manifest is missing')
       const sdk = await sdkResponse.json()
-      const bundles = [sdk.bundles.vexcode]
-      if (data.template === 'pros' || data.template === 'ez-template')
-        bundles.push(sdk.bundles.arm, sdk.bundles.pros)
-      if (data.template === 'ez-template')
-        bundles.push(sdk.bundles['ez-template'])
+      const names = sdk.templates[data.template]
+      if (!names) throw new Error(`Missing ${data.template} SDK configuration`)
+      const bundles = names.map((name) => {
+        const bundle = sdk.bundles[name]
+        if (!bundle) throw new Error(`Missing ${name} language SDK`)
+        return bundle
+      })
       const namespace = Array.from(
         new Uint8Array(
           await crypto.subtle.digest(

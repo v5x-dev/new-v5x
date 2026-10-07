@@ -1,3 +1,4 @@
+import { prepareCompressedAsset } from "./prepare-compressed-assets"
 import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises"
 import { createHash } from "node:crypto"
 import { dirname, resolve } from "node:path"
@@ -21,6 +22,8 @@ for (const file of files) {
     .update(await readFile(resolve(destination, file)))
     .digest("hex")
 }
+
+await prepareCompressedAsset(resolve(destination, "clangd.wasm"))
 
 await copyFile(resolve(source, "../LICENSE"), resolve(destination, "LICENSE"))
 

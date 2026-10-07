@@ -1,6 +1,7 @@
 import { convexBetterAuthReactStart } from '@convex-dev/better-auth/react-start'
 import { getToken as fetchToken } from '@convex-dev/better-auth/utils'
 import { getRequestHeaders } from '@tanstack/react-start/server'
+import { isAppHost } from '../../auth-origins'
 
 const convexSiteUrl = process.env.VITE_CONVEX_SITE_URL!
 
@@ -39,14 +40,7 @@ export function handler(request: Request) {
   const forwardedHost = headers.get('x-forwarded-host')
 
   const publicHost =
-    forwardedHost &&
-    [
-      'code.v5x.dev',
-      'localhost:3000',
-      'k4xs74x6-3000.use.devtunnels.ms',
-    ].includes(forwardedHost)
-      ? forwardedHost
-      : url.host
+    forwardedHost && isAppHost(forwardedHost) ? forwardedHost : url.host
 
   const protocol = publicHost === 'localhost:3000' ? 'http' : 'https'
   headers.set('host', new URL(convexSiteUrl).host)

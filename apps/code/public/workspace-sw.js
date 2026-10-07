@@ -27,17 +27,25 @@ self.addEventListener('fetch', (event) => {
   ) {
     event.respondWith(
       (async () => {
-        const cache = await caches.open(LANGUAGE)
-
+        let response
         try {
-          const response = await fetch(event.request)
-          if (response.ok) await cache.put(event.request, response.clone())
-          return response
+          response = await fetch(event.request)
         } catch {
+          const cache = await caches.open(LANGUAGE)
           const cached = await cache.match(event.request)
           if (cached) return cached
           throw new Error('Language asset has not been cached')
         }
+
+        if (response.ok) {
+          try {
+            const cache = await caches.open(LANGUAGE)
+            await cache.put(event.request, response.clone())
+          } catch (error) {
+            console.warn('Could not cache workspace asset:', error)
+          }
+        }
+        return response
       })(),
     )
   }

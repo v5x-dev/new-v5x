@@ -64,7 +64,10 @@ export function compileCommands(
         '-mcpu=cortex-a9',
         '-mfpu=neon-fp16',
         '-mfloat-abi=softfp',
-        '-mthumb',
+        // PROS's task startup wrapper is ARM code. Its FreeRTOS port chooses
+        // the initial instruction mode from the user's task function pointer.
+        // Thumb tasks therefore enter that ARM wrapper in the wrong mode.
+        '-marm',
         '-D_POSIX_THREADS',
         '-isystem',
         `/toolchain/include/c++/${gccVersion}`,

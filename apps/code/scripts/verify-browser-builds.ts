@@ -187,6 +187,33 @@ for (const template of (process.env.BUILD_TEMPLATES?.split(',') ??
   }
   const original = templateFiles[template]
   await build('initial', original)
+  if (
+    process.env.BUILD_VERIFY_RUNTIME === '1' &&
+    (template === 'pros' || template === 'ez-template')
+  ) {
+    await build('runtime-task', {
+      ...original,
+      'src/main.cpp': `
+#include "main.h"
+#include <cstdio>
+
+void runtime_task() {
+  std::puts("BROWSER_RUNTIME_TASK_OK");
+  pros::screen::print(pros::E_TEXT_MEDIUM, 1, "Browser task started");
+  while (true) pros::delay(20);
+}
+
+void initialize() {
+  pros::Task task(runtime_task);
+}
+
+void disabled() {}
+void competition_initialize() {}
+void autonomous() {}
+void opcontrol() { while (true) pros::delay(20); }
+`,
+    })
+  }
   if (process.env.BUILD_PROFILE === '1') {
     const repeat = await build('repeat', original)
     if (!repeat.output.includes('Reused src/main.cpp.o.'))

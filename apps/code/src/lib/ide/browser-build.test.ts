@@ -33,6 +33,43 @@ describe('browser compiler arguments', () => {
     expect(new Set(commands.map((command) => command.object)).size).toBe(2)
     expect(commands[0].argv).toContain('-D__UINT32_TYPE__=unsigned long')
     expect(commands[0].argv).toContain('-DBUILD_TEST=1')
+    expect(commands[0].argv).toContain('-marm')
+    expect(commands[0].argv).not.toContain('-mthumb')
+  })
+
+  it('starts EZ tasks in the ARM mode required by the PROS task wrapper', () => {
+    const [command] = browserCompileCommands(
+      {
+        files: { 'src/main.cpp': '' },
+        template: 'ez-template',
+        commitSha: 'test',
+      },
+      '16.1.0',
+    )
+    expect(command.argv).toContain('-marm')
+    expect(command.argv).not.toContain('-mthumb')
+  })
+
+  it('keeps imported PROS commands in ARM mode even when they request Thumb', () => {
+    const [command] = browserCompileCommands(
+      {
+        files: {
+          'compile_commands.json': JSON.stringify([
+            {
+              directory: '/workspace',
+              file: '/workspace/src/main.cpp',
+              arguments: ['clang', '-mthumb', '-c', '/workspace/src/main.cpp'],
+            },
+          ]),
+        },
+        template: 'pros',
+        commitSha: 'test',
+      },
+      '16.1.0',
+    )
+    expect(command.argv.lastIndexOf('-marm')).toBeGreaterThan(
+      command.argv.lastIndexOf('-mthumb'),
+    )
   })
 
   it('rejects commands whose working directory differs from the browser workspace', () => {

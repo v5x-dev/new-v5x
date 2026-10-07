@@ -95,7 +95,7 @@ for (const template of ['VEXcode', 'PROS', 'EZ', 'JAR']) {
     if (template === 'PROS' || template === 'EZ') {
       const artifacts = await page.evaluate(async () => {
         const db = await new Promise<IDBDatabase>((resolve, reject) => {
-          const request = indexedDB.open('v5x-browser-builds', 1)
+          const request = indexedDB.open('v5x-browser-builds-v2', 1)
           request.onsuccess = () => resolve(request.result)
           request.onerror = () => reject(request.error)
         })

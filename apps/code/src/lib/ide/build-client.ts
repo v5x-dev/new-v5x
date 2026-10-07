@@ -65,7 +65,8 @@ export function buildInBrowser(
 
 const database = () =>
   new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open('v5x-browser-builds', 1)
+    // Do not restore binaries compiled before the PROS task instruction-mode fix.
+    const request = indexedDB.open('v5x-browser-builds-v2', 1)
     request.onupgradeneeded = () => request.result.createObjectStore('builds')
     request.onsuccess = () => resolve(request.result)
     request.onerror = () => reject(request.error)

@@ -199,6 +199,9 @@ export function browserCompileCommands(
         }
         arguments_.push(...extraFlags(input.files, cxx, vex))
       }
+      // This also applies to imported compile commands and custom flags.
+      // PROS's ARM task trampoline cannot start a Thumb user task.
+      if (!vex) arguments_.push('-marm')
       // Each source has its own object, including equal basenames in different folders.
       const object = `/workspace/.browser-build/${command.file.slice('/workspace/'.length)}.o`
       return {
@@ -437,7 +440,7 @@ export async function compileBrowserProject(
       'clang',
       '--target=arm-none-eabi',
       '-mcpu=cortex-a9',
-      '-mthumb',
+      '-marm',
       '-mfpu=neon-fp16',
       '-mfloat-abi=softfp',
       '-c',

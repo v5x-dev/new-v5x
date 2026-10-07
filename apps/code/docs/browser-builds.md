@@ -48,6 +48,14 @@ directories. Template flags preserve the V5 ABI. It reads literal
 PROS/EZ Makefiles, and `CFLAGS` and `CXX_FLAGS` assignments from VEXcode/JAR
 Makefiles. Quoted flag values and joined or separate include paths work.
 
+PROS/EZ user code must use ARM instruction mode. Their FreeRTOS port selects a
+task's initial mode from the user callback pointer, but starts execution in an
+ARM task wrapper. A Thumb callback makes that wrapper execute as Thumb and
+fault before the callback runs. The adapter enforces `-marm`, including for
+custom flags and imported compile commands. Thumb support libraries still work
+through ARM/Thumb interworking. Saved binaries from before this fix are ignored
+and must be rebuilt.
+
 An explicit `compile_commands.json` can select other workspace sources and
 compiler arguments. Commands must use `/workspace` as their directory and
 absolute `/workspace/...` file paths. The browser uses Clang, supplies its own
@@ -167,3 +175,28 @@ The script exercises the real WebAssembly toolchain. Browser tests use the
 actual project routes with real authentication and repository
 operations. Hardware execution still needs a connected V5 Brain; compilation
 and ELF conversion checks alone do not verify it.
+
+To exercise task startup with [vex-v5-qemu](https://github.com/vexide/vex-v5-qemu),
+generate a small fixture that starts a `pros::Task` from `initialize()`:
+
+```sh
+BUILD_TEMPLATES=pros,ez-template BUILD_VERIFY_RUNTIME=1 bun scripts/verify-browser-builds.ts
+```
+
+Then run this from the simulator checkout, replacing `/path/to/v5x` with this
+repository's absolute path:
+
+```sh
+cargo xtask run --release \
+  --program /path/to/v5x/.build/browser-verification/ez-template-runtime-task-hot.bin \
+  --load-addr 125829120 \
+  --link /path/to/v5x/.build/browser-verification/ez-template-runtime-task-cold.bin \
+  --link-addr 58720256
+```
+
+Expect `BROWSER_RUNTIME_TASK_OK` in serial output and `Browser task started` on
+the simulated display. Repeat with the `pros-runtime-task` files for PROS.
+Before the ARM-mode fix, EZ entered `FreeRTOS_Undefined` and never reached its
+user task. Both fixtures now reach it. The simulator does not support VEXcode's
+firmware standard library and cooperative scheduler, so VEXcode/JAR still need
+hardware execution checks.

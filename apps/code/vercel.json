@@ -1,4 +1,19 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "bun run --cwd ../../packages/serial build && if [ \"$VERCEL_ENV\" = \"production\" ]; then bunx convex deploy --typecheck enable; fi && bun run build"
+  "buildCommand": "bun run --cwd ../../packages/serial build && if [ \"$VERCEL_ENV\" = \"production\" ]; then bunx convex deploy --typecheck enable; fi && bun run build",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin"
+        },
+        {
+          "key": "Cross-Origin-Embedder-Policy",
+          "value": "credentialless"
+        }
+      ]
+    }
+  ]
 }

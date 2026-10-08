@@ -4,10 +4,12 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useAction } from 'convex/react'
 import {
   ArrowLeftIcon,
+  GearIcon,
   GitCommitIcon,
   HammerIcon,
   PlugsIcon,
   UploadSimpleIcon,
+  XIcon,
 } from '@phosphor-icons/react'
 import * as React from 'react'
 import {
@@ -25,6 +27,7 @@ import {
   buildInBrowser,
   readBrowserBuild,
   releaseBrowserCompiler,
+  scheduleBrowserCompilerPreload,
   writeBrowserBuild,
 } from '~/lib/ide/build-client'
 import { WorkspaceEditor } from '~/components/ide/workspace-editor'
@@ -168,6 +171,8 @@ function RouteComponent() {
     await disposeBrainConnection(connection.device, true)
   }
 
+  const [buildOptionsOpen, setBuildOptionsOpen] = React.useState(false)
+
   const build = async () => {
     if (
       !program?.currentCommitSha ||
@@ -199,6 +204,7 @@ function RouteComponent() {
       const result = await buildInBrowser(
         {
           ...snapshot,
+          workspaceId: programId,
           template: program.template ?? 'vexcode',
         },
         (text) => {
@@ -232,9 +238,12 @@ function RouteComponent() {
     } catch (error) {
       if (generation !== buildGenerationRef.current) return
       const message = error instanceof Error ? error.message : String(error)
-      setBuildMessage('Build failed')
+      setBuildMessage(
+        controller.signal.aborted ? 'Build cancelled' : 'Build failed',
+      )
       setBuildOutput((output) => `${output}\n${message}`)
-      console.error('Browser build failed:', error)
+      if (!controller.signal.aborted)
+        console.error('Browser build failed:', error)
     } finally {
       if (buildAbortRef.current === controller) {
         buildAbortRef.current = null
@@ -524,6 +533,16 @@ function RouteComponent() {
   }, [getProgramFiles, programId])
 
   React.useEffect(() => {
+    if (!program?.currentCommitSha) return
+    return scheduleBrowserCompilerPreload({
+      workspaceId: programId,
+      template: program.template ?? 'vexcode',
+      commitSha: program.currentCommitSha,
+      files: {},
+    })
+  }, [programId, program?.template, program?.currentCommitSha])
+
+  React.useEffect(() => {
     const commitSha = program?.currentCommitSha
     if (!commitSha) return
 
@@ -699,6 +718,49 @@ function RouteComponent() {
                   <HammerIcon />
                 )}
               </Button>
+              <Popover
+                open={buildOptionsOpen}
+                onOpenChange={setBuildOptionsOpen}
+              >
+                <PopoverTrigger
+                  render={
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      aria-label="Build options"
+                      title="Build options"
+                    />
+                  }
+                >
+                  <GearIcon />
+                </PopoverTrigger>
+                <PopoverContent side="bottom" align="end" className="w-72">
+                  <PopoverHeader>
+                    <PopoverTitle>Build options</PopoverTitle>
+                  </PopoverHeader>
+                  <Button
+                    variant="ghost"
+                    disabled={isBuilding}
+                    onClick={() => {
+                      releaseBrowserCompiler()
+                      setBuildOptionsOpen(false)
+                    }}
+                  >
+                    Reset browser compiler
+                  </Button>
+                </PopoverContent>
+              </Popover>
+              {isBuilding && (
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  aria-label="Cancel build"
+                  title="Cancel build"
+                  onClick={() => buildAbortRef.current?.abort()}
+                >
+                  <XIcon data-icon="inline-start" />
+                </Button>
+              )}
               <Popover>
                 <PopoverTrigger
                   render={

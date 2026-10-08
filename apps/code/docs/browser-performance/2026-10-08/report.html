@@ -1,0 +1,493 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        font: 14px var(--font-sans, system-ui);
+        color: var(--foreground);
+        margin: 0;
+      }
+      h2 {
+        font-size: 18px;
+        margin: 20px 0 8px;
+      }
+      p {
+        color: var(--muted-foreground);
+        line-height: 1.5;
+      }
+      select {
+        padding: 8px;
+        background: var(--card);
+        color: var(--foreground);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        width: 100%;
+      }
+      .row {
+        margin: 12px 0;
+      }
+      .label {
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+      .track {
+        height: 20px;
+        background: var(--muted);
+        position: relative;
+        margin: 3px 0;
+      }
+      .bar {
+        height: 20px;
+        background: var(--chart-1, #5b8def);
+        min-width: 2px;
+      }
+      .opt {
+        background: var(--chart-2, #3cba88);
+      }
+      .num {
+        position: absolute;
+        right: 6px;
+        top: 2px;
+        font-size: 12px;
+      }
+      .legend {
+        font-size: 12px;
+      }
+      .timeline {
+        position: relative;
+        height: 210px;
+        overflow: hidden;
+        border-bottom: 1px solid var(--border);
+      }
+      .span {
+        position: absolute;
+        height: 16px;
+        min-width: 2px;
+        background: var(--chart-2, #3cba88);
+        font-size: 10px;
+        white-space: nowrap;
+      }
+      .missing {
+        padding: 16px;
+        background: var(--muted);
+        border-radius: var(--radius, 8px);
+        margin-top: 18px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 6px;
+        border-bottom: 1px solid var(--border);
+      }
+      button {
+        padding: 7px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        color: var(--foreground);
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Local compiler comparisons</h2>
+    <p>
+      Linux development machine · i7-8700K · 32 GB RAM. Hardware acceptance
+      pending.
+    </p>
+    <select id="dataset">
+      <option value="demo">Real /build-demo · 80 alternating builds</option>
+      <option value="project">
+        Real project route · PROS · 20 alternating builds
+      </option>
+      <option value="experiments">
+        Bun WASM · larger synthetic fixture · 160 builds
+      </option>
+    </select>
+    <p id="note"></p>
+    <div id="chart"></div>
+    <div class="legend" id="legend"></div>
+    <h2>One warm EZ build, worker phases</h2>
+    <p>
+      Overlapping spans share the worker clock. Bar widths show duration; they
+      must not be added together.
+    </p>
+    <div class="timeline" id="timeline"></div>
+    <h2>Reuse in the selected EZ build</h2>
+    <table id="counts"></table>
+    <div class="missing">
+      <strong>Measurements still needed</strong>
+      <p>
+        Chromebook total WASM/PCH memory, typing latency, tab pressure,
+        two-worker latency versus memory, Brain upload/runtime, and live cloud
+        request-to-download latency. These are unavailable, not zero. Os and one
+        compiler remain defaults.
+      </p>
+    </div>
+    <script>
+      const data = {
+        browser: [
+          {
+            route: '/build-demo',
+            template: 'ez-template',
+            variant: 'reference',
+            median: 8498.692500114441,
+          },
+          {
+            route: '/build-demo',
+            template: 'ez-template',
+            variant: 'optimized',
+            median: 402.5350000858307,
+          },
+          {
+            route: '/build-demo',
+            template: 'jar-template',
+            variant: 'reference',
+            median: 3259.814999938011,
+          },
+          {
+            route: '/build-demo',
+            template: 'jar-template',
+            variant: 'optimized',
+            median: 200.28749990463257,
+          },
+          {
+            route: '/build-demo',
+            template: 'pros',
+            variant: 'reference',
+            median: 1990.5699999332428,
+          },
+          {
+            route: '/build-demo',
+            template: 'pros',
+            variant: 'optimized',
+            median: 250.42499995231628,
+          },
+          {
+            route: '/build-demo',
+            template: 'vexcode',
+            variant: 'reference',
+            median: 301.06000006198883,
+          },
+          {
+            route: '/build-demo',
+            template: 'vexcode',
+            variant: 'optimized',
+            median: 200.27499997615814,
+          },
+          {
+            route: '/p/:programId',
+            template: 'pros',
+            variant: 'reference',
+            median: 2100.2775000333786,
+          },
+          {
+            route: '/p/:programId',
+            template: 'pros',
+            variant: 'optimized',
+            median: 219.62000000476837,
+          },
+        ],
+        experiments: [
+          {
+            template: 'ez-template',
+            variant: 'Os',
+            median: 27792.646649000002,
+          },
+          { template: 'ez-template', variant: 'O0', median: 30318.43588950002 },
+          { template: 'ez-template', variant: 'O1', median: 27725.793603 },
+          {
+            template: 'ez-template',
+            variant: 'project-pch',
+            median: 6500.482578499825,
+          },
+          {
+            template: 'jar-template',
+            variant: 'Os',
+            median: 5801.603101500077,
+          },
+          {
+            template: 'jar-template',
+            variant: 'O0',
+            median: 5726.487628499861,
+          },
+          {
+            template: 'jar-template',
+            variant: 'O1',
+            median: 5730.388318500016,
+          },
+          {
+            template: 'jar-template',
+            variant: 'project-pch',
+            median: 1320.0265209999634,
+          },
+          { template: 'pros', variant: 'Os', median: 8069.011114500005 },
+          { template: 'pros', variant: 'O0', median: 7946.120251 },
+          { template: 'pros', variant: 'O1', median: 7903.825488999995 },
+          {
+            template: 'pros',
+            variant: 'project-pch',
+            median: 2495.8492055000097,
+          },
+          { template: 'vexcode', variant: 'Os', median: 1410.6136305000002 },
+          { template: 'vexcode', variant: 'O0', median: 1358.7349285 },
+          { template: 'vexcode', variant: 'O1', median: 1361.1530934999992 },
+          {
+            template: 'vexcode',
+            variant: 'project-pch',
+            median: 452.76865800000087,
+          },
+        ],
+        timeline: [
+          {
+            buildId: '025c03f3-e97e-4cb8-b254-96d3a536b4d9',
+            clock: 'worker',
+            phase: 'manifests',
+            start: 102038.11500000954,
+            end: 102038.11999988556,
+            outcome: 'success',
+          },
+          {
+            buildId: '025c03f3-e97e-4cb8-b254-96d3a536b4d9',
+            clock: 'worker',
+            phase: 'wasm-initialization',
+            start: 102039.24000000954,
+            end: 102039.24499988556,
+            outcome: 'success',
+          },
+          {
+            buildId: '025c03f3-e97e-4cb8-b254-96d3a536b4d9',
+            clock: 'worker',
+            phase: 'project-synchronization',
+            start: 102039.26499986649,
+            end: 102039.34999990463,
+            outcome: 'success',
+          },
+          {
+            clock: 'worker',
+            phase: 'cache-read',
+            start: 102049.52999997139,
+            end: 102049.53499984741,
+            outcome: 'success',
+            counts: {
+              cacheHits: 1,
+              cachedBytes: 26404,
+              memoryBytes: 148578,
+              pendingBytes: 0,
+            },
+            buildId: '025c03f3-e97e-4cb8-b254-96d3a536b4d9',
+          },
+          {
+            buildId: '025c03f3-e97e-4cb8-b254-96d3a536b4d9',
+            clock: 'worker',
+            phase: 'dependency-validation',
+            start: 102050.08500003815,
+            end: 102055.58999991417,
+            outcome: 'success',
+          },
+          {
+            clock: 'worker',
+            phase: 'cache-read',
+            start: 102055.64999985695,
+            end: 102055.65499997139,
+            outcome: 'success',
+            counts: {
+              cacheHits: 1,
+              cachedBytes: 20868,
+              memoryBytes: 148578,
+              pendingBytes: 0,
+            },
+            buildId: '025c03f3-e97e-4cb8-b254-96d3a536b4d9',
+          },
+          {
+            clock: 'worker',
+            phase: 'cache-read',
+            start: 102055.75499987602,
+            end: 102055.75999999046,
+            outcome: 'success',
+            counts: {
+              cacheHits: 1,
+              cachedBytes: 26402,
+              memoryBytes: 148578,
+              pendingBytes: 0,
+            },
+            buildId: '025c03f3-e97e-4cb8-b254-96d3a536b4d9',
+          },
+          {
+            buildId: '025c03f3-e97e-4cb8-b254-96d3a536b4d9',
+            clock: 'worker',
+            phase: 'dependency-validation',
+            start: 102056.1899998188,
+            end: 102061.75499987602,
+            outcome: 'success',
+          },
+          {
+            clock: 'worker',
+            phase: 'cache-read',
+            start: 102061.80999994278,
+            end: 102061.8149998188,
+            outcome: 'success',
+            counts: {
+              cacheHits: 1,
+              cachedBytes: 36860,
+              memoryBytes: 148578,
+              pendingBytes: 0,
+            },
+            buildId: '025c03f3-e97e-4cb8-b254-96d3a536b4d9',
+          },
+          {
+            buildId: '025c03f3-e97e-4cb8-b254-96d3a536b4d9',
+            clock: 'worker',
+            phase: 'timestamp-patch',
+            start: 102061.91499996185,
+            end: 102061.96499991417,
+            outcome: 'success',
+          },
+          {
+            buildId: '025c03f3-e97e-4cb8-b254-96d3a536b4d9',
+            clock: 'worker',
+            phase: 'cold-input-validation',
+            start: 102061.9849998951,
+            end: 102062.11500000954,
+            outcome: 'success',
+          },
+          {
+            clock: 'worker',
+            phase: 'cache-read',
+            start: 102062.16499996185,
+            end: 102062.60500001907,
+            outcome: 'success',
+            counts: {
+              cacheHits: 0,
+              cachedBytes: 0,
+              memoryBytes: 148578,
+              pendingBytes: 0,
+            },
+            buildId: '025c03f3-e97e-4cb8-b254-96d3a536b4d9',
+          },
+          {
+            buildId: '025c03f3-e97e-4cb8-b254-96d3a536b4d9',
+            clock: 'worker',
+            phase: 'user-link',
+            start: 102062.72499990463,
+            end: 102214.38499999046,
+            outcome: 'success',
+          },
+          {
+            buildId: '025c03f3-e97e-4cb8-b254-96d3a536b4d9',
+            clock: 'worker',
+            phase: 'hot-binary-conversion',
+            start: 102215.00499987602,
+            end: 102215.05999994278,
+            outcome: 'success',
+          },
+          {
+            buildId: '025c03f3-e97e-4cb8-b254-96d3a536b4d9',
+            clock: 'worker',
+            phase: 'compiler-total',
+            start: 102039.26499986649,
+            end: 102215.0799999237,
+            outcome: 'success',
+            counts: {
+              sources: 2,
+              objectsReused: 2,
+              starterObjectsReused: 0,
+              commands: 1,
+              projectWrites: 0,
+              projectDeletes: 0,
+              returnedBytes: 2414492,
+            },
+          },
+        ],
+      }
+      const chart = document.getElementById('chart')
+      function render() {
+        const mode = document.getElementById('dataset').value
+        const rows =
+          mode === 'experiments'
+            ? data.experiments
+            : data.browser.filter(
+                (r) =>
+                  r.route ===
+                  (mode === 'demo' ? '/build-demo' : '/p/:programId'),
+              )
+        const max = Math.max(...rows.map((r) => r.median))
+        chart.innerHTML = ''
+        for (const name of [...new Set(rows.map((r) => r.template))]) {
+          const block = document.createElement('div')
+          block.className = 'row'
+          const label = document.createElement('div')
+          label.className = 'label'
+          label.textContent = name
+          block.append(label)
+          for (const row of rows.filter((r) => r.template === name)) {
+            const track = document.createElement('div')
+            track.className = 'track'
+            const bar = document.createElement('div')
+            bar.className =
+              'bar ' +
+              (row.variant === 'optimized' || row.variant === 'project-pch'
+                ? 'opt'
+                : '')
+            bar.style.width = (100 * row.median) / max + '%'
+            const num = document.createElement('span')
+            num.className = 'num'
+            num.textContent =
+              row.variant + ' · ' + Math.round(row.median) + ' ms'
+            track.append(bar, num)
+            block.append(track)
+          }
+          chart.append(block)
+        }
+        document.getElementById('note').textContent =
+          mode === 'experiments'
+            ? 'Ten samples per variant, blocked ordering. Warm PCH median excludes its first creation cost. No editor/network/upload.'
+            : 'Ten samples per variant. Warm assets, unchanged snapshots, alternating current-code reference switches. Reference is not a historical checkout. Demo polling has a 200 ms floor.'
+        document.getElementById('legend').textContent =
+          'Median latency · no p95 with ten samples'
+      }
+      document.getElementById('dataset').onchange = render
+      render()
+      const phases = [
+        'project-synchronization',
+        'dependency-validation',
+        'timestamp-patch',
+        'cold-input-validation',
+        'user-link',
+        'hot-binary-conversion',
+        'compiler-total',
+      ]
+      const spans = data.timeline.filter((r) => phases.includes(r.phase))
+      const start = Math.min(...spans.map((s) => s.start)),
+        end = Math.max(...spans.map((s) => s.end))
+      for (const [i, s] of spans.entries()) {
+        const bar = document.createElement('div')
+        bar.className = 'span'
+        bar.style.left = (100 * (s.start - start)) / (end - start) + '%'
+        bar.style.width = (100 * (s.end - s.start)) / (end - start) + '%'
+        bar.style.top = i * 21 + 'px'
+        bar.textContent = s.phase + ' ' + (s.end - s.start).toFixed(1) + ' ms'
+        document.getElementById('timeline').append(bar)
+      }
+      const total = data.timeline.find((s) => s.phase === 'compiler-total')
+      const counts = total?.counts || {}
+      document.getElementById('counts').innerHTML =
+        '<tr><th>Worker counter</th><th>Value</th></tr>' +
+        Object.entries(counts)
+          .map(([k, v]) => '<tr><td>' + k + '</td><td>' + v + '</td></tr>')
+          .join('')
+      console.log(
+        'Report checked',
+        data.browser.length,
+        'browser summaries',
+        data.experiments.length,
+        'experiment summaries',
+      )
+    </script>
+  </body>
+</html>

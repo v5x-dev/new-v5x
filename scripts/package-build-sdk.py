@@ -2,7 +2,6 @@
 """Package real ARM libraries and linker scripts for browser builds."""
 
 import argparse
-import base64
 import gzip
 import hashlib
 import json
@@ -73,19 +72,20 @@ def write(name, files, provenance):
         **provenance,
         "debugSections": "removed with arm-none-eabi-objcopy --strip-debug",
     }
-    raw = json.dumps(
-        {
-            "files": {
-                path: base64.b64encode(data).decode() for path, data in files.items()
-            }
-        },
-        separators=(",", ":"),
-    ).encode()
+    entries = []
+    payload = bytearray()
+    for path, data in files.items():
+        digest = hashlib.sha256(hashlib.sha256(data).digest()).hexdigest()
+        entries.append([path, len(payload), len(data), digest])
+        payload.extend(data)
+    index = json.dumps(entries, separators=(",", ":")).encode()
+    raw = b"V5XSDK01" + struct.pack("<I", len(index)) + index + payload
     compressed = gzip.compress(raw, mtime=0)
     digest = hashlib.sha256(compressed).hexdigest()
-    filename = f"{name}-{digest[:16]}.bundle"
+    filename = f"{name}-{digest[:16]}.sdk.gz"
     (args.output / filename).write_bytes(compressed)
     return {
+        "format": "indexed-v1",
         "url": f"/compiler/{filename}",
         "sha256": digest,
         "bytes": len(compressed),

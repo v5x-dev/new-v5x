@@ -33,7 +33,7 @@ export const cacheLatest = internalMutation({
 
     for (const artifact of args.artifacts) {
       if (!artifact.sha256) continue
-      const metadata = await ctx.db.system.get(artifact.storageId)
+      const metadata = await ctx.db.system.get('_storage', artifact.storageId)
       const expected = btoa(
         String.fromCharCode(
           ...(artifact.sha256.match(/../g) ?? []).map((hex) =>

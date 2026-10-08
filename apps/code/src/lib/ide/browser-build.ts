@@ -1,12 +1,43 @@
+import { patchBuildMetadata, timestampArguments } from './build-metadata'
+import {
+  BrowserBuildSession,
+  includeInventory,
+  validDependencyRecord,
+} from './build-session'
+import { buildTimings } from './build-performance'
 import { compileCommands } from './compile-commands'
 import { buildCacheKey, dependencyPaths } from './build-cache'
 import { validPath } from './workspace'
-import { elfToBinary, stripElfSymbols } from './elf-binary'
+import {
+  coldSdkBinary,
+  coldSdkConfiguration,
+  coldSdkDigest,
+  coldSdkSymbols,
+  normalizeLinkerScript,
+} from './cold-sdk'
+import { elfToBinary } from './elf-binary'
+import type { PrebuiltColdSdk, StarterObject } from './build-assets'
+import type { BuildTimingEvent } from './build-performance'
 import type { BuildCache } from './build-cache'
 import type { Session } from 'microbit-clang-wasm'
 import type { ProjectTemplate } from './compile-commands'
 
 export interface BrowserBuildInput {
+  workspaceId?: string
+  buildId?: string
+  trace?: boolean
+  kind?: 'preload'
+  knownArtifacts?: Array<string>
+  experiments?: {
+    parallel?: 1 | 2
+    optimization?: 'O0' | 'O1' | 'Os'
+    pch?: 'off' | 'project'
+    metadata?: 'compile'
+    freshSession?: boolean
+    cache?: boolean
+    prebuiltCold?: boolean
+    starter?: boolean
+  }
   files: Record<string, string>
   template: ProjectTemplate
   commitSha: string
@@ -161,7 +192,7 @@ export function browserCompileCommands(
         .filter((arg) => !arg.startsWith('-resource-dir='))
       if (!input.files['compile_commands.json']) {
         arguments_.push(
-          '-Os',
+          `-${input.experiments?.optimization ?? 'Os'}`,
           '-ffunction-sections',
           '-fdata-sections',
           '-fno-diagnostics-color',
@@ -202,6 +233,15 @@ export function browserCompileCommands(
       // This also applies to imported compile commands and custom flags.
       // PROS's ARM task trampoline cannot start a Thumb user task.
       if (!vex) arguments_.push('-marm')
+      const optimizationIndex =
+        arguments_.length -
+        1 -
+        [...arguments_]
+          .reverse()
+          .findIndex((arg) => /^-O(?:[0-3sgz]|fast)$/.test(arg))
+      for (let index = optimizationIndex - 1; index >= 0; index--)
+        if (/^-O(?:[0-3sgz]|fast)$/.test(arguments_[index]))
+          arguments_.splice(index, 1)
       // Each source has its own object, including equal basenames in different folders.
       const object = `/workspace/.browser-build/${command.file.slice('/workspace/'.length)}.o`
       return {
@@ -239,8 +279,46 @@ export async function compileBrowserProject(
   input: BrowserBuildInput,
   gccVersion: string,
   report: (text: string) => void,
-  caching?: { cache: BuildCache; sdkKey: string },
+  caching?: {
+    cache: BuildCache
+    sdkKey: string
+    state?: BrowserBuildSession
+    parallelCompiler?: {
+      compile: (
+        argv: Array<string>,
+        object: string,
+      ) => Promise<{
+        code: number
+        output: string
+        bytes: Uint8Array | null
+        dependencies: Uint8Array | null
+      }>
+    }
+    starterObjects?: {
+      entries: Array<StarterObject>
+      load: (asset: StarterObject['asset']) => Promise<Uint8Array>
+    }
+    metadataObject?: Uint8Array
+    prebuiltCold?: {
+      metadata: PrebuiltColdSdk
+      symbols: Uint8Array
+      binary: Uint8Array
+    }
+    timing?: (event: BuildTimingEvent) => void
+  },
 ): Promise<BrowserBuildResult> {
+  const timing = buildTimings(input.buildId ?? 'local', caching?.timing)
+  const state = caching?.state ?? new BrowserBuildSession(session)
+  const buildStart = performance.now()
+  const counts = {
+    sources: 0,
+    objectsReused: 0,
+    starterObjectsReused: 0,
+    commands: 0,
+    projectWrites: 0,
+    projectDeletes: 0,
+    returnedBytes: 0,
+  }
   let output = ''
   const emit = (text: string) => {
     output = (output + text).slice(-400 * 1024)
@@ -254,46 +332,125 @@ export async function compileBrowserProject(
     if (text) emit(text)
   }
   const run = async (argv: Array<string>) => {
+    counts.commands++
     emit(`${argv.join(' ')}\n`)
-    return session.run(argv, { stdout: stream, stderr: stream })
+    return timing.measure(
+      argv[0] === 'clang'
+        ? argv.includes('/workspace/.browser-build/timestamp.c')
+          ? 'timestamp-compile'
+          : 'compile'
+        : argv.includes('--no-gc-sections')
+          ? 'cold-link'
+          : 'user-link',
+      () => session.run(argv, { stdout: stream, stderr: stream }),
+    )
   }
   const result = (
     exitCode: number,
     artifacts: BrowserBuildResult['artifacts'] = [],
-  ) => ({ commitSha: input.commitSha, exitCode, output, artifacts })
-
-  for (const [path, contents] of Object.entries(input.files)) {
-    if (!validPath(path)) throw new Error(`Invalid project path: ${path}`)
-    await session.writeFile(`/workspace/${path}`, contents)
+  ) => {
+    counts.returnedBytes = artifacts.reduce(
+      (sum, artifact) => sum + artifact.bytes.byteLength,
+      0,
+    )
+    caching?.timing?.({
+      buildId: input.buildId ?? 'local',
+      clock: 'worker',
+      phase: 'compiler-total',
+      start: buildStart,
+      end: performance.now(),
+      outcome: exitCode ? 'error' : 'success',
+      counts,
+    })
+    return {
+      commitSha: input.commitSha,
+      exitCode,
+      output,
+      artifacts,
+    }
   }
+
+  const synchronization = await timing.measure('project-synchronization', () =>
+    state.synchronize(input.files),
+  )
+  counts.projectWrites = synchronization.written
+  counts.projectDeletes = synchronization.removed
   const commands = browserCompileCommands(input, gccVersion)
+  counts.sources = commands.length
+  // Imported driver commands and response files may read inputs absent from depfiles.
+  const cacheSafeConfiguration =
+    !input.files['compile_commands.json'] &&
+    !commands.some((command) =>
+      command.argv.some(
+        (arg) =>
+          arg.startsWith('@') ||
+          /(?:module|plugin|profile|vfsoverlay|vfs-overlay)/.test(arg) ||
+          arg === '-Xclang' ||
+          arg === '-load',
+      ),
+    )
   const namespace = caching
     ? await buildCacheKey([
-        'clang-21.11.0-browser-build-v2',
+        'clang-21.11.0-browser-build-v4',
         caching.sdkKey,
-        JSON.stringify(Object.keys(input.files).sort()),
+        JSON.stringify(state.inventory(input.files)),
       ])
     : ''
   const dependencyKey = async (paths: Array<string>) => {
     const parts: Array<string | Uint8Array> = []
     for (const path of paths) {
-      const contents = await session.readFile(path)
-      if (!contents) return undefined
-      // These macros depend on the build clock, not just file contents.
-      if (
-        /__DATE__|__TIME__|__TIMESTAMP__/.test(
-          new TextDecoder().decode(contents),
-        )
-      )
-        return undefined
-      parts.push(path, contents)
+      const digest = await state.dependencyDigest(path)
+      if (!digest) return undefined
+      parts.push(path, digest)
     }
     return buildCacheKey(parts)
   }
+  const finalDependencies = new Set<string>()
+  const finalEligibility = { value: true }
+  const vex = input.template === 'vexcode' || input.template === 'jar-template'
+  const finalKey =
+    caching && vex && cacheSafeConfiguration
+      ? await buildCacheKey([
+          'browser-final-v1',
+          caching.sdkKey,
+          gccVersion,
+          JSON.stringify(commands.map((command) => command.argv)),
+          JSON.stringify(
+            Object.entries(input.files).sort(([a], [b]) => a.localeCompare(b)),
+          ),
+        ])
+      : undefined
+  if (finalKey && caching) {
+    const stored = await caching.cache.get(finalKey)
+    if (stored) {
+      try {
+        const metadata: unknown = JSON.parse(new TextDecoder().decode(stored))
+        if (
+          validDependencyRecord(metadata) &&
+          (await dependencyKey(metadata.paths)) === metadata.digest
+        ) {
+          const bytes = await caching.cache.get(
+            await buildCacheKey([finalKey, metadata.digest, 'binary']),
+          )
+          if (bytes) {
+            emit(
+              `Reused completed browser build (${bytes.byteLength} bytes in this browser).\n`,
+            )
+            return result(0, [{ path: 'build/workspace.bin', bytes }])
+          }
+        }
+      } catch {
+        /* Missing/corrupt final entries compile normally. */
+      }
+    }
+  }
+  let compilationAssignment = 0
   const compile = async (argv: Array<string>, object: string) => {
     const enabled =
       Boolean(caching) &&
+      cacheSafeConfiguration &&
       !argv.some((arg) => /__DATE__|__TIME__|__TIMESTAMP__/.test(arg))
+    if (!enabled) finalEligibility.value = false
     const key = enabled
       ? await buildCacheKey([namespace, JSON.stringify(argv)])
       : ''
@@ -301,15 +458,23 @@ export async function compileBrowserProject(
       const manifest = await caching.cache.get(key)
       if (manifest) {
         try {
-          const { paths, digest } = JSON.parse(
-            new TextDecoder().decode(manifest),
-          ) as { paths: Array<string>; digest: string }
-          if (paths.length && (await dependencyKey(paths)) === digest) {
+          const record: unknown = JSON.parse(new TextDecoder().decode(manifest))
+          if (!validDependencyRecord(record))
+            throw new Error('Invalid dependencies')
+          const { paths, digest } = record
+          paths.forEach((path) => finalDependencies.add(path))
+          if (
+            paths.length &&
+            (await timing.measure('dependency-validation', () =>
+              dependencyKey(paths),
+            )) === digest
+          ) {
             const bytes = await caching.cache.get(
               await buildCacheKey([key, digest]),
             )
             if (bytes) {
-              await session.writeFile(object, bytes)
+              counts.objectsReused++
+              await state.writeFile(object, bytes)
               emit(
                 `Reused ${object.slice('/workspace/.browser-build/'.length)}.\n`,
               )
@@ -321,15 +486,95 @@ export async function compileBrowserProject(
         }
       }
     }
+    if (
+      enabled &&
+      caching?.starterObjects &&
+      input.experiments?.starter !== false
+    ) {
+      const ordinary = argv.filter(
+        (arg, index) =>
+          arg !== '-include-pch' && argv[index - 1] !== '-include-pch',
+      )
+      const candidate = caching.starterObjects.entries.find(
+        (entry) =>
+          entry.version === 1 &&
+          entry.gccVersion === gccVersion &&
+          JSON.stringify(entry.arguments) === JSON.stringify(ordinary) &&
+          JSON.stringify(entry.inventory) ===
+            JSON.stringify(state.inventory(input.files)),
+      )
+      if (
+        candidate &&
+        validDependencyRecord(candidate) &&
+        (await state.dependencyDigest(
+          ordinary.find((arg) => arg.startsWith('/workspace/src/'))!,
+        )) === candidate.sourceDigest &&
+        (await dependencyKey(candidate.paths)) === candidate.digest
+      ) {
+        try {
+          const bytes = await caching.starterObjects.load(candidate.asset)
+          await state.writeFile(object, bytes)
+          candidate.paths.forEach((path) => finalDependencies.add(path))
+          counts.objectsReused++
+          counts.starterObjectsReused++
+          emit(
+            `Reused verified starter ${object.slice('/workspace/.browser-build/'.length)}.\n`,
+          )
+          await caching.cache.put(
+            await buildCacheKey([key, candidate.digest]),
+            bytes,
+          )
+          await caching.cache.put(
+            key,
+            new TextEncoder().encode(
+              JSON.stringify({
+                paths: candidate.paths,
+                digest: candidate.digest,
+              }),
+            ),
+          )
+          return 0
+        } catch {
+          /* Optional starter downloads never prevent local compilation. */
+        }
+      }
+    }
     const depfile = object + '.d'
-    const code = await run(enabled ? [...argv, '-MD', '-MF', depfile] : argv)
+    const effectiveArgv = enabled ? [...argv, '-MD', '-MF', depfile] : argv
+    let code: number
+    if (
+      caching?.parallelCompiler &&
+      enabled &&
+      compilationAssignment++ % 2 === 1
+    ) {
+      try {
+        const remote = await timing.measure('parallel-source-compile', () =>
+          caching.parallelCompiler!.compile(effectiveArgv, object),
+        )
+        counts.commands++
+        emit(
+          `[Parallel source ${object.slice('/workspace/.browser-build/'.length)}]\n${remote.output}`,
+        )
+        code = remote.code
+        if (!code && remote.bytes) {
+          await state.writeFile(object, remote.bytes)
+          if (remote.dependencies)
+            await state.writeFile(depfile, remote.dependencies)
+        }
+      } catch {
+        emit('Parallel compiler unavailable; compiling source locally.\n')
+        code = await run(effectiveArgv)
+      }
+    } else code = await run(effectiveArgv)
     if (!code && enabled && caching) {
       const dependencies = await session.readFile(depfile)
       const bytes = await session.readFile(object)
       const paths = dependencies
         ? dependencyPaths(new TextDecoder().decode(dependencies))
         : []
+      paths.forEach((path) => finalDependencies.add(path))
       const digest = paths.length ? await dependencyKey(paths) : undefined
+      if (!digest) finalEligibility.value = false
       if (bytes && digest) {
         await caching.cache.put(await buildCacheKey([key, digest]), bytes)
         await caching.cache.put(
@@ -342,12 +587,23 @@ export async function compileBrowserProject(
   }
   // Only use a PCH when main.h is the first directive. Source-defined macros
   // and sources that do not include main.h retain their normal preprocessing.
+  const umbrella = vex ? 'vex.h' : 'main.h'
+  const firstUmbrellaDirective = new RegExp(
+    '^\\s*(?:(?:\\/\\/[^\\n]*\\n|\\/\\*[\\s\\S]*?\\*\\/)\\s*)*#\\s*include\\s*"' +
+      umbrella.replace('.', '\\.') +
+      '"',
+  )
   const pchCommands =
-    input.template === 'ez-template' && input.files['include/main.h']
+    cacheSafeConfiguration &&
+    input.experiments?.pch !== 'off' &&
+    input.experiments?.parallel !== 2 &&
+    (input.template === 'ez-template' ||
+      input.experiments?.pch === 'project') &&
+    input.files[`include/${umbrella}`]
       ? commands.filter(
           (command) =>
             /\.cpp$/.test(command.file) &&
-            /^\s*(?:(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/)\s*)*#\s*include\s*"main\.h"/.test(
+            firstUmbrellaDirective.test(
               input.files[command.file.slice('/workspace/'.length)] ?? '',
             ),
         )
@@ -358,37 +614,146 @@ export async function compileBrowserProject(
     groups.set(key, [...(groups.get(key) ?? []), command])
   }
   const pchBySource = new Map<string, string>()
-  const precompiled = await session.readFile('/sdk/ez/main-pch.json')
+  const precompiled =
+    input.experiments?.pch === 'off'
+      ? null
+      : await session.readFile('/sdk/ez/main-pch.json')
   if (precompiled) {
-    const metadata = JSON.parse(new TextDecoder().decode(precompiled)) as {
-      arguments: Array<string>
-      paths: Array<string>
-      digest: string
-      workspacePaths: Array<string>
+    try {
+      const metadata = JSON.parse(new TextDecoder().decode(precompiled)) as {
+        version?: number
+        arguments: Array<string>
+        paths: Array<string>
+        digest: string
+        workspacePaths: Array<string>
+      }
+      for (const [args, group] of groups) {
+        if (
+          args !== JSON.stringify(metadata.arguments) ||
+          JSON.stringify(state.inventory(input.files)) !==
+            JSON.stringify(
+              includeInventory(
+                metadata.workspacePaths,
+                state.inventory(input.files).length ===
+                  Object.keys(input.files).length,
+              ),
+            )
+        )
+          continue
+        if (!validDependencyRecord(metadata)) continue
+        if (metadata.version === 3) {
+          if ((await dependencyKey(metadata.paths)) !== metadata.digest)
+            continue
+          for (const command of group)
+            pchBySource.set(command.file, '/sdk/ez/main.pch')
+          continue
+        }
+        const parts: Array<string | Uint8Array> = []
+        let valid = true
+        for (const path of metadata.paths) {
+          const bytes = await session.readFile(path)
+          if (
+            !bytes ||
+            /__DATE__|__TIME__|__TIMESTAMP__/.test(
+              new TextDecoder().decode(bytes),
+            )
+          ) {
+            valid = false
+            break
+          }
+          parts.push(path, bytes)
+        }
+        if (!valid || (await buildCacheKey(parts)) !== metadata.digest) continue
+        for (const command of group)
+          pchBySource.set(command.file, '/sdk/ez/main.pch')
+      }
+      if (pchBySource.size) emit('Using checked EZ precompiled headers.\n')
+    } catch {
+      pchBySource.clear()
     }
+  }
+  if (
+    input.experiments?.pch === 'project' &&
+    input.experiments.parallel !== 2
+  ) {
     for (const [args, group] of groups) {
       if (
-        args !== JSON.stringify(metadata.arguments) ||
-        JSON.stringify(Object.keys(input.files).sort()) !==
-          JSON.stringify(metadata.workspacePaths)
+        group.length < 2 ||
+        group.every((command) => pchBySource.has(command.file))
       )
         continue
-      if ((await dependencyKey(metadata.paths)) !== metadata.digest) continue
-      for (const command of group)
-        pchBySource.set(command.file, '/sdk/ez/main.pch')
+      const inventory = JSON.stringify(state.inventory(input.files))
+      const retained = state.projectPch
+      if (
+        retained &&
+        retained.args === args &&
+        retained.inventory === inventory &&
+        (await dependencyKey(retained.paths)) === retained.digest
+      ) {
+        group.forEach((command) => pchBySource.set(command.file, retained.path))
+        continue
+      }
+      await session.remove('/workspace/.browser-pch')
+      state.projectPch = undefined
+      const header = `/workspace/include/${umbrella}`
+      const path = '/workspace/.browser-pch/main.pch'
+      const depfile = path + '.d'
+      const code = await timing.measure('project-pch-generation', () =>
+        session.run(
+          [
+            ...JSON.parse(args),
+            '-x',
+            'c++-header',
+            header,
+            '-o',
+            path,
+            '-MD',
+            '-MF',
+            depfile,
+          ],
+          { stdout: stream, stderr: stream },
+        ),
+      )
+      counts.commands++
+      if (code) continue
+      const dependencies = await session.readFile(depfile)
+      const paths = dependencies
+        ? dependencyPaths(new TextDecoder().decode(dependencies))
+        : []
+      const digest = paths.length ? await dependencyKey(paths) : undefined
+      if (!digest) {
+        await session.remove('/workspace/.browser-pch')
+        continue
+      }
+      state.projectPch = { args, inventory, paths, digest, path }
+      group.forEach((command) => pchBySource.set(command.file, path))
+      break // Retain at most one project PCH configuration.
     }
-    if (pchBySource.size) emit('Using checked EZ precompiled headers.\n')
   }
-  for (const command of commands) {
+  const compileCommand = async (command: (typeof commands)[number]) => {
     const pch = pchBySource.get(command.file)
-    const code = await compile(
+    let code = await compile(
       pch ? [...command.argv, '-include-pch', pch] : command.argv,
       command.object,
     )
-    if (code) return result(code)
+    if (code && pch) {
+      emit('Retrying without optional precompiled headers.\n')
+      code = await compile(command.argv, command.object)
+    }
+    return code
   }
 
-  const vex = input.template === 'vexcode' || input.template === 'jar-template'
+  const codes = caching?.parallelCompiler
+    ? await Promise.all(commands.map(compileCommand))
+    : []
+  if (!caching?.parallelCompiler)
+    for (const command of commands) {
+      const code = await compileCommand(command)
+      if (code) return result(code)
+    }
+  if (codes.some((code) => code !== 0))
+    return result(codes.find((code) => code !== 0)!)
+
   const elf = '/workspace/.browser-build/program.elf'
   const objects = commands.map((command) => command.object)
   // GNU ld treats this assignment as an offset inside .text. LLD treats
@@ -398,11 +763,9 @@ export async function compileBrowserProject(
     : '/workspace/firmware/v5-common.ld'
   const script = await session.readFile(scriptPath)
   if (!script) throw new Error('V5 linker script is missing')
-  await session.writeFile(
-    scriptPath,
-    new TextDecoder()
-      .decode(script)
-      .replace(/\.\s*=\s*0x20\s*;/g, '. = ADDR(.text) + 0x20;'),
+  await state.writeFile(
+    '/workspace/.browser-build/linker.ld',
+    normalizeLinkerScript(new TextDecoder().decode(script)),
   )
   let link: Array<string>
   if (vex) {
@@ -411,7 +774,7 @@ export async function compileBrowserProject(
       '-z',
       'norelro',
       '-T',
-      '/sdk/vexv5/lscript.ld',
+      '/workspace/.browser-build/linker.ld',
       '--just-symbols=/sdk/vexv5/stdlib_0.lib',
       '--gc-sections',
       '-L/sdk/vexv5',
@@ -430,101 +793,78 @@ export async function compileBrowserProject(
   } else {
     const timestamp = '/workspace/.browser-build/timestamp.c'
     const timestampObject = `${timestamp}.o`
-    await session.writeFile(
-      timestamp,
-      `const int _PROS_COMPILE_TIMESTAMP_INT = ${Math.floor(Date.now() / 1000)};\n` +
-        'const char * const _PROS_COMPILE_TIMESTAMP = __DATE__ " " __TIME__;\n' +
-        'const char * const _PROS_COMPILE_DIRECTORY = "/workspace";\n',
-    )
-    const code = await run([
-      'clang',
-      '--target=arm-none-eabi',
-      '-mcpu=cortex-a9',
-      '-marm',
-      '-mfpu=neon-fp16',
-      '-mfloat-abi=softfp',
-      '-c',
-      timestamp,
-      '-o',
-      timestampObject,
-    ])
-    if (code) return result(code)
-    const libraries = ['libpros.a', 'libc.a', 'libm.a']
-    if (input.template === 'ez-template')
-      libraries.push('EZ-Template.a', 'okapilib.a', 'liblvgl.a')
-    const coldElf = '/workspace/.browser-build/cold.package.elf'
-    const commonLink = [
-      'ld.lld',
-      '-z',
-      'norelro',
-      '--gc-sections',
-      '-L/toolchain/lib',
-      '-T',
-      '/workspace/firmware/v5-common.ld',
-    ]
-    const libraryGroup = [
-      '--start-group',
-      ...libraries.map((name) => `/workspace/firmware/${name}`),
-      '-lgcc',
-      '-lstdc++',
-      '--end-group',
-    ]
-    const coldInputs = [
-      ...libraries.map((name) => `/workspace/firmware/${name}`),
-      '/toolchain/lib/libgcc.a',
-      '/toolchain/lib/libstdc++.a',
-      '/workspace/firmware/v5.ld',
-      '/workspace/firmware/v5-common.ld',
-    ]
-    const coldParts: Array<string | Uint8Array> = ['cold-link-v2', gccVersion]
-    if (caching) {
-      coldParts.push(caching.sdkKey)
-      for (const path of coldInputs) {
-        const contents = await session.readFile(path)
-        if (!contents) throw new Error(`Missing cold SDK input: ${path}`)
-        coldParts.push(path, contents)
-      }
+    const patchedMetadata =
+      input.experiments?.metadata !== 'compile' && caching?.metadataObject
+        ? await timing.measure('timestamp-patch', () =>
+            Promise.resolve(patchBuildMetadata(caching.metadataObject!)),
+          )
+        : undefined
+    if (patchedMetadata) {
+      await state.writeFile(timestampObject, patchedMetadata)
+    } else {
+      await state.writeFile(
+        timestamp,
+        `const int _PROS_COMPILE_TIMESTAMP_INT = ${Math.floor(Date.now() / 1000)};\n` +
+          'const char * const _PROS_COMPILE_TIMESTAMP = __DATE__ " " __TIME__;\n' +
+          'const char * const _PROS_COMPILE_DIRECTORY = "/workspace";\n',
+      )
+      const code = await run(timestampArguments(timestamp, timestampObject))
+      if (code) return result(code)
     }
-    const coldKey = caching ? await buildCacheKey(coldParts) : ''
+    const coldElf = '/workspace/.browser-build/cold.package.elf'
+    const {
+      commonLink,
+      libraryGroup,
+      inputs: coldInputs,
+      argv: coldArgv,
+    } = coldSdkConfiguration(input.template === 'ez-template')
+    const effectiveDigest = await timing.measure('cold-input-validation', () =>
+      coldSdkDigest(session, coldInputs, gccVersion, (path) =>
+        state.linkerDigest(path),
+      ),
+    )
+    const prebuilt =
+      input.experiments?.prebuiltCold !== false &&
+      caching?.prebuiltCold?.metadata.inputsDigest === effectiveDigest
+        ? caching.prebuiltCold
+        : undefined
+    const coldKey = caching
+      ? await buildCacheKey(['cold-link-v3', caching.sdkKey, effectiveDigest])
+      : ''
     let coldExecutable = caching ? await caching.cache.get(coldKey) : undefined
-    if (!coldExecutable) {
+    if (!coldExecutable && !prebuilt) {
       // Keep every cold library section for programs that reference it later.
       // LLD cannot apply GNU ld's --gc-keep-exported to this static ARM image.
-      const coldCode = await run([
-        ...commonLink,
-        '--no-gc-sections',
-        '--whole-archive',
-        ...libraries
-          .filter((name) => name !== 'libc.a' && name !== 'libm.a')
-          .map((name) => `/workspace/firmware/${name}`),
-        '-lstdc++',
-        '--no-whole-archive',
-        ...libraryGroup,
-        '-T',
-        '/workspace/firmware/v5.ld',
-        '-o',
-        coldElf,
-      ])
+      const coldCode = await run(coldArgv)
       if (coldCode) return result(coldCode)
       coldExecutable = (await session.readFile(coldElf)) ?? undefined
       if (!coldExecutable?.byteLength)
         throw new Error('Linker produced an empty cold executable')
       if (caching) await caching.cache.put(coldKey, coldExecutable)
     } else emit('Reused cold SDK package.\n')
+    const derivedKey = await buildCacheKey(['cold-derived-v1', coldKey])
+    const symbolsKey = await buildCacheKey([derivedKey, 'symbols'])
+    const binaryKey = await buildCacheKey([derivedKey, 'binary'])
+    let symbols =
+      prebuilt?.symbols ??
+      (caching ? await caching.cache.get(symbolsKey) : undefined)
+    let cold =
+      prebuilt?.binary ??
+      (caching ? await caching.cache.get(binaryKey) : undefined)
     // Match the per-program symbols stripped by upstream common.mk.
-    await session.writeFile(
-      coldElf,
-      stripElfSymbols(
-        coldExecutable,
-        new Set([
-          'install_hot_table',
-          '__libc_init_array',
-          '_PROS_COMPILE_DIRECTORY',
-          '_PROS_COMPILE_TIMESTAMP',
-          '_PROS_COMPILE_TIMESTAMP_INT',
-        ]),
-      ),
-    )
+    if (!symbols) {
+      symbols = await timing.measure('cold-symbol-transformation', () =>
+        Promise.resolve(coldSdkSymbols(coldExecutable!)),
+      )
+      if (caching) await caching.cache.put(symbolsKey, symbols)
+    }
+    await state.writeFile(coldElf, symbols)
+    if (!cold) {
+      cold = await timing.measure('cold-binary-conversion', () =>
+        Promise.resolve(coldSdkBinary(coldExecutable!)),
+      )
+      if (caching) await caching.cache.put(binaryKey, cold)
+    }
     const hotCode = await run([
       ...commonLink,
       `--just-symbols=${coldElf}`,
@@ -540,8 +880,9 @@ export async function compileBrowserProject(
     const hotExecutable = await session.readFile(elf)
     if (!hotExecutable?.byteLength)
       throw new Error('Linker produced an empty hot executable')
-    const hot = elfToBinary(hotExecutable, new Set(), 0x07800000)
-    const cold = elfToBinary(coldExecutable, new Set(['.hot_init']))
+    const hot = await timing.measure('hot-binary-conversion', () =>
+      Promise.resolve(elfToBinary(hotExecutable, new Set(), 0x07800000)),
+    )
     emit(
       `Built ${hot.byteLength + cold.byteLength} bytes in this browser (hot: ${hot.byteLength}, cold: ${cold.byteLength}).\n`,
     )
@@ -555,7 +896,25 @@ export async function compileBrowserProject(
   const executable = await session.readFile(elf)
   if (!executable?.byteLength)
     throw new Error('Linker produced an empty executable')
-  const bytes = elfToBinary(executable)
+  const bytes = await timing.measure('binary-conversion', () =>
+    Promise.resolve(elfToBinary(executable)),
+  )
+  if (finalKey && caching && finalEligibility.value) {
+    // Link inputs are dependencies too. SDK generation covers immutable libraries.
+    finalDependencies.add(scriptPath)
+    const paths = [...finalDependencies].sort()
+    const digest = await dependencyKey(paths)
+    if (digest) {
+      await caching.cache.put(
+        await buildCacheKey([finalKey, digest, 'binary']),
+        bytes,
+      )
+      await caching.cache.put(
+        finalKey,
+        new TextEncoder().encode(JSON.stringify({ paths, digest })),
+      )
+    }
+  }
   emit(`Built ${bytes.byteLength} bytes in this browser.\n`)
   return result(0, [{ path: 'build/workspace.bin', bytes }])
 }

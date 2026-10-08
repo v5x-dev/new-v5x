@@ -1,0 +1,1218 @@
+{
+  "compiler": "21.11.0-alpha.1",
+  "llvmCommit": "0bac08d50952133963671eeeb8c3e67695a32f49",
+  "host": "Bun tooling, not browser performance",
+  "targets": "\n  Registered Targets:\n    arm     - ARM\n    armeb   - ARM (big endian)\n    thumb   - Thumb\n    thumbeb - Thumb (big endian)\n",
+  "modules": [
+    {
+      "name": "llvm.core.wasm",
+      "bytes": 63386658,
+      "compileMs": 188.84567599999997,
+      "imports": [
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "args_get",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "args_sizes_get",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "environ_get",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "environ_sizes_get",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "clock_time_get",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "fd_close",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "fd_fdstat_get",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "fd_filestat_get",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "fd_filestat_set_size",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "fd_filestat_set_times",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "fd_pread",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "fd_prestat_get",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "fd_prestat_dir_name",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "fd_read",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "fd_readdir",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "fd_seek",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "fd_write",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "path_create_directory",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "path_filestat_get",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "path_link",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "path_open",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "path_readlink",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "path_remove_directory",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "path_rename",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "path_symlink",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "path_unlink_file",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "poll_oneoff",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "proc_exit",
+          "kind": "function"
+        },
+        {
+          "module": "wasi_snapshot_preview1",
+          "name": "random_get",
+          "kind": "function"
+        }
+      ],
+      "exports": [
+        {
+          "name": "memory",
+          "kind": "memory"
+        },
+        {
+          "name": "_start",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "name": "llvm.core2.wasm",
+      "bytes": 37626,
+      "compileMs": 8.865128000000027,
+      "imports": [
+        {
+          "module": "env",
+          "name": "memory",
+          "kind": "memory"
+        },
+        {
+          "module": "__main_module__",
+          "name": "_start",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:cli/environment@0.2.3",
+          "name": "get-arguments",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:cli/environment@0.2.3",
+          "name": "get-environment",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:clocks/wall-clock@0.2.3",
+          "name": "now",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:clocks/monotonic-clock@0.2.3",
+          "name": "now",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "[resource-drop]directory-entry-stream",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "[method]descriptor.get-flags",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "[method]descriptor.get-type",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "[method]descriptor.metadata-hash",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "[method]descriptor.set-size",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:io/streams@0.2.3",
+          "name": "[resource-drop]output-stream",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "filesystem-error-code",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:io/error@0.2.3",
+          "name": "[resource-drop]error",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "[method]descriptor.metadata-hash-at",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:io/streams@0.2.3",
+          "name": "[resource-drop]input-stream",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "[method]descriptor.create-directory-at",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "[method]descriptor.link-at",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "[resource-drop]descriptor",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "[method]descriptor.readlink-at",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "[method]descriptor.remove-directory-at",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "[method]descriptor.rename-at",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "[method]descriptor.symlink-at",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "[method]descriptor.unlink-file-at",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:clocks/monotonic-clock@0.2.3",
+          "name": "subscribe-duration",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:clocks/monotonic-clock@0.2.3",
+          "name": "subscribe-instant",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:io/streams@0.2.3",
+          "name": "[method]output-stream.subscribe",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:io/streams@0.2.3",
+          "name": "[method]input-stream.subscribe",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:io/poll@0.2.3",
+          "name": "[resource-drop]pollable",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:io/poll@0.2.3",
+          "name": "poll",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:random/random@0.2.3",
+          "name": "get-random-bytes",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/preopens@0.2.3",
+          "name": "get-directories",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:cli/stderr@0.2.3",
+          "name": "get-stderr",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:cli/terminal-stdin@0.2.3",
+          "name": "get-terminal-stdin",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:cli/terminal-input@0.2.3",
+          "name": "[resource-drop]terminal-input",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:cli/terminal-stdout@0.2.3",
+          "name": "get-terminal-stdout",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:cli/terminal-output@0.2.3",
+          "name": "[resource-drop]terminal-output",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:cli/terminal-stderr@0.2.3",
+          "name": "get-terminal-stderr",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:cli/stdin@0.2.3",
+          "name": "get-stdin",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:cli/stdout@0.2.3",
+          "name": "get-stdout",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:cli/exit@0.2.3",
+          "name": "exit",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:io/streams@0.2.3",
+          "name": "[method]input-stream.read",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:io/streams@0.2.3",
+          "name": "[method]input-stream.blocking-read",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:io/streams@0.2.3",
+          "name": "[method]output-stream.check-write",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:io/streams@0.2.3",
+          "name": "[method]output-stream.write",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:io/streams@0.2.3",
+          "name": "[method]output-stream.blocking-write-and-flush",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:io/streams@0.2.3",
+          "name": "[method]output-stream.blocking-flush",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "[method]descriptor.read-via-stream",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "[method]descriptor.write-via-stream",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "[method]descriptor.append-via-stream",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "[method]descriptor.set-times",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "[method]descriptor.read",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "[method]descriptor.read-directory",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "[method]descriptor.stat",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "[method]descriptor.stat-at",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "[method]descriptor.open-at",
+          "kind": "function"
+        },
+        {
+          "module": "wasi:filesystem/types@0.2.3",
+          "name": "[method]directory-entry-stream.read-directory-entry",
+          "kind": "function"
+        }
+      ],
+      "exports": [
+        {
+          "name": "wasi:cli/run@0.2.3#run",
+          "kind": "function"
+        },
+        {
+          "name": "fd_write",
+          "kind": "function"
+        },
+        {
+          "name": "path_create_directory",
+          "kind": "function"
+        },
+        {
+          "name": "path_filestat_get",
+          "kind": "function"
+        },
+        {
+          "name": "cabi_import_realloc",
+          "kind": "function"
+        },
+        {
+          "name": "args_get",
+          "kind": "function"
+        },
+        {
+          "name": "args_sizes_get",
+          "kind": "function"
+        },
+        {
+          "name": "environ_get",
+          "kind": "function"
+        },
+        {
+          "name": "environ_sizes_get",
+          "kind": "function"
+        },
+        {
+          "name": "path_rename",
+          "kind": "function"
+        },
+        {
+          "name": "clock_time_get",
+          "kind": "function"
+        },
+        {
+          "name": "path_link",
+          "kind": "function"
+        },
+        {
+          "name": "path_open",
+          "kind": "function"
+        },
+        {
+          "name": "fd_close",
+          "kind": "function"
+        },
+        {
+          "name": "random_get",
+          "kind": "function"
+        },
+        {
+          "name": "fd_fdstat_get",
+          "kind": "function"
+        },
+        {
+          "name": "path_readlink",
+          "kind": "function"
+        },
+        {
+          "name": "path_remove_directory",
+          "kind": "function"
+        },
+        {
+          "name": "fd_filestat_get",
+          "kind": "function"
+        },
+        {
+          "name": "fd_filestat_set_size",
+          "kind": "function"
+        },
+        {
+          "name": "fd_filestat_set_times",
+          "kind": "function"
+        },
+        {
+          "name": "fd_pread",
+          "kind": "function"
+        },
+        {
+          "name": "fd_prestat_get",
+          "kind": "function"
+        },
+        {
+          "name": "fd_prestat_dir_name",
+          "kind": "function"
+        },
+        {
+          "name": "proc_exit",
+          "kind": "function"
+        },
+        {
+          "name": "fd_read",
+          "kind": "function"
+        },
+        {
+          "name": "fd_readdir",
+          "kind": "function"
+        },
+        {
+          "name": "poll_oneoff",
+          "kind": "function"
+        },
+        {
+          "name": "fd_seek",
+          "kind": "function"
+        },
+        {
+          "name": "path_unlink_file",
+          "kind": "function"
+        },
+        {
+          "name": "path_symlink",
+          "kind": "function"
+        }
+      ]
+    },
+    {
+      "name": "llvm.core3.wasm",
+      "bytes": 5458,
+      "compileMs": 0.19812399999995023,
+      "imports": [],
+      "exports": [
+        {
+          "name": "0",
+          "kind": "function"
+        },
+        {
+          "name": "1",
+          "kind": "function"
+        },
+        {
+          "name": "2",
+          "kind": "function"
+        },
+        {
+          "name": "3",
+          "kind": "function"
+        },
+        {
+          "name": "4",
+          "kind": "function"
+        },
+        {
+          "name": "5",
+          "kind": "function"
+        },
+        {
+          "name": "6",
+          "kind": "function"
+        },
+        {
+          "name": "7",
+          "kind": "function"
+        },
+        {
+          "name": "8",
+          "kind": "function"
+        },
+        {
+          "name": "9",
+          "kind": "function"
+        },
+        {
+          "name": "10",
+          "kind": "function"
+        },
+        {
+          "name": "11",
+          "kind": "function"
+        },
+        {
+          "name": "12",
+          "kind": "function"
+        },
+        {
+          "name": "13",
+          "kind": "function"
+        },
+        {
+          "name": "14",
+          "kind": "function"
+        },
+        {
+          "name": "15",
+          "kind": "function"
+        },
+        {
+          "name": "16",
+          "kind": "function"
+        },
+        {
+          "name": "17",
+          "kind": "function"
+        },
+        {
+          "name": "18",
+          "kind": "function"
+        },
+        {
+          "name": "19",
+          "kind": "function"
+        },
+        {
+          "name": "20",
+          "kind": "function"
+        },
+        {
+          "name": "21",
+          "kind": "function"
+        },
+        {
+          "name": "22",
+          "kind": "function"
+        },
+        {
+          "name": "23",
+          "kind": "function"
+        },
+        {
+          "name": "24",
+          "kind": "function"
+        },
+        {
+          "name": "25",
+          "kind": "function"
+        },
+        {
+          "name": "26",
+          "kind": "function"
+        },
+        {
+          "name": "27",
+          "kind": "function"
+        },
+        {
+          "name": "28",
+          "kind": "function"
+        },
+        {
+          "name": "29",
+          "kind": "function"
+        },
+        {
+          "name": "30",
+          "kind": "function"
+        },
+        {
+          "name": "31",
+          "kind": "function"
+        },
+        {
+          "name": "32",
+          "kind": "function"
+        },
+        {
+          "name": "33",
+          "kind": "function"
+        },
+        {
+          "name": "34",
+          "kind": "function"
+        },
+        {
+          "name": "35",
+          "kind": "function"
+        },
+        {
+          "name": "36",
+          "kind": "function"
+        },
+        {
+          "name": "37",
+          "kind": "function"
+        },
+        {
+          "name": "38",
+          "kind": "function"
+        },
+        {
+          "name": "39",
+          "kind": "function"
+        },
+        {
+          "name": "40",
+          "kind": "function"
+        },
+        {
+          "name": "41",
+          "kind": "function"
+        },
+        {
+          "name": "42",
+          "kind": "function"
+        },
+        {
+          "name": "43",
+          "kind": "function"
+        },
+        {
+          "name": "44",
+          "kind": "function"
+        },
+        {
+          "name": "45",
+          "kind": "function"
+        },
+        {
+          "name": "46",
+          "kind": "function"
+        },
+        {
+          "name": "47",
+          "kind": "function"
+        },
+        {
+          "name": "48",
+          "kind": "function"
+        },
+        {
+          "name": "49",
+          "kind": "function"
+        },
+        {
+          "name": "50",
+          "kind": "function"
+        },
+        {
+          "name": "51",
+          "kind": "function"
+        },
+        {
+          "name": "52",
+          "kind": "function"
+        },
+        {
+          "name": "53",
+          "kind": "function"
+        },
+        {
+          "name": "54",
+          "kind": "function"
+        },
+        {
+          "name": "55",
+          "kind": "function"
+        },
+        {
+          "name": "56",
+          "kind": "function"
+        },
+        {
+          "name": "57",
+          "kind": "function"
+        },
+        {
+          "name": "58",
+          "kind": "function"
+        },
+        {
+          "name": "59",
+          "kind": "function"
+        },
+        {
+          "name": "60",
+          "kind": "function"
+        },
+        {
+          "name": "61",
+          "kind": "function"
+        },
+        {
+          "name": "62",
+          "kind": "function"
+        },
+        {
+          "name": "63",
+          "kind": "function"
+        },
+        {
+          "name": "64",
+          "kind": "function"
+        },
+        {
+          "name": "65",
+          "kind": "function"
+        },
+        {
+          "name": "66",
+          "kind": "function"
+        },
+        {
+          "name": "$imports",
+          "kind": "table"
+        }
+      ]
+    },
+    {
+      "name": "llvm.core4.wasm",
+      "bytes": 787,
+      "compileMs": 0.18161100000003216,
+      "imports": [
+        {
+          "module": "",
+          "name": "0",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "1",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "2",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "3",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "4",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "5",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "6",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "7",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "8",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "9",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "10",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "11",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "12",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "13",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "14",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "15",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "16",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "17",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "18",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "19",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "20",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "21",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "22",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "23",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "24",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "25",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "26",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "27",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "28",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "29",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "30",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "31",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "32",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "33",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "34",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "35",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "36",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "37",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "38",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "39",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "40",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "41",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "42",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "43",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "44",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "45",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "46",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "47",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "48",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "49",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "50",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "51",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "52",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "53",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "54",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "55",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "56",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "57",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "58",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "59",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "60",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "61",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "62",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "63",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "64",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "65",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "66",
+          "kind": "function"
+        },
+        {
+          "module": "",
+          "name": "$imports",
+          "kind": "table"
+        }
+      ],
+      "exports": []
+    }
+  ],
+  "loader": "Pinned loader already uses compileStreaming with WASM MIME, caches module/resource promises per worker, and instantiates commands with an independent Environment. All four component modules are required by generated imports.",
+  "decision": "Keep the pinned compiler. It already supports only ARM/Thumb targets. Removing component adapter modules breaks its generated imports. No unsupported direct-cc1 default or dependency-file edits."
+}

@@ -1,0 +1,1782 @@
+[
+  {
+    "template": "vexcode",
+    "variant": "reference",
+    "compiledAt": 1791456167675,
+    "compileMs": 792.7954340000001,
+    "commitSha": "hardware-vexcode-reference",
+    "artifacts": [
+      {
+        "path": "build/workspace.bin",
+        "file": "vexcode-reference-workspace.bin",
+        "bytes": 16400,
+        "sha256": "e1caf616cc6e82cb833978ceca8abb0d52736dec9bb29d9ce6da288b6e56fab1"
+      }
+    ],
+    "spans": [
+      {
+        "buildId": "hardware-vexcode-reference",
+        "clock": "worker",
+        "phase": "project-synchronization",
+        "start": 395.175326,
+        "end": 395.611936,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-reference",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 399.708591,
+        "end": 903.930272,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-reference",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 920.725721,
+        "end": 1129.157472,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-reference",
+        "clock": "worker",
+        "phase": "user-link",
+        "start": 1131.511387,
+        "end": 1184.353682,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-reference",
+        "clock": "worker",
+        "phase": "binary-conversion",
+        "start": 1184.548518,
+        "end": 1184.897435,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-reference",
+        "clock": "worker",
+        "phase": "compiler-total",
+        "start": 395.094818,
+        "end": 1184.964112,
+        "outcome": "success",
+        "counts": {
+          "sources": 2,
+          "objectsReused": 0,
+          "starterObjectsReused": 0,
+          "commands": 3,
+          "projectWrites": 7,
+          "projectDeletes": 0,
+          "returnedBytes": 16400
+        }
+      }
+    ]
+  },
+  {
+    "template": "vexcode",
+    "variant": "optimized",
+    "compiledAt": 1791456168468,
+    "compileMs": 530.0537770000001,
+    "commitSha": "hardware-vexcode-optimized",
+    "artifacts": [
+      {
+        "path": "build/workspace.bin",
+        "file": "vexcode-optimized-workspace.bin",
+        "bytes": 16400,
+        "sha256": "c1cb465dd393bfd1c18dc986536f6326494418eb40e73c37940b4d1b3be9c857"
+      }
+    ],
+    "spans": [
+      {
+        "buildId": "hardware-vexcode-optimized",
+        "clock": "worker",
+        "phase": "project-synchronization",
+        "start": 1185.646303,
+        "end": 1185.718023,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-optimized",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 1186.231119,
+        "end": 1513.484339,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-optimized",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 1515.316182,
+        "end": 1684.534522,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-optimized",
+        "clock": "worker",
+        "phase": "user-link",
+        "start": 1685.027307,
+        "end": 1714.848544,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-optimized",
+        "clock": "worker",
+        "phase": "binary-conversion",
+        "start": 1715.017158,
+        "end": 1715.093379,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-optimized",
+        "clock": "worker",
+        "phase": "compiler-total",
+        "start": 1185.642868,
+        "end": 1715.107112,
+        "outcome": "success",
+        "counts": {
+          "sources": 2,
+          "objectsReused": 0,
+          "starterObjectsReused": 0,
+          "commands": 3,
+          "projectWrites": 1,
+          "projectDeletes": 0,
+          "returnedBytes": 16400
+        }
+      }
+    ]
+  },
+  {
+    "template": "vexcode",
+    "variant": "O0",
+    "compiledAt": 1791456168998,
+    "compileMs": 534.78118,
+    "commitSha": "hardware-vexcode-O0",
+    "artifacts": [
+      {
+        "path": "build/workspace.bin",
+        "file": "vexcode-O0-workspace.bin",
+        "bytes": 16400,
+        "sha256": "2cf4f2d2c40bcc3d3ff771b16a17e9fc3e17406c79c68928a935fbc41d474946"
+      }
+    ],
+    "spans": [
+      {
+        "buildId": "hardware-vexcode-O0",
+        "clock": "worker",
+        "phase": "project-synchronization",
+        "start": 1715.698059,
+        "end": 1715.818325,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-O0",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 1716.443445,
+        "end": 2045.823642,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-O0",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 2051.425375,
+        "end": 2220.612604,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-O0",
+        "clock": "worker",
+        "phase": "user-link",
+        "start": 2221.552392,
+        "end": 2249.608438,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-O0",
+        "clock": "worker",
+        "phase": "binary-conversion",
+        "start": 2249.774366,
+        "end": 2249.824351,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-O0",
+        "clock": "worker",
+        "phase": "compiler-total",
+        "start": 1715.6956,
+        "end": 2249.832222,
+        "outcome": "success",
+        "counts": {
+          "sources": 2,
+          "objectsReused": 0,
+          "starterObjectsReused": 0,
+          "commands": 3,
+          "projectWrites": 1,
+          "projectDeletes": 0,
+          "returnedBytes": 16400
+        }
+      }
+    ]
+  },
+  {
+    "template": "vexcode",
+    "variant": "O1",
+    "compiledAt": 1791456169533,
+    "compileMs": 488.514776,
+    "commitSha": "hardware-vexcode-O1",
+    "artifacts": [
+      {
+        "path": "build/workspace.bin",
+        "file": "vexcode-O1-workspace.bin",
+        "bytes": 16400,
+        "sha256": "0543abc6708bd278977fbfcfefba8f53b2a910991968f230dc8578e606268761"
+      }
+    ],
+    "spans": [
+      {
+        "buildId": "hardware-vexcode-O1",
+        "clock": "worker",
+        "phase": "project-synchronization",
+        "start": 2250.491756,
+        "end": 2250.580096,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-O1",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 2251.176802,
+        "end": 2538.294557,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-O1",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 2543.370464,
+        "end": 2708.609595,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-O1",
+        "clock": "worker",
+        "phase": "user-link",
+        "start": 2709.139512,
+        "end": 2738.575337,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-O1",
+        "clock": "worker",
+        "phase": "binary-conversion",
+        "start": 2738.623181,
+        "end": 2738.669162,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-O1",
+        "clock": "worker",
+        "phase": "compiler-total",
+        "start": 2250.488182,
+        "end": 2738.681003,
+        "outcome": "success",
+        "counts": {
+          "sources": 2,
+          "objectsReused": 0,
+          "starterObjectsReused": 0,
+          "commands": 3,
+          "projectWrites": 1,
+          "projectDeletes": 0,
+          "returnedBytes": 16400
+        }
+      }
+    ]
+  },
+  {
+    "template": "vexcode",
+    "variant": "project-pch",
+    "compiledAt": 1791456170021,
+    "compileMs": 577.8480340000001,
+    "commitSha": "hardware-vexcode-project-pch",
+    "artifacts": [
+      {
+        "path": "build/workspace.bin",
+        "file": "vexcode-project-pch-workspace.bin",
+        "bytes": 16400,
+        "sha256": "dfa41793685daa10e5ca2b528d28c67c691a156f4341f8e6b716edea28810e47"
+      }
+    ],
+    "spans": [
+      {
+        "buildId": "hardware-vexcode-project-pch",
+        "clock": "worker",
+        "phase": "project-synchronization",
+        "start": 2739.020966,
+        "end": 2739.102083,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-project-pch",
+        "clock": "worker",
+        "phase": "project-pch-generation",
+        "start": 2739.887233,
+        "end": 3055.939987,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-project-pch",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 3058.473577,
+        "end": 3231.073893,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-project-pch",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 3234.594184,
+        "end": 3291.065981,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-project-pch",
+        "clock": "worker",
+        "phase": "user-link",
+        "start": 3291.53335,
+        "end": 3316.194777,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-project-pch",
+        "clock": "worker",
+        "phase": "binary-conversion",
+        "start": 3316.357215,
+        "end": 3316.417847,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-vexcode-project-pch",
+        "clock": "worker",
+        "phase": "compiler-total",
+        "start": 2739.014255,
+        "end": 3316.42614,
+        "outcome": "success",
+        "counts": {
+          "sources": 2,
+          "objectsReused": 0,
+          "starterObjectsReused": 0,
+          "commands": 4,
+          "projectWrites": 1,
+          "projectDeletes": 0,
+          "returnedBytes": 16400
+        }
+      }
+    ]
+  },
+  {
+    "template": "pros",
+    "variant": "reference",
+    "compiledAt": 1791456170804,
+    "compileMs": 2331.7042810000003,
+    "commitSha": "hardware-pros-reference",
+    "artifacts": [
+      {
+        "path": "bin/hot.package.bin",
+        "file": "pros-reference-hot.package.bin",
+        "bytes": 16640,
+        "sha256": "b2bcc9b4dd1b30ec43001824cca38574ba2b41af2212b61eb2762b81f1405213"
+      },
+      {
+        "path": "bin/cold.package.bin",
+        "file": "pros-reference-cold.package.bin",
+        "bytes": 1347824,
+        "sha256": "fc77c3ea5e53f5a5b7ab8e2ef16f731bcc3ca0f20c7363bb9c90c1db4f67ee03"
+      }
+    ],
+    "spans": [
+      {
+        "buildId": "hardware-pros-reference",
+        "clock": "worker",
+        "phase": "project-synchronization",
+        "start": 3521.925119,
+        "end": 3521.989543,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-reference",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 3522.653125,
+        "end": 4457.365967,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-reference",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 4490.887657,
+        "end": 5418.518758,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-reference",
+        "clock": "worker",
+        "phase": "timestamp-compile",
+        "start": 5419.755193,
+        "end": 5455.673633,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-reference",
+        "clock": "worker",
+        "phase": "cold-input-validation",
+        "start": 5455.8426,
+        "end": 5456.333936,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-reference",
+        "clock": "worker",
+        "phase": "cold-link",
+        "start": 5456.434099,
+        "end": 5779.18621,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-reference",
+        "clock": "worker",
+        "phase": "cold-symbol-transformation",
+        "start": 5780.713702,
+        "end": 5792.564771,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-reference",
+        "clock": "worker",
+        "phase": "cold-binary-conversion",
+        "start": 5792.599667,
+        "end": 5794.89638,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-reference",
+        "clock": "worker",
+        "phase": "user-link",
+        "start": 5794.913467,
+        "end": 5851.690915,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-reference",
+        "clock": "worker",
+        "phase": "hot-binary-conversion",
+        "start": 5852.15128,
+        "end": 5852.245094,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-reference",
+        "clock": "worker",
+        "phase": "compiler-total",
+        "start": 3521.920524,
+        "end": 5852.260937,
+        "outcome": "success",
+        "counts": {
+          "sources": 2,
+          "objectsReused": 0,
+          "starterObjectsReused": 0,
+          "commands": 5,
+          "projectWrites": 6,
+          "projectDeletes": 0,
+          "returnedBytes": 1364464
+        }
+      }
+    ]
+  },
+  {
+    "template": "pros",
+    "variant": "optimized",
+    "compiledAt": 1791456173136,
+    "compileMs": 1844.882767,
+    "commitSha": "hardware-pros-optimized",
+    "artifacts": [
+      {
+        "path": "bin/hot.package.bin",
+        "file": "pros-optimized-hot.package.bin",
+        "bytes": 16640,
+        "sha256": "d276d0d227a085e08f6b32f3e7039489e7df411668cb082d89fd6c14eca76ca6"
+      },
+      {
+        "path": "bin/cold.package.bin",
+        "file": "pros-optimized-cold.package.bin",
+        "bytes": 1347824,
+        "sha256": "fc77c3ea5e53f5a5b7ab8e2ef16f731bcc3ca0f20c7363bb9c90c1db4f67ee03"
+      }
+    ],
+    "spans": [
+      {
+        "buildId": "hardware-pros-optimized",
+        "clock": "worker",
+        "phase": "project-synchronization",
+        "start": 5853.650827,
+        "end": 5853.744248,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-optimized",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 5854.292677,
+        "end": 6732.393519,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-optimized",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 6736.853736,
+        "end": 7636.165128,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-optimized",
+        "clock": "worker",
+        "phase": "timestamp-patch",
+        "start": 7637.809662,
+        "end": 7638.399048,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-optimized",
+        "clock": "worker",
+        "phase": "cold-input-validation",
+        "start": 7638.424323,
+        "end": 7638.554049,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-optimized",
+        "clock": "worker",
+        "phase": "user-link",
+        "start": 7638.77328,
+        "end": 7697.460832,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-optimized",
+        "clock": "worker",
+        "phase": "hot-binary-conversion",
+        "start": 7697.546454,
+        "end": 7697.593633,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-optimized",
+        "clock": "worker",
+        "phase": "compiler-total",
+        "start": 5853.647405,
+        "end": 7697.60843,
+        "outcome": "success",
+        "counts": {
+          "sources": 2,
+          "objectsReused": 0,
+          "starterObjectsReused": 0,
+          "commands": 3,
+          "projectWrites": 1,
+          "projectDeletes": 0,
+          "returnedBytes": 1364464
+        }
+      }
+    ]
+  },
+  {
+    "template": "pros",
+    "variant": "O0",
+    "compiledAt": 1791456174981,
+    "compileMs": 1886.5502649999999,
+    "commitSha": "hardware-pros-O0",
+    "artifacts": [
+      {
+        "path": "bin/hot.package.bin",
+        "file": "pros-O0-hot.package.bin",
+        "bytes": 17080,
+        "sha256": "1471b0e009e79dc54bc7046b0fa72a399232b292cbcca84fd5ab805711df980e"
+      },
+      {
+        "path": "bin/cold.package.bin",
+        "file": "pros-O0-cold.package.bin",
+        "bytes": 1347824,
+        "sha256": "fc77c3ea5e53f5a5b7ab8e2ef16f731bcc3ca0f20c7363bb9c90c1db4f67ee03"
+      }
+    ],
+    "spans": [
+      {
+        "buildId": "hardware-pros-O0",
+        "clock": "worker",
+        "phase": "project-synchronization",
+        "start": 7698.534596,
+        "end": 7698.621855,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-O0",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 7699.164443,
+        "end": 8558.591089,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-O0",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 8561.752604,
+        "end": 9499.272209,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-O0",
+        "clock": "worker",
+        "phase": "timestamp-patch",
+        "start": 9501.56239,
+        "end": 9501.656925,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-O0",
+        "clock": "worker",
+        "phase": "cold-input-validation",
+        "start": 9501.676257,
+        "end": 9501.789272,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-O0",
+        "clock": "worker",
+        "phase": "user-link",
+        "start": 9502.031073,
+        "end": 9584.080273,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-O0",
+        "clock": "worker",
+        "phase": "hot-binary-conversion",
+        "start": 9584.191727,
+        "end": 9584.235268,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-O0",
+        "clock": "worker",
+        "phase": "compiler-total",
+        "start": 7698.53189,
+        "end": 9584.247113,
+        "outcome": "success",
+        "counts": {
+          "sources": 2,
+          "objectsReused": 0,
+          "starterObjectsReused": 0,
+          "commands": 3,
+          "projectWrites": 1,
+          "projectDeletes": 0,
+          "returnedBytes": 1364904
+        }
+      }
+    ]
+  },
+  {
+    "template": "pros",
+    "variant": "O1",
+    "compiledAt": 1791456176867,
+    "compileMs": 1821.7563840000003,
+    "commitSha": "hardware-pros-O1",
+    "artifacts": [
+      {
+        "path": "bin/hot.package.bin",
+        "file": "pros-O1-hot.package.bin",
+        "bytes": 16616,
+        "sha256": "27815ac5f5d583c776be3b58ef58a0e66093aa2ada6a1b1d83fc9701f66f8ce3"
+      },
+      {
+        "path": "bin/cold.package.bin",
+        "file": "pros-O1-cold.package.bin",
+        "bytes": 1347824,
+        "sha256": "fc77c3ea5e53f5a5b7ab8e2ef16f731bcc3ca0f20c7363bb9c90c1db4f67ee03"
+      }
+    ],
+    "spans": [
+      {
+        "buildId": "hardware-pros-O1",
+        "clock": "worker",
+        "phase": "project-synchronization",
+        "start": 9585.107178,
+        "end": 9585.197876,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-O1",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 9585.663309,
+        "end": 10448.834398,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-O1",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 10452.600906,
+        "end": 11315.557038,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-O1",
+        "clock": "worker",
+        "phase": "timestamp-patch",
+        "start": 11321.448352,
+        "end": 11321.541828,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-O1",
+        "clock": "worker",
+        "phase": "cold-input-validation",
+        "start": 11321.564176,
+        "end": 11321.695289,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-O1",
+        "clock": "worker",
+        "phase": "user-link",
+        "start": 11321.991031,
+        "end": 11405.96757,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-O1",
+        "clock": "worker",
+        "phase": "hot-binary-conversion",
+        "start": 11406.083502,
+        "end": 11406.115293,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-O1",
+        "clock": "worker",
+        "phase": "compiler-total",
+        "start": 9585.101329,
+        "end": 11406.131998,
+        "outcome": "success",
+        "counts": {
+          "sources": 2,
+          "objectsReused": 0,
+          "starterObjectsReused": 0,
+          "commands": 3,
+          "projectWrites": 1,
+          "projectDeletes": 0,
+          "returnedBytes": 1364440
+        }
+      }
+    ]
+  },
+  {
+    "template": "pros",
+    "variant": "project-pch",
+    "compiledAt": 1791456178689,
+    "compileMs": 3328.4992810000003,
+    "commitSha": "hardware-pros-project-pch",
+    "artifacts": [
+      {
+        "path": "bin/hot.package.bin",
+        "file": "pros-project-pch-hot.package.bin",
+        "bytes": 16640,
+        "sha256": "eecc6f4fa8f8d68e422168b703c5502154b2febc771b87ea4a1dfe7df6842b05"
+      },
+      {
+        "path": "bin/cold.package.bin",
+        "file": "pros-project-pch-cold.package.bin",
+        "bytes": 1347824,
+        "sha256": "fc77c3ea5e53f5a5b7ab8e2ef16f731bcc3ca0f20c7363bb9c90c1db4f67ee03"
+      }
+    ],
+    "spans": [
+      {
+        "buildId": "hardware-pros-project-pch",
+        "clock": "worker",
+        "phase": "project-synchronization",
+        "start": 11406.875096,
+        "end": 11406.984844,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-project-pch",
+        "clock": "worker",
+        "phase": "project-pch-generation",
+        "start": 11407.37843,
+        "end": 14084.385591,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-project-pch",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 14093.388191,
+        "end": 14380.841663,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-project-pch",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 14384.870454,
+        "end": 14679.559272,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-project-pch",
+        "clock": "worker",
+        "phase": "timestamp-patch",
+        "start": 14681.455848,
+        "end": 14681.60531,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-project-pch",
+        "clock": "worker",
+        "phase": "cold-input-validation",
+        "start": 14681.645063,
+        "end": 14681.8843,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-project-pch",
+        "clock": "worker",
+        "phase": "user-link",
+        "start": 14688.913262,
+        "end": 14733.695051,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-project-pch",
+        "clock": "worker",
+        "phase": "hot-binary-conversion",
+        "start": 14734.130878,
+        "end": 14734.162738,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-pros-project-pch",
+        "clock": "worker",
+        "phase": "compiler-total",
+        "start": 11406.871853,
+        "end": 14734.172872,
+        "outcome": "success",
+        "counts": {
+          "sources": 2,
+          "objectsReused": 0,
+          "starterObjectsReused": 0,
+          "commands": 4,
+          "projectWrites": 1,
+          "projectDeletes": 0,
+          "returnedBytes": 1364464
+        }
+      }
+    ]
+  },
+  {
+    "template": "ez-template",
+    "variant": "reference",
+    "compiledAt": 1791456182247,
+    "compileMs": 6169.374991000001,
+    "commitSha": "hardware-ez-template-reference",
+    "artifacts": [
+      {
+        "path": "bin/hot.package.bin",
+        "file": "ez-template-reference-hot.package.bin",
+        "bytes": 16656,
+        "sha256": "0a3aa2bff38fbcbfcf6589c512c0145d5ba0c4e5285e497137e7620dfe00ad65"
+      },
+      {
+        "path": "bin/cold.package.bin",
+        "file": "ez-template-reference-cold.package.bin",
+        "bytes": 2381228,
+        "sha256": "bdfd6b9ea925bf34737435245ba34108db26b89815fa64ff32a48e317fe63b4a"
+      }
+    ],
+    "spans": [
+      {
+        "buildId": "hardware-ez-template-reference",
+        "clock": "worker",
+        "phase": "project-synchronization",
+        "start": 14964.788244,
+        "end": 14964.962696,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-reference",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 14965.452126,
+        "end": 17623.041722,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-reference",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 17681.65386,
+        "end": 20308.025741,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-reference",
+        "clock": "worker",
+        "phase": "timestamp-compile",
+        "start": 20310.361759,
+        "end": 20339.130993,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-reference",
+        "clock": "worker",
+        "phase": "cold-input-validation",
+        "start": 20339.15394,
+        "end": 20339.498791,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-reference",
+        "clock": "worker",
+        "phase": "cold-link",
+        "start": 20339.595103,
+        "end": 20991.144615,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-reference",
+        "clock": "worker",
+        "phase": "cold-symbol-transformation",
+        "start": 20994.105426,
+        "end": 21003.032,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-reference",
+        "clock": "worker",
+        "phase": "cold-binary-conversion",
+        "start": 21003.061873,
+        "end": 21004.201665,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-reference",
+        "clock": "worker",
+        "phase": "user-link",
+        "start": 21004.221125,
+        "end": 21132.621637,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-reference",
+        "clock": "worker",
+        "phase": "hot-binary-conversion",
+        "start": 21132.757929,
+        "end": 21132.801237,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-reference",
+        "clock": "worker",
+        "phase": "compiler-total",
+        "start": 14964.774432,
+        "end": 21132.814331,
+        "outcome": "success",
+        "counts": {
+          "sources": 2,
+          "objectsReused": 0,
+          "starterObjectsReused": 0,
+          "commands": 5,
+          "projectWrites": 10,
+          "projectDeletes": 0,
+          "returnedBytes": 2397884
+        }
+      }
+    ]
+  },
+  {
+    "template": "ez-template",
+    "variant": "optimized",
+    "compiledAt": 1791456188416,
+    "compileMs": 5371.239093,
+    "commitSha": "hardware-ez-template-optimized",
+    "artifacts": [
+      {
+        "path": "bin/hot.package.bin",
+        "file": "ez-template-optimized-hot.package.bin",
+        "bytes": 16656,
+        "sha256": "9f50c4f41400387aebdc52168efe65a6f760bba4b842df8d065860baae8f53ef"
+      },
+      {
+        "path": "bin/cold.package.bin",
+        "file": "ez-template-optimized-cold.package.bin",
+        "bytes": 2381228,
+        "sha256": "bdfd6b9ea925bf34737435245ba34108db26b89815fa64ff32a48e317fe63b4a"
+      }
+    ],
+    "spans": [
+      {
+        "buildId": "hardware-ez-template-optimized",
+        "clock": "worker",
+        "phase": "project-synchronization",
+        "start": 21134.075759,
+        "end": 21134.17057,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-optimized",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 21134.510347,
+        "end": 23739.877342,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-optimized",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 23752.533422,
+        "end": 26408.884942,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-optimized",
+        "clock": "worker",
+        "phase": "timestamp-patch",
+        "start": 26411.886128,
+        "end": 26411.995896,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-optimized",
+        "clock": "worker",
+        "phase": "cold-input-validation",
+        "start": 26412.02511,
+        "end": 26412.167718,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-optimized",
+        "clock": "worker",
+        "phase": "user-link",
+        "start": 26412.441514,
+        "end": 26502.579047,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-optimized",
+        "clock": "worker",
+        "phase": "hot-binary-conversion",
+        "start": 26503.156665,
+        "end": 26503.187516,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-optimized",
+        "clock": "worker",
+        "phase": "compiler-total",
+        "start": 21134.072388,
+        "end": 26503.198662,
+        "outcome": "success",
+        "counts": {
+          "sources": 2,
+          "objectsReused": 0,
+          "starterObjectsReused": 0,
+          "commands": 3,
+          "projectWrites": 1,
+          "projectDeletes": 0,
+          "returnedBytes": 2397884
+        }
+      }
+    ]
+  },
+  {
+    "template": "ez-template",
+    "variant": "O0",
+    "compiledAt": 1791456193788,
+    "compileMs": 5926.779451999999,
+    "commitSha": "hardware-ez-template-O0",
+    "artifacts": [
+      {
+        "path": "bin/hot.package.bin",
+        "file": "ez-template-O0-hot.package.bin",
+        "bytes": 16936,
+        "sha256": "3be46c42adfe7090a229de6fc481934ea14b3f4411e2e83139b695aba984d234"
+      },
+      {
+        "path": "bin/cold.package.bin",
+        "file": "ez-template-O0-cold.package.bin",
+        "bytes": 2381228,
+        "sha256": "bdfd6b9ea925bf34737435245ba34108db26b89815fa64ff32a48e317fe63b4a"
+      }
+    ],
+    "spans": [
+      {
+        "buildId": "hardware-ez-template-O0",
+        "clock": "worker",
+        "phase": "project-synchronization",
+        "start": 26505.353371,
+        "end": 26513.716684,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-O0",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 26514.360967,
+        "end": 29393.721384,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-O0",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 29403.701448,
+        "end": 32357.894006,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-O0",
+        "clock": "worker",
+        "phase": "timestamp-patch",
+        "start": 32361.898301,
+        "end": 32374.57191,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-O0",
+        "clock": "worker",
+        "phase": "cold-input-validation",
+        "start": 32374.60859,
+        "end": 32374.929139,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-O0",
+        "clock": "worker",
+        "phase": "user-link",
+        "start": 32375.474637,
+        "end": 32430.617957,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-O0",
+        "clock": "worker",
+        "phase": "hot-binary-conversion",
+        "start": 32430.727094,
+        "end": 32430.852102,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-O0",
+        "clock": "worker",
+        "phase": "compiler-total",
+        "start": 26505.348177,
+        "end": 32430.888254,
+        "outcome": "success",
+        "counts": {
+          "sources": 2,
+          "objectsReused": 0,
+          "starterObjectsReused": 0,
+          "commands": 3,
+          "projectWrites": 1,
+          "projectDeletes": 0,
+          "returnedBytes": 2398164
+        }
+      }
+    ]
+  },
+  {
+    "template": "ez-template",
+    "variant": "O1",
+    "compiledAt": 1791456199714,
+    "compileMs": 5402.401225000001,
+    "commitSha": "hardware-ez-template-O1",
+    "artifacts": [
+      {
+        "path": "bin/hot.package.bin",
+        "file": "ez-template-O1-hot.package.bin",
+        "bytes": 16616,
+        "sha256": "6fc052fa62302b63a3087e4eb2de1543eccdcd5707ada40df003cb4c56230787"
+      },
+      {
+        "path": "bin/cold.package.bin",
+        "file": "ez-template-O1-cold.package.bin",
+        "bytes": 2381228,
+        "sha256": "bdfd6b9ea925bf34737435245ba34108db26b89815fa64ff32a48e317fe63b4a"
+      }
+    ],
+    "spans": [
+      {
+        "buildId": "hardware-ez-template-O1",
+        "clock": "worker",
+        "phase": "project-synchronization",
+        "start": 32432.123874,
+        "end": 32432.24124,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-O1",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 32432.916164,
+        "end": 35113.348731,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-O1",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 35119.713244,
+        "end": 37764.673461,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-O1",
+        "clock": "worker",
+        "phase": "timestamp-patch",
+        "start": 37770.871462,
+        "end": 37770.98283,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-O1",
+        "clock": "worker",
+        "phase": "cold-input-validation",
+        "start": 37771.036156,
+        "end": 37771.321951,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-O1",
+        "clock": "worker",
+        "phase": "user-link",
+        "start": 37771.723044,
+        "end": 37832.076835,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-O1",
+        "clock": "worker",
+        "phase": "hot-binary-conversion",
+        "start": 37832.649816,
+        "end": 37832.681673,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-O1",
+        "clock": "worker",
+        "phase": "compiler-total",
+        "start": 32432.119325,
+        "end": 37832.692281,
+        "outcome": "success",
+        "counts": {
+          "sources": 2,
+          "objectsReused": 0,
+          "starterObjectsReused": 0,
+          "commands": 3,
+          "projectWrites": 1,
+          "projectDeletes": 0,
+          "returnedBytes": 2397844
+        }
+      }
+    ]
+  },
+  {
+    "template": "ez-template",
+    "variant": "project-pch",
+    "compiledAt": 1791456205117,
+    "compileMs": 17843.539382999996,
+    "commitSha": "hardware-ez-template-project-pch",
+    "artifacts": [
+      {
+        "path": "bin/hot.package.bin",
+        "file": "ez-template-project-pch-hot.package.bin",
+        "bytes": 16656,
+        "sha256": "e6640ed340f197af150ad51ccdd0bc27761497f316e40db91be3f217cd2b9d0e"
+      },
+      {
+        "path": "bin/cold.package.bin",
+        "file": "ez-template-project-pch-cold.package.bin",
+        "bytes": 2381228,
+        "sha256": "bdfd6b9ea925bf34737435245ba34108db26b89815fa64ff32a48e317fe63b4a"
+      }
+    ],
+    "spans": [
+      {
+        "buildId": "hardware-ez-template-project-pch",
+        "clock": "worker",
+        "phase": "project-synchronization",
+        "start": 37834.541319,
+        "end": 37834.650561,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-project-pch",
+        "clock": "worker",
+        "phase": "project-pch-generation",
+        "start": 37835.064661,
+        "end": 54417.169371,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-project-pch",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 54429.327545,
+        "end": 54989.280505,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-project-pch",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 54994.55766,
+        "end": 55572.049496,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-project-pch",
+        "clock": "worker",
+        "phase": "timestamp-patch",
+        "start": 55574.855434,
+        "end": 55574.95475,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-project-pch",
+        "clock": "worker",
+        "phase": "cold-input-validation",
+        "start": 55574.994324,
+        "end": 55575.117327,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-project-pch",
+        "clock": "worker",
+        "phase": "user-link",
+        "start": 55575.432186,
+        "end": 55675.383641,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-project-pch",
+        "clock": "worker",
+        "phase": "hot-binary-conversion",
+        "start": 55676.210899,
+        "end": 55676.249055,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-ez-template-project-pch",
+        "clock": "worker",
+        "phase": "compiler-total",
+        "start": 37834.536646,
+        "end": 55676.262321,
+        "outcome": "success",
+        "counts": {
+          "sources": 2,
+          "objectsReused": 0,
+          "starterObjectsReused": 0,
+          "commands": 4,
+          "projectWrites": 1,
+          "projectDeletes": 0,
+          "returnedBytes": 2397884
+        }
+      }
+    ]
+  },
+  {
+    "template": "jar-template",
+    "variant": "reference",
+    "compiledAt": 1791456223062,
+    "compileMs": 780.6380419999987,
+    "commitSha": "hardware-jar-template-reference",
+    "artifacts": [
+      {
+        "path": "build/workspace.bin",
+        "file": "jar-template-reference-workspace.bin",
+        "bytes": 16400,
+        "sha256": "67f586c034d8abccdff99b86d3f82b725358d33f8d0436a4347af165f6c3f798"
+      }
+    ],
+    "spans": [
+      {
+        "buildId": "hardware-jar-template-reference",
+        "clock": "worker",
+        "phase": "project-synchronization",
+        "start": 55779.844405,
+        "end": 55779.930599,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-reference",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 55780.637776,
+        "end": 56151.459507,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-reference",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 56170.478121,
+        "end": 56535.66103,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-reference",
+        "clock": "worker",
+        "phase": "user-link",
+        "start": 56536.343851,
+        "end": 56559.838932,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-reference",
+        "clock": "worker",
+        "phase": "binary-conversion",
+        "start": 56560.011466,
+        "end": 56560.05091,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-reference",
+        "clock": "worker",
+        "phase": "compiler-total",
+        "start": 55779.83964,
+        "end": 56560.058028,
+        "outcome": "success",
+        "counts": {
+          "sources": 2,
+          "objectsReused": 0,
+          "starterObjectsReused": 0,
+          "commands": 3,
+          "projectWrites": 14,
+          "projectDeletes": 0,
+          "returnedBytes": 16400
+        }
+      }
+    ]
+  },
+  {
+    "template": "jar-template",
+    "variant": "optimized",
+    "compiledAt": 1791456223843,
+    "compileMs": 767.9358790000042,
+    "commitSha": "hardware-jar-template-optimized",
+    "artifacts": [
+      {
+        "path": "build/workspace.bin",
+        "file": "jar-template-optimized-workspace.bin",
+        "bytes": 16400,
+        "sha256": "96d61d4e4d25e5b651e3d98a4b5875e8691073519b353094e475f7ef34053848"
+      }
+    ],
+    "spans": [
+      {
+        "buildId": "hardware-jar-template-optimized",
+        "clock": "worker",
+        "phase": "project-synchronization",
+        "start": 56560.482056,
+        "end": 56560.550157,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-optimized",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 56561.109589,
+        "end": 56946.383449,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-optimized",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 56950.642313,
+        "end": 57299.836909,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-optimized",
+        "clock": "worker",
+        "phase": "user-link",
+        "start": 57300.492318,
+        "end": 57327.788907,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-optimized",
+        "clock": "worker",
+        "phase": "binary-conversion",
+        "start": 57327.941438,
+        "end": 57327.966247,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-optimized",
+        "clock": "worker",
+        "phase": "compiler-total",
+        "start": 56560.479228,
+        "end": 57327.975221,
+        "outcome": "success",
+        "counts": {
+          "sources": 2,
+          "objectsReused": 0,
+          "starterObjectsReused": 0,
+          "commands": 3,
+          "projectWrites": 1,
+          "projectDeletes": 0,
+          "returnedBytes": 16400
+        }
+      }
+    ]
+  },
+  {
+    "template": "jar-template",
+    "variant": "O0",
+    "compiledAt": 1791456224611,
+    "compileMs": 779.5655360000019,
+    "commitSha": "hardware-jar-template-O0",
+    "artifacts": [
+      {
+        "path": "build/workspace.bin",
+        "file": "jar-template-O0-workspace.bin",
+        "bytes": 16400,
+        "sha256": "6680fc63d84311f97f17e313323b8020e524992fb91851ff390fb7017bbc4db2"
+      }
+    ],
+    "spans": [
+      {
+        "buildId": "hardware-jar-template-O0",
+        "clock": "worker",
+        "phase": "project-synchronization",
+        "start": 57328.426506,
+        "end": 57328.492982,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-O0",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 57329.026356,
+        "end": 57726.117522,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-O0",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 57727.92772,
+        "end": 58078.063646,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-O0",
+        "clock": "worker",
+        "phase": "user-link",
+        "start": 58079.27709,
+        "end": 58107.265589,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-O0",
+        "clock": "worker",
+        "phase": "binary-conversion",
+        "start": 58107.418837,
+        "end": 58107.444047,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-O0",
+        "clock": "worker",
+        "phase": "compiler-total",
+        "start": 57328.42389,
+        "end": 58107.453695,
+        "outcome": "success",
+        "counts": {
+          "sources": 2,
+          "objectsReused": 0,
+          "starterObjectsReused": 0,
+          "commands": 3,
+          "projectWrites": 1,
+          "projectDeletes": 0,
+          "returnedBytes": 16400
+        }
+      }
+    ]
+  },
+  {
+    "template": "jar-template",
+    "variant": "O1",
+    "compiledAt": 1791456225390,
+    "compileMs": 769.402780000004,
+    "commitSha": "hardware-jar-template-O1",
+    "artifacts": [
+      {
+        "path": "build/workspace.bin",
+        "file": "jar-template-O1-workspace.bin",
+        "bytes": 16400,
+        "sha256": "b0c81d13062a371df1bfb623e8864dabc0893bf88dbeab26efbc360f6c799d92"
+      }
+    ],
+    "spans": [
+      {
+        "buildId": "hardware-jar-template-O1",
+        "clock": "worker",
+        "phase": "project-synchronization",
+        "start": 58108.008494,
+        "end": 58108.082208,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-O1",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 58108.780327,
+        "end": 58495.071356,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-O1",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 58496.793449,
+        "end": 58848.278706,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-O1",
+        "clock": "worker",
+        "phase": "user-link",
+        "start": 58849.042972,
+        "end": 58876.710941,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-O1",
+        "clock": "worker",
+        "phase": "binary-conversion",
+        "start": 58876.866089,
+        "end": 58876.890562,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-O1",
+        "clock": "worker",
+        "phase": "compiler-total",
+        "start": 58108.00559,
+        "end": 58876.899392,
+        "outcome": "success",
+        "counts": {
+          "sources": 2,
+          "objectsReused": 0,
+          "starterObjectsReused": 0,
+          "commands": 3,
+          "projectWrites": 1,
+          "projectDeletes": 0,
+          "returnedBytes": 16400
+        }
+      }
+    ]
+  },
+  {
+    "template": "jar-template",
+    "variant": "project-pch",
+    "compiledAt": 1791456226160,
+    "compileMs": 1091.078082,
+    "commitSha": "hardware-jar-template-project-pch",
+    "artifacts": [
+      {
+        "path": "build/workspace.bin",
+        "file": "jar-template-project-pch-workspace.bin",
+        "bytes": 16400,
+        "sha256": "25f24e99e1397d244738ea86d2f379ca20e39d3c5d6e2a27350ba94bbaeaa62a"
+      }
+    ],
+    "spans": [
+      {
+        "buildId": "hardware-jar-template-project-pch",
+        "clock": "worker",
+        "phase": "project-synchronization",
+        "start": 58877.424945,
+        "end": 58877.498588,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-project-pch",
+        "clock": "worker",
+        "phase": "project-pch-generation",
+        "start": 58878.161153,
+        "end": 59750.838993,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-project-pch",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 59757.105856,
+        "end": 59862.778843,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-project-pch",
+        "clock": "worker",
+        "phase": "compile",
+        "start": 59864.642928,
+        "end": 59941.685727,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-project-pch",
+        "clock": "worker",
+        "phase": "user-link",
+        "start": 59942.410042,
+        "end": 59967.704677,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-project-pch",
+        "clock": "worker",
+        "phase": "binary-conversion",
+        "start": 59967.864162,
+        "end": 59967.887289,
+        "outcome": "success"
+      },
+      {
+        "buildId": "hardware-jar-template-project-pch",
+        "clock": "worker",
+        "phase": "compiler-total",
+        "start": 58877.422165,
+        "end": 59967.911306,
+        "outcome": "success",
+        "counts": {
+          "sources": 2,
+          "objectsReused": 0,
+          "starterObjectsReused": 0,
+          "commands": 4,
+          "projectWrites": 1,
+          "projectDeletes": 0,
+          "returnedBytes": 16400
+        }
+      }
+    ]
+  }
+]

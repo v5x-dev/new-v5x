@@ -3,8 +3,11 @@ import { gunzipSync } from 'node:zlib'
 import { resolve } from 'node:path'
 import { createSession, setAssetLoader } from 'microbit-clang-wasm'
 import { templateFiles } from '../convex/template'
+import { BrowserBuildSession } from '../src/lib/ide/build-session'
 import { compileBrowserProject } from '../src/lib/ide/browser-build'
 import { buildCacheKey } from '../src/lib/ide/build-cache'
+import { readSdkBundle } from './read-sdk-bundle'
+import type { BuildBundleFile } from '../src/lib/ide/build-archive'
 import type { BuildCache } from '../src/lib/ide/build-cache'
 import type { ProgramTemplate } from '../convex/template'
 
@@ -26,23 +29,17 @@ await mkdir(outputDir, { recursive: true })
 
 for (const template of (process.env.BUILD_TEMPLATES?.split(',') ??
   Object.keys(templateFiles)) as Array<ProgramTemplate>) {
-  const sdkFiles: Array<readonly [string, string | Uint8Array]> = []
+  const sdkFiles: Array<BuildBundleFile> = []
   for (const binary of [false, true]) {
     const manifest = binary ? libraries : headers
     for (const name of manifest.templates[template]) {
       const asset = manifest.bundles[name]
-      const bundle = JSON.parse(
-        gunzipSync(
-          await readFile(resolve(publicDir, asset.url.slice(1))),
-        ).toString(),
+      sdkFiles.push(
+        ...(await readSdkBundle(
+          resolve(publicDir, asset.url.slice(1)),
+          binary,
+        )),
       )
-      for (const [path, contents] of Object.entries(bundle.files))
-        sdkFiles.push([
-          path,
-          binary
-            ? Buffer.from(contents as string, 'base64')
-            : (contents as string),
-        ])
     }
   }
   const pch = libraries.precompiled?.[template]
@@ -68,13 +65,22 @@ for (const template of (process.env.BUILD_TEMPLATES?.split(',') ??
     JSON.stringify(headers),
     JSON.stringify(libraries),
   ])
+  let retained: BrowserBuildSession | undefined
   const build = async (
     label: string,
     files: Record<string, string>,
     succeeds = true,
   ) => {
-    const session = createSession()
-    if (process.env.BUILD_PROFILE === '1') {
+    const state =
+      process.env.BUILD_FRESH_SESSION === '1'
+        ? new BrowserBuildSession(createSession())
+        : (retained ?? new BrowserBuildSession(createSession()))
+    const session = state.session
+    if (state !== retained) {
+      await state.mount(sdkFiles)
+      if (process.env.BUILD_FRESH_SESSION !== '1') retained = state
+    }
+    if (process.env.BUILD_PROFILE === '1' && state !== retained) {
       const run = session.run.bind(session)
       session.run = async (argv, options) => {
         const start = performance.now()
@@ -85,8 +91,6 @@ for (const template of (process.env.BUILD_TEMPLATES?.split(',') ??
         return code
       }
     }
-    for (const [path, contents] of sdkFiles)
-      await session.writeFile(path, contents)
     const start = performance.now()
     let diagnosticOutput = ''
     const result = await compileBrowserProject(
@@ -96,12 +100,19 @@ for (const template of (process.env.BUILD_TEMPLATES?.split(',') ??
       (text) => {
         diagnosticOutput = (diagnosticOutput + text).slice(-400 * 1024)
       },
-      { cache, sdkKey },
+      { cache, sdkKey, state },
     ).catch((error) => {
       console.error(diagnosticOutput)
       throw error
     })
     const prefix = resolve(outputDir, `${template}-${label}`)
+    if (process.env.BUILD_PROFILE === '1')
+      await writeFile(
+        prefix + '.deps',
+        (await session.readFile(
+          '/workspace/.browser-build/src/main.cpp.o.d',
+        )) ?? new Uint8Array(),
+      )
     await writeFile(prefix + '.log', result.output)
     if ((result.exitCode === 0) !== succeeds)
       throw new Error(`${template} ${label}: ${result.output.slice(-4000)}`)
@@ -122,14 +133,18 @@ for (const template of (process.env.BUILD_TEMPLATES?.split(',') ??
         const artifactPrefix =
           prefix + (packaged ? (cold ? '-cold' : '-hot') : '')
         await writeFile(artifactPrefix + '.bin', artifact.bytes)
-        await writeFile(
-          artifactPrefix + '.elf',
-          (await session.readFile(
-            cold
-              ? '/workspace/.browser-build/cold.package.elf'
-              : '/workspace/.browser-build/program.elf',
-          ))!,
+        const executable = await session.readFile(
+          cold
+            ? '/workspace/.browser-build/cold.package.elf'
+            : '/workspace/.browser-build/program.elf',
         )
+        if (
+          !executable &&
+          result.output.includes('Reused completed browser build')
+        )
+          continue
+        if (!executable) throw new Error('Missing verification ELF')
+        await writeFile(artifactPrefix + '.elf', executable)
         if (packaged && !cold) {
           if (
             Buffer.from(artifact.bytes.subarray(0, 8)).toString('hex') !==
@@ -186,7 +201,49 @@ for (const template of (process.env.BUILD_TEMPLATES?.split(',') ??
     return result
   }
   const original = templateFiles[template]
-  await build('initial', original)
+  const initial = await build('initial', original)
+  const cold = libraries.cold?.[template]
+  if (cold) {
+    const symbolsAsset = await readFile(
+      resolve(publicDir, cold.symbols.url.slice(1)),
+    )
+    const symbols = new Uint8Array(
+      cold.symbols.compression === 'gzip'
+        ? gunzipSync(symbolsAsset)
+        : symbolsAsset,
+    )
+    const binaryAsset = await readFile(
+      resolve(publicDir, cold.binary.url.slice(1)),
+    )
+    const binary = new Uint8Array(
+      cold.binary.compression === 'gzip'
+        ? gunzipSync(binaryAsset)
+        : binaryAsset,
+    )
+    const state = new BrowserBuildSession(createSession())
+    await state.mount(sdkFiles)
+    const prebuilt = await compileBrowserProject(
+      state.session,
+      { files: original, template, commitSha: 'prebuilt' },
+      headers.gccVersion,
+      () => {},
+      {
+        cache,
+        sdkKey,
+        state,
+        prebuiltCold: { metadata: cold, symbols, binary },
+      },
+    )
+    if (prebuilt.exitCode || prebuilt.output.includes('--no-gc-sections'))
+      throw new Error('Prebuilt cold SDK was not eligible')
+    if (
+      !Buffer.from(prebuilt.artifacts[1].bytes).equals(
+        initial.artifacts[1].bytes,
+      )
+    )
+      throw new Error('Prebuilt cold binary differs from dynamic reference')
+    console.log(`${template}: prebuilt cold SDK matches dynamic reference`)
+  }
   if (
     process.env.BUILD_VERIFY_RUNTIME === '1' &&
     (template === 'pros' || template === 'ez-template')
@@ -216,7 +273,10 @@ void opcontrol() { while (true) pros::delay(20); }
   }
   if (process.env.BUILD_PROFILE === '1') {
     const repeat = await build('repeat', original)
-    if (!repeat.output.includes('Reused src/main.cpp.o.'))
+    if (
+      !repeat.output.includes('Reused src/main.cpp.o.') &&
+      !repeat.output.includes('Reused completed browser build')
+    )
       throw new Error('Object cache missed')
     const edited = await build('edit-main', {
       ...original,

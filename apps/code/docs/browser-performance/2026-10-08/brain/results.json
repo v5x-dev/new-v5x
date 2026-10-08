@@ -1,0 +1,760 @@
+{
+  "date": "2026-10-08T11:00:27.902Z",
+  "transport": "USB, production uploadProgramToDevice, dedicated CDC user port and framebuffer",
+  "slot": 8,
+  "records": [
+    {
+      "template": "vexcode",
+      "variant": "reference",
+      "scenario": "upload",
+      "firmware": "1.1.5",
+      "uploadMs": 586.996501,
+      "runtimeMs": 1906.7831149999997,
+      "artifactBytes": 16400,
+      "progress": [
+        {
+          "state": "INI",
+          "bytes": 279
+        },
+        {
+          "state": "BIN",
+          "bytes": 1201
+        }
+      ],
+      "passed": true,
+      "metadataFresh": true,
+      "reusePassed": true,
+      "terminal": "V5X_HW_OK vexcode reference value=30 macro=Oct  8 2026 10:42:48\r\nV5X_HW_OK vexcode reference value=30 macro=Oct  8 2026 10:42:48\r\nV5X_HW_OK vexcode reference value=30 macro=Oct  8 2026 10:42:48\r\nV5X_HW_OK vexcode reference value=30 macro=Oct  8 2026 10:42:48\r\n",
+      "screenText": "V5X_HW_OK vexcode reference\nvalue=30\nOct 8 2026 10:42:48\n",
+      "screenFile": "vexcode-reference-upload.png",
+      "readBackPassed": true,
+      "readBackMethod": "aligned compressed bytes and full-file Brain size/CRC32",
+      "coldReadBackPassed": true,
+      "commitSha": "hardware-vexcode-reference"
+    },
+    {
+      "template": "vexcode",
+      "variant": "optimized",
+      "scenario": "upload",
+      "firmware": "1.1.5",
+      "uploadMs": 328.44786799999974,
+      "runtimeMs": 1824.0691100000004,
+      "artifactBytes": 16400,
+      "progress": [
+        {
+          "state": "INI",
+          "bytes": 279
+        },
+        {
+          "state": "BIN",
+          "bytes": 1202
+        }
+      ],
+      "passed": true,
+      "metadataFresh": true,
+      "reusePassed": true,
+      "terminal": "V5X_HW_OK vexcode optimized value=30 macro=Oct  8 2026 10:42:48\r\nV5X_HW_OK vexcode optimized value=30 macro=Oct  8 2026 10:42:48\r\nV5X_HW_OK vexcode optimized value=30 macro=Oct  8 2026 10:42:48\r\nV5X_HW_OK vexcode optimized value=30 macro=Oct  8 2026 10:42:48\r\n",
+      "screenText": "V5X_HW_OK vexcode optimized\nvalue=30\nOct 8 2026 10:42:48\n",
+      "screenFile": "vexcode-optimized-upload.png",
+      "readBackPassed": true,
+      "readBackMethod": "aligned compressed bytes and full-file Brain size/CRC32",
+      "coldReadBackPassed": true,
+      "commitSha": "hardware-vexcode-optimized"
+    },
+    {
+      "template": "vexcode",
+      "variant": "O0",
+      "scenario": "upload",
+      "firmware": "1.1.5",
+      "uploadMs": 330.2479000000003,
+      "runtimeMs": 1834.0213700000004,
+      "artifactBytes": 16400,
+      "progress": [
+        {
+          "state": "INI",
+          "bytes": 272
+        },
+        {
+          "state": "BIN",
+          "bytes": 1999
+        }
+      ],
+      "passed": true,
+      "metadataFresh": true,
+      "reusePassed": true,
+      "terminal": "V5X_HW_OK vexcode O0 value=30 macro=Oct  8 2026 10:42:49\r\nV5X_HW_OK vexcode O0 value=30 macro=Oct  8 2026 10:42:49\r\nV5X_HW_OK vexcode O0 value=30 macro=Oct  8 2026 10:42:49\r\nV5X_HW_OK vexcode O0 value=30 macro=Oct  8 2026 10:42:49\r\n",
+      "screenText": "V5X_HW_OK vexcode 00\nvalue=30\nOct 8 2026 10:42:49\n",
+      "screenFile": "vexcode-O0-upload.png",
+      "readBackPassed": true,
+      "readBackMethod": "aligned compressed bytes and full-file Brain size/CRC32",
+      "coldReadBackPassed": true,
+      "commitSha": "hardware-vexcode-O0"
+    },
+    {
+      "template": "vexcode",
+      "variant": "O1",
+      "scenario": "upload",
+      "firmware": "1.1.5",
+      "uploadMs": 330.72584300000017,
+      "runtimeMs": 1866.7073520000004,
+      "artifactBytes": 16400,
+      "progress": [
+        {
+          "state": "INI",
+          "bytes": 272
+        },
+        {
+          "state": "BIN",
+          "bytes": 1211
+        }
+      ],
+      "passed": true,
+      "metadataFresh": true,
+      "reusePassed": true,
+      "terminal": "V5X_HW_OK vexcode O1 value=30 macro=Oct  8 2026 10:42:49\r\nV5X_HW_OK vexcode O1 value=30 macro=Oct  8 2026 10:42:49\r\nV5X_HW_OK vexcode O1 value=30 macro=Oct  8 2026 10:42:49\r\nV5X_HW_OK vexcode O1 value=30 macro=Oct  8 2026 10:42:49\r\n",
+      "screenText": "V5X_HW_OK vexcode 01\nvalue=30\nOct 8 2026 10:42:49\n",
+      "screenFile": "vexcode-O1-upload.png",
+      "readBackPassed": true,
+      "readBackMethod": "aligned compressed bytes and full-file Brain size/CRC32",
+      "coldReadBackPassed": true,
+      "commitSha": "hardware-vexcode-O1"
+    },
+    {
+      "template": "vexcode",
+      "variant": "project-pch",
+      "scenario": "upload",
+      "firmware": "1.1.5",
+      "uploadMs": 328.0247220000001,
+      "runtimeMs": 1839.0212040000006,
+      "artifactBytes": 16400,
+      "progress": [
+        {
+          "state": "INI",
+          "bytes": 281
+        },
+        {
+          "state": "BIN",
+          "bytes": 1205
+        }
+      ],
+      "passed": true,
+      "metadataFresh": true,
+      "reusePassed": true,
+      "terminal": "V5X_HW_OK vexcode project-pch value=30 macro=Oct  8 2026 10:42:50\r\nV5X_HW_OK vexcode project-pch value=30 macro=Oct  8 2026 10:42:50\r\nV5X_HW_OK vexcode project-pch value=30 macro=Oct  8 2026 10:42:50\r\nV5X_HW_OK vexcode project-pch value=30 macro=Oct  8 2026 10:42:50\r\n",
+      "screenText": "V5X_HW_OK vexcode project-pch\nvalue=30\nOct 8 2026 10:42:50\n",
+      "screenFile": "vexcode-project-pch-upload.png",
+      "readBackPassed": true,
+      "readBackMethod": "aligned compressed bytes and full-file Brain size/CRC32",
+      "coldReadBackPassed": true,
+      "commitSha": "hardware-vexcode-project-pch"
+    },
+    {
+      "template": "pros",
+      "variant": "reference",
+      "scenario": "upload",
+      "firmware": "1.1.5",
+      "uploadMs": 6296.091758000002,
+      "runtimeMs": 1840.3683039999996,
+      "artifactBytes": 1364464,
+      "progress": [
+        {
+          "state": "INI",
+          "bytes": 273
+        },
+        {
+          "state": "COLD",
+          "bytes": 666307
+        },
+        {
+          "state": "BIN",
+          "bytes": 4083
+        }
+      ],
+      "passed": true,
+      "metadataFresh": true,
+      "reusePassed": true,
+      "terminal": "\u0006sout\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000\u001fsout         \u001b[1;33m_+=+_\u001b[0m\n\u0000Wsout     \u001b[1;33m .-`  .  `-. \u001b[0m         8888888b.  8888888b.   .d88888b.   .d8888b.\n\u0000Xsout  \u001b[1;33m _+`     \"     `+_ \u001b[0m      888   Y88b 888   Y88b d88P\" \"Y88b d88P  Y88b\n\u0000Ssout  \u001b[1;33m\\\\\\sssssssssssss///\u001b[0m      888    888 888    888 888     888 Y88b.\n\u0000`sout     \u001b[1;33m.ss\\  \u001b[37m*\u001b[33m  /ss.\u001b[0m         888   d88P 888   d88P 888     888  \"Y888b.\n\u0000xsout \u001b[1;33m.+bm\u001b[0m  \u001b[1;33m.s\u001b[37m  *  \u001b[33ms.\u001b[0m  \u001b[1;33mmd+.\u001b[0m     8888888P\"  8888888P\"  888     888     \"Y88b.\n\u0000xsout\u001b[1;33m.hMMMMs\u001b[0m \u001b[1;33m.\u001b[37m  *  \u001b[33m.\u001b[0m \u001b[1;33msMMMMh.\u001b[0m    888        888 T88b   888     888       \"888\n\u0000xsout \u001b[1;33m`\\hMMMb\u001b[0m \u001b[1;33m\\\u001b[37m | \u001b[33m/\u001b[0m \u001b[1;33mdMMMh:\u001b[0m      888        888  T88b  Y88b. .d88P Y88b  d88P\n\u0000msout   \u001b[1;33m-SNMNo\u001b[0m  \u001b[1;33m-\u001b[0m  \u001b[1;33moNMNs-\u001b[0m       888        888   T88b  \"Y88888P\"   \"Y8888P\"\n\u0000\"sout     \u001b[1;33m`+dMh\\./dMd/\u001b[0m\n\u0000[sout        \u001b[1;33m`:yNy:`\u001b[0m                      \u001b[1;33mPowered by PROS for VEX V5\u001b[0m\n\u0000Xsout           \u001b[1;33m\"\u001b[0m                Copyright (c) Purdue University ACM SIGBots\n\u0000fsoutVersion:\u001b[1m        3.8.3\u001b[0m     Platform:  \u001b[1mV1.1.5 (b18)\u001b[0m     Uptime:\u001b[1m    0.000 s\u001b[0m\n\u0000]soutCompiled:   \u001b[1mOct  8 2026 10:42:52\u001b[0m     Directory:  \u001b[1m            /workspace\u001b[0m\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000gsoutV5X_HW_OK pros reference value=30 macro=Oct  8 2026 10:42:52 meta=1791456172 Oct  8 2026 10:42:52\n\u0000gsoutV5X_HW_OK pros reference value=30 macro=Oct  8 2026 10:42:52 meta=1791456172 Oct  8 2026 10:42:52\n\u0000gsoutV5X_HW_OK pros reference value=30 macro=Oct  8 2026 10:42:52 meta=1791456172 Oct  8 2026 10:42:52\n\u0000gsoutV5X_HW_OK pros reference value=30 macro=Oct  8 2026 10:42:52 meta=1791456172 Oct  8 2026 10:42:52\n\u0000",
+      "screenText": "-\n",
+      "screenFile": "pros-reference-upload.png",
+      "readBackPassed": true,
+      "readBackMethod": "aligned compressed bytes and full-file Brain size/CRC32",
+      "coldReadBackPassed": true,
+      "commitSha": "hardware-pros-reference"
+    },
+    {
+      "template": "pros",
+      "variant": "optimized",
+      "scenario": "missing",
+      "firmware": "1.1.5",
+      "uploadMs": 4556.045688999999,
+      "runtimeMs": 3744.4566870000017,
+      "artifactBytes": 1364464,
+      "progress": [
+        {
+          "state": "INI",
+          "bytes": 273
+        },
+        {
+          "state": "COLD",
+          "bytes": 666307
+        },
+        {
+          "state": "BIN",
+          "bytes": 4088
+        }
+      ],
+      "passed": true,
+      "metadataFresh": true,
+      "reusePassed": true,
+      "terminal": "\u0006sout\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000\u001fsout         \u001b[1;33m_+=+_\u001b[0m\n\u0000Wsout     \u001b[1;33m .-`  .  `-. \u001b[0m         8888888b.  8888888b.   .d88888b.   .d8888b.\n\u0000Xsout  \u001b[1;33m _+`     \"     `+_ \u001b[0m      888   Y88b 888   Y88b d88P\" \"Y88b d88P  Y88b\n\u0000Ssout  \u001b[1;33m\\\\\\sssssssssssss///\u001b[0m      888    888 888    888 888     888 Y88b.\n\u0000`sout     \u001b[1;33m.ss\\  \u001b[37m*\u001b[33m  /ss.\u001b[0m         888   d88P 888   d88P 888     888  \"Y888b.\n\u0000xsout \u001b[1;33m.+bm\u001b[0m  \u001b[1;33m.s\u001b[37m  *  \u001b[33ms.\u001b[0m  \u001b[1;33mmd+.\u001b[0m     8888888P\"  8888888P\"  888     888     \"Y88b.\n\u0000xsout\u001b[1;33m.hMMMMs\u001b[0m \u001b[1;33m.\u001b[37m  *  \u001b[33m.\u001b[0m \u001b[1;33msMMMMh.\u001b[0m    888        888 T88b   888     888       \"888\n\u0000xsout \u001b[1;33m`\\hMMMb\u001b[0m \u001b[1;33m\\\u001b[37m | \u001b[33m/\u001b[0m \u001b[1;33mdMMMh:\u001b[0m      888        888  T88b  Y88b. .d88P Y88b  d88P\n\u0000msout   \u001b[1;33m-SNMNo\u001b[0m  \u001b[1;33m-\u001b[0m  \u001b[1;33moNMNs-\u001b[0m       888        888   T88b  \"Y88888P\"   \"Y8888P\"\n\u0000\"sout     \u001b[1;33m`+dMh\\./dMd/\u001b[0m\n\u0000[sout        \u001b[1;33m`:yNy:`\u001b[0m                      \u001b[1;33mPowered by PROS for VEX V5\u001b[0m\n\u0000Xsout           \u001b[1;33m\"\u001b[0m                Copyright (c) Purdue University ACM SIGBots\n\u0000fsoutVersion:\u001b[1m        3.8.3\u001b[0m     Platform:  \u001b[1mV1.1.5 (b18)\u001b[0m     Uptime:\u001b[1m    0.000 s\u001b[0m\n\u0000]soutCompiled:   \u001b[1mOct  8 2026 10:42:54\u001b[0m     Directory:  \u001b[1m            /workspace\u001b[0m\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000gsoutV5X_HW_OK pros optimized value=30 macro=Oct  8 2026 10:42:54 meta=1791456174 Oct  8 2026 10:42:54\n\u0000gsoutV5X_HW_OK pros optimized value=30 macro=Oct  8 2026 10:42:54 meta=1791456174 Oct  8 2026 10:42:54\n\u0000gsoutV5X_HW_OK pros optimized value=30 macro=Oct  8 2026 10:42:54 meta=1791456174 Oct  8 2026 10:42:54\n\u0000gsoutV5X_HW_OK pros optimized value=30 macro=Oct  8 2026 10:42:54 meta=1791456174 Oct  8 2026 10:42:54\n\u0000gsoutV5X_HW_OK pros optimized value=30 macro=Oct  8 2026 10:42:54 meta=1791456174 Oct  8 2026 10:42:54\n\u0000gsoutV5X_HW_OK pros optimized value=30 macro=Oct  8 2026 10:42:54 meta=1791456174 Oct  8 2026 10:42:54\n\u0000gsoutV5X_HW_OK pros optimized value=30 macro=Oct  8 2026 10:42:54 meta=1791456174 Oct  8 2026 10:42:54\n\u0000",
+      "screenText": "-\n",
+      "screenFile": "pros-optimized-missing.png",
+      "readBackPassed": true,
+      "readBackMethod": "aligned compressed bytes and full-file Brain size/CRC32",
+      "coldReadBackPassed": true,
+      "commitSha": "hardware-pros-optimized"
+    },
+    {
+      "template": "pros",
+      "variant": "optimized",
+      "scenario": "matching",
+      "firmware": "1.1.5",
+      "uploadMs": 895.1612910000003,
+      "runtimeMs": 1834.7619159999995,
+      "artifactBytes": 1364464,
+      "progress": [
+        {
+          "state": "INI",
+          "bytes": 273
+        },
+        {
+          "state": "COLD (cached)",
+          "bytes": 666307
+        },
+        {
+          "state": "BIN",
+          "bytes": 4088
+        }
+      ],
+      "passed": true,
+      "metadataFresh": true,
+      "reusePassed": true,
+      "terminal": "\u0006sout\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000\u001fsout         \u001b[1;33m_+=+_\u001b[0m\n\u0000Wsout     \u001b[1;33m .-`  .  `-. \u001b[0m         8888888b.  8888888b.   .d88888b.   .d8888b.\n\u0000Xsout  \u001b[1;33m _+`     \"     `+_ \u001b[0m      888   Y88b 888   Y88b d88P\" \"Y88b d88P  Y88b\n\u0000Ssout  \u001b[1;33m\\\\\\sssssssssssss///\u001b[0m      888    888 888    888 888     888 Y88b.\n\u0000`sout     \u001b[1;33m.ss\\  \u001b[37m*\u001b[33m  /ss.\u001b[0m         888   d88P 888   d88P 888     888  \"Y888b.\n\u0000xsout \u001b[1;33m.+bm\u001b[0m  \u001b[1;33m.s\u001b[37m  *  \u001b[33ms.\u001b[0m  \u001b[1;33mmd+.\u001b[0m     8888888P\"  8888888P\"  888     888     \"Y88b.\n\u0000xsout\u001b[1;33m.hMMMMs\u001b[0m \u001b[1;33m.\u001b[37m  *  \u001b[33m.\u001b[0m \u001b[1;33msMMMMh.\u001b[0m    888        888 T88b   888     888       \"888\n\u0000xsout \u001b[1;33m`\\hMMMb\u001b[0m \u001b[1;33m\\\u001b[37m | \u001b[33m/\u001b[0m \u001b[1;33mdMMMh:\u001b[0m      888        888  T88b  Y88b. .d88P Y88b  d88P\n\u0000msout   \u001b[1;33m-SNMNo\u001b[0m  \u001b[1;33m-\u001b[0m  \u001b[1;33moNMNs-\u001b[0m       888        888   T88b  \"Y88888P\"   \"Y8888P\"\n\u0000\"sout     \u001b[1;33m`+dMh\\./dMd/\u001b[0m\n\u0000[sout        \u001b[1;33m`:yNy:`\u001b[0m                      \u001b[1;33mPowered by PROS for VEX V5\u001b[0m\n\u0000Xsout           \u001b[1;33m\"\u001b[0m                Copyright (c) Purdue University ACM SIGBots\n\u0000fsoutVersion:\u001b[1m        3.8.3\u001b[0m     Platform:  \u001b[1mV1.1.5 (b18)\u001b[0m     Uptime:\u001b[1m    0.000 s\u001b[0m\n\u0000]soutCompiled:   \u001b[1mOct  8 2026 10:42:54\u001b[0m     Directory:  \u001b[1m            /workspace\u001b[0m\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000gsoutV5X_HW_OK pros optimized value=30 macro=Oct  8 2026 10:42:54 meta=1791456174 Oct  8 2026 10:42:54\n\u0000gsoutV5X_HW_OK pros optimized value=30 macro=Oct  8 2026 10:42:54 meta=1791456174 Oct  8 2026 10:42:54\n\u0000gsoutV5X_HW_OK pros optimized value=30 macro=Oct  8 2026 10:42:54 meta=1791456174 Oct  8 2026 10:42:54\n\u0000gsoutV5X_HW_OK pros optimized value=30 macro=Oct  8 2026 10:42:54 meta=1791456174 Oct  8 2026 10:42:54\n\u0000",
+      "screenText": "-\n",
+      "screenFile": "pros-optimized-matching.png",
+      "readBackPassed": true,
+      "readBackMethod": "aligned compressed bytes and full-file Brain size/CRC32",
+      "coldReadBackPassed": true,
+      "commitSha": "hardware-pros-optimized"
+    },
+    {
+      "template": "pros",
+      "variant": "optimized",
+      "scenario": "mismatched",
+      "firmware": "1.1.5",
+      "uploadMs": 4393.754464999998,
+      "runtimeMs": 3867.725624999999,
+      "artifactBytes": 1364464,
+      "progress": [
+        {
+          "state": "INI",
+          "bytes": 273
+        },
+        {
+          "state": "COLD",
+          "bytes": 666307
+        },
+        {
+          "state": "BIN",
+          "bytes": 4088
+        }
+      ],
+      "passed": true,
+      "metadataFresh": true,
+      "reusePassed": true,
+      "terminal": "\u0006sout\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000\u001fsout         \u001b[1;33m_+=+_\u001b[0m\n\u0000Wsout     \u001b[1;33m .-`  .  `-. \u001b[0m         8888888b.  8888888b.   .d88888b.   .d8888b.\n\u0000Xsout  \u001b[1;33m _+`     \"     `+_ \u001b[0m      888   Y88b 888   Y88b d88P\" \"Y88b d88P  Y88b\n\u0000Ssout  \u001b[1;33m\\\\\\sssssssssssss///\u001b[0m      888    888 888    888 888     888 Y88b.\n\u0000`sout     \u001b[1;33m.ss\\  \u001b[37m*\u001b[33m  /ss.\u001b[0m         888   d88P 888   d88P 888     888  \"Y888b.\n\u0000xsout \u001b[1;33m.+bm\u001b[0m  \u001b[1;33m.s\u001b[37m  *  \u001b[33ms.\u001b[0m  \u001b[1;33mmd+.\u001b[0m     8888888P\"  8888888P\"  888     888     \"Y88b.\n\u0000xsout\u001b[1;33m.hMMMMs\u001b[0m \u001b[1;33m.\u001b[37m  *  \u001b[33m.\u001b[0m \u001b[1;33msMMMMh.\u001b[0m    888        888 T88b   888     888       \"888\n\u0000xsout \u001b[1;33m`\\hMMMb\u001b[0m \u001b[1;33m\\\u001b[37m | \u001b[33m/\u001b[0m \u001b[1;33mdMMMh:\u001b[0m      888        888  T88b  Y88b. .d88P Y88b  d88P\n\u0000msout   \u001b[1;33m-SNMNo\u001b[0m  \u001b[1;33m-\u001b[0m  \u001b[1;33moNMNs-\u001b[0m       888        888   T88b  \"Y88888P\"   \"Y8888P\"\n\u0000\"sout     \u001b[1;33m`+dMh\\./dMd/\u001b[0m\n\u0000[sout        \u001b[1;33m`:yNy:`\u001b[0m                      \u001b[1;33mPowered by PROS for VEX V5\u001b[0m\n\u0000Xsout           \u001b[1;33m\"\u001b[0m                Copyright (c) Purdue University ACM SIGBots\n\u0000fsoutVersion:\u001b[1m        3.8.3\u001b[0m     Platform:  \u001b[1mV1.1.5 (b18)\u001b[0m     Uptime:\u001b[1m    0.000 s\u001b[0m\n\u0000]soutCompiled:   \u001b[1mOct  8 2026 10:42:54\u001b[0m     Directory:  \u001b[1m            /workspace\u001b[0m\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000gsoutV5X_HW_OK pros optimized value=30 macro=Oct  8 2026 10:42:54 meta=1791456174 Oct  8 2026 10:42:54\n\u0000gsoutV5X_HW_OK pros optimized value=30 macro=Oct  8 2026 10:42:54 meta=1791456174 Oct  8 2026 10:42:54\n\u0000gsoutV5X_HW_OK pros optimized value=30 macro=Oct  8 2026 10:42:54 meta=1791456174 Oct  8 2026 10:42:54\n\u0000gsoutV5X_HW_OK pros optimized value=30 macro=Oct  8 2026 10:42:54 meta=1791456174 Oct  8 2026 10:42:54\n\u0000gsoutV5X_HW_OK pros optimized value=30 macro=Oct  8 2026 10:42:54 meta=1791456174 Oct  8 2026 10:42:54\n\u0000gsoutV5X_HW_OK pros optimized value=30 macro=Oct  8 2026 10:42:54 meta=1791456174 Oct  8 2026 10:42:54\n\u0000gsoutV5X_HW_OK pros optimized value=30 macro=Oct  8 2026 10:42:54 meta=1791456174 Oct  8 2026 10:42:54\n\u0000gsoutV5X_HW_OK pros optimized value=30 macro=Oct  8 2026 10:42:54 meta=1791456174 Oct  8 2026 10:42:54\n\u0000",
+      "screenText": "-\n",
+      "screenFile": "pros-optimized-mismatched.png",
+      "readBackPassed": true,
+      "readBackMethod": "aligned compressed bytes and full-file Brain size/CRC32",
+      "coldReadBackPassed": true,
+      "commitSha": "hardware-pros-optimized"
+    },
+    {
+      "template": "pros",
+      "variant": "O0",
+      "scenario": "upload",
+      "firmware": "1.1.5",
+      "uploadMs": 1215.062546000001,
+      "runtimeMs": 1878.8131999999969,
+      "artifactBytes": 1364904,
+      "progress": [
+        {
+          "state": "INI",
+          "bytes": 266
+        },
+        {
+          "state": "COLD (cached)",
+          "bytes": 666307
+        },
+        {
+          "state": "BIN",
+          "bytes": 5846
+        }
+      ],
+      "passed": true,
+      "metadataFresh": true,
+      "reusePassed": true,
+      "terminal": "\u0006sout\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000\u001fsout         \u001b[1;33m_+=+_\u001b[0m\n\u0000Wsout     \u001b[1;33m .-`  .  `-. \u001b[0m         8888888b.  8888888b.   .d88888b.   .d8888b.\n\u0000Xsout  \u001b[1;33m _+`     \"     `+_ \u001b[0m      888   Y88b 888   Y88b d88P\" \"Y88b d88P  Y88b\n\u0000Ssout  \u001b[1;33m\\\\\\sssssssssssss///\u001b[0m      888    888 888    888 888     888 Y88b.\n\u0000`sout     \u001b[1;33m.ss\\  \u001b[37m*\u001b[33m  /ss.\u001b[0m         888   d88P 888   d88P 888     888  \"Y888b.\n\u0000xsout \u001b[1;33m.+bm\u001b[0m  \u001b[1;33m.s\u001b[37m  *  \u001b[33ms.\u001b[0m  \u001b[1;33mmd+.\u001b[0m     8888888P\"  8888888P\"  888     888     \"Y88b.\n\u0000xsout\u001b[1;33m.hMMMMs\u001b[0m \u001b[1;33m.\u001b[37m  *  \u001b[33m.\u001b[0m \u001b[1;33msMMMMh.\u001b[0m    888        888 T88b   888     888       \"888\n\u0000xsout \u001b[1;33m`\\hMMMb\u001b[0m \u001b[1;33m\\\u001b[37m | \u001b[33m/\u001b[0m \u001b[1;33mdMMMh:\u001b[0m      888        888  T88b  Y88b. .d88P Y88b  d88P\n\u0000msout   \u001b[1;33m-SNMNo\u001b[0m  \u001b[1;33m-\u001b[0m  \u001b[1;33moNMNs-\u001b[0m       888        888   T88b  \"Y88888P\"   \"Y8888P\"\n\u0000\"sout     \u001b[1;33m`+dMh\\./dMd/\u001b[0m\n\u0000[sout        \u001b[1;33m`:yNy:`\u001b[0m                      \u001b[1;33mPowered by PROS for VEX V5\u001b[0m\n\u0000Xsout           \u001b[1;33m\"\u001b[0m                Copyright (c) Purdue University ACM SIGBots\n\u0000fsoutVersion:\u001b[1m        3.8.3\u001b[0m     Platform:  \u001b[1mV1.1.5 (b18)\u001b[0m     Uptime:\u001b[1m    0.000 s\u001b[0m\n\u0000]soutCompiled:   \u001b[1mOct  8 2026 10:42:56\u001b[0m     Directory:  \u001b[1m            /workspace\u001b[0m\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000`soutV5X_HW_OK pros O0 value=30 macro=Oct  8 2026 10:42:56 meta=1791456176 Oct  8 2026 10:42:56\n\u0000`soutV5X_HW_OK pros O0 value=30 macro=Oct  8 2026 10:42:56 meta=1791456176 Oct  8 2026 10:42:56\n\u0000`soutV5X_HW_OK pros O0 value=30 macro=Oct  8 2026 10:42:56 meta=1791456176 Oct  8 2026 10:42:56\n\u0000`soutV5X_HW_OK pros O0 value=30 macro=Oct  8 2026 10:42:56 meta=1791456176 Oct  8 2026 10:42:56\n\u0000",
+      "screenText": "-\n",
+      "screenFile": "pros-O0-upload.png",
+      "readBackPassed": true,
+      "readBackMethod": "aligned compressed bytes and full-file Brain size/CRC32",
+      "coldReadBackPassed": true,
+      "commitSha": "hardware-pros-O0"
+    },
+    {
+      "template": "pros",
+      "variant": "O1",
+      "scenario": "upload",
+      "firmware": "1.1.5",
+      "uploadMs": 765.0591000000059,
+      "runtimeMs": 1807.3063970000003,
+      "artifactBytes": 1364440,
+      "progress": [
+        {
+          "state": "INI",
+          "bytes": 266
+        },
+        {
+          "state": "COLD (cached)",
+          "bytes": 666307
+        },
+        {
+          "state": "BIN",
+          "bytes": 3824
+        }
+      ],
+      "passed": true,
+      "metadataFresh": true,
+      "reusePassed": true,
+      "terminal": "\u0006sout\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000\u001fsout         \u001b[1;33m_+=+_\u001b[0m\n\u0000Wsout     \u001b[1;33m .-`  .  `-. \u001b[0m         8888888b.  8888888b.   .d88888b.   .d8888b.\n\u0000Xsout  \u001b[1;33m _+`     \"     `+_ \u001b[0m      888   Y88b 888   Y88b d88P\" \"Y88b d88P  Y88b\n\u0000Ssout  \u001b[1;33m\\\\\\sssssssssssss///\u001b[0m      888    888 888    888 888     888 Y88b.\n\u0000`sout     \u001b[1;33m.ss\\  \u001b[37m*\u001b[33m  /ss.\u001b[0m         888   d88P 888   d88P 888     888  \"Y888b.\n\u0000xsout \u001b[1;33m.+bm\u001b[0m  \u001b[1;33m.s\u001b[37m  *  \u001b[33ms.\u001b[0m  \u001b[1;33mmd+.\u001b[0m     8888888P\"  8888888P\"  888     888     \"Y88b.\n\u0000xsout\u001b[1;33m.hMMMMs\u001b[0m \u001b[1;33m.\u001b[37m  *  \u001b[33m.\u001b[0m \u001b[1;33msMMMMh.\u001b[0m    888        888 T88b   888     888       \"888\n\u0000xsout \u001b[1;33m`\\hMMMb\u001b[0m \u001b[1;33m\\\u001b[37m | \u001b[33m/\u001b[0m \u001b[1;33mdMMMh:\u001b[0m      888        888  T88b  Y88b. .d88P Y88b  d88P\n\u0000msout   \u001b[1;33m-SNMNo\u001b[0m  \u001b[1;33m-\u001b[0m  \u001b[1;33moNMNs-\u001b[0m       888        888   T88b  \"Y88888P\"   \"Y8888P\"\n\u0000\"sout     \u001b[1;33m`+dMh\\./dMd/\u001b[0m\n\u0000[sout        \u001b[1;33m`:yNy:`\u001b[0m                      \u001b[1;33mPowered by PROS for VEX V5\u001b[0m\n\u0000Xsout           \u001b[1;33m\"\u001b[0m                Copyright (c) Purdue University ACM SIGBots\n\u0000fsoutVersion:\u001b[1m        3.8.3\u001b[0m     Platform:  \u001b[1mV1.1.5 (b18)\u001b[0m     Uptime:\u001b[1m    0.000 s\u001b[0m\n\u0000]soutCompiled:   \u001b[1mOct  8 2026 10:42:58\u001b[0m     Directory:  \u001b[1m            /workspace\u001b[0m\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000`soutV5X_HW_OK pros O1 value=30 macro=Oct  8 2026 10:42:58 meta=1791456178 Oct  8 2026 10:42:58\n\u0000`soutV5X_HW_OK pros O1 value=30 macro=Oct  8 2026 10:42:58 meta=1791456178 Oct  8 2026 10:42:58\n\u0000`soutV5X_HW_OK pros O1 value=30 macro=Oct  8 2026 10:42:58 meta=1791456178 Oct  8 2026 10:42:58\n\u0000`soutV5X_HW_OK pros O1 value=30 macro=Oct  8 2026 10:42:58 meta=1791456178 Oct  8 2026 10:42:58\n\u0000",
+      "screenText": "-\n",
+      "screenFile": "pros-O1-upload.png",
+      "readBackPassed": true,
+      "readBackMethod": "aligned compressed bytes and full-file Brain size/CRC32",
+      "coldReadBackPassed": true,
+      "commitSha": "hardware-pros-O1"
+    },
+    {
+      "template": "pros",
+      "variant": "project-pch",
+      "scenario": "upload",
+      "firmware": "1.1.5",
+      "uploadMs": 761.4945139999982,
+      "runtimeMs": 1826.8128110000034,
+      "artifactBytes": 1364464,
+      "progress": [
+        {
+          "state": "INI",
+          "bytes": 275
+        },
+        {
+          "state": "COLD (cached)",
+          "bytes": 666307
+        },
+        {
+          "state": "BIN",
+          "bytes": 4087
+        }
+      ],
+      "passed": true,
+      "metadataFresh": true,
+      "reusePassed": true,
+      "terminal": "\u0006sout\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000\u001fsout         \u001b[1;33m_+=+_\u001b[0m\n\u0000Wsout     \u001b[1;33m .-`  .  `-. \u001b[0m         8888888b.  8888888b.   .d88888b.   .d8888b.\n\u0000Xsout  \u001b[1;33m _+`     \"     `+_ \u001b[0m      888   Y88b 888   Y88b d88P\" \"Y88b d88P  Y88b\n\u0000Ssout  \u001b[1;33m\\\\\\sssssssssssss///\u001b[0m      888    888 888    888 888     888 Y88b.\n\u0000`sout     \u001b[1;33m.ss\\  \u001b[37m*\u001b[33m  /ss.\u001b[0m         888   d88P 888   d88P 888     888  \"Y888b.\n\u0000xsout \u001b[1;33m.+bm\u001b[0m  \u001b[1;33m.s\u001b[37m  *  \u001b[33ms.\u001b[0m  \u001b[1;33mmd+.\u001b[0m     8888888P\"  8888888P\"  888     888     \"Y88b.\n\u0000xsout\u001b[1;33m.hMMMMs\u001b[0m \u001b[1;33m.\u001b[37m  *  \u001b[33m.\u001b[0m \u001b[1;33msMMMMh.\u001b[0m    888        888 T88b   888     888       \"888\n\u0000xsout \u001b[1;33m`\\hMMMb\u001b[0m \u001b[1;33m\\\u001b[37m | \u001b[33m/\u001b[0m \u001b[1;33mdMMMh:\u001b[0m      888        888  T88b  Y88b. .d88P Y88b  d88P\n\u0000msout   \u001b[1;33m-SNMNo\u001b[0m  \u001b[1;33m-\u001b[0m  \u001b[1;33moNMNs-\u001b[0m       888        888   T88b  \"Y88888P\"   \"Y8888P\"\n\u0000\"sout     \u001b[1;33m`+dMh\\./dMd/\u001b[0m\n\u0000[sout        \u001b[1;33m`:yNy:`\u001b[0m                      \u001b[1;33mPowered by PROS for VEX V5\u001b[0m\n\u0000Xsout           \u001b[1;33m\"\u001b[0m                Copyright (c) Purdue University ACM SIGBots\n\u0000fsoutVersion:\u001b[1m        3.8.3\u001b[0m     Platform:  \u001b[1mV1.1.5 (b18)\u001b[0m     Uptime:\u001b[1m    0.000 s\u001b[0m\n\u0000]soutCompiled:   \u001b[1mOct  8 2026 10:43:01\u001b[0m     Directory:  \u001b[1m            /workspace\u001b[0m\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000isoutV5X_HW_OK pros project-pch value=30 macro=Oct  8 2026 10:43:01 meta=1791456181 Oct  8 2026 10:43:01\n\u0000isoutV5X_HW_OK pros project-pch value=30 macro=Oct  8 2026 10:43:01 meta=1791456181 Oct  8 2026 10:43:01\n\u0000isoutV5X_HW_OK pros project-pch value=30 macro=Oct  8 2026 10:43:01 meta=1791456181 Oct  8 2026 10:43:01\n\u0000isoutV5X_HW_OK pros project-pch value=30 macro=Oct  8 2026 10:43:01 meta=1791456181 Oct  8 2026 10:43:01\n\u0000",
+      "screenText": "-\n",
+      "screenFile": "pros-project-pch-upload.png",
+      "readBackPassed": true,
+      "readBackMethod": "aligned compressed bytes and full-file Brain size/CRC32",
+      "coldReadBackPassed": true,
+      "commitSha": "hardware-pros-project-pch"
+    },
+    {
+      "template": "ez-template",
+      "variant": "reference",
+      "scenario": "upload",
+      "firmware": "1.1.5",
+      "uploadMs": 9145.684192,
+      "runtimeMs": 1893.9867699999959,
+      "artifactBytes": 2397884,
+      "progress": [
+        {
+          "state": "INI",
+          "bytes": 280
+        },
+        {
+          "state": "COLD",
+          "bytes": 1058651
+        },
+        {
+          "state": "BIN",
+          "bytes": 4083
+        }
+      ],
+      "passed": true,
+      "metadataFresh": true,
+      "reusePassed": true,
+      "terminal": "\u0006sout\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000\u001fsout         \u001b[1;33m_+=+_\u001b[0m\n\u0000Wsout     \u001b[1;33m .-`  .  `-. \u001b[0m         8888888b.  8888888b.   .d88888b.   .d8888b.\n\u0000Xsout  \u001b[1;33m _+`     \"     `+_ \u001b[0m      888   Y88b 888   Y88b d88P\" \"Y88b d88P  Y88b\n\u0000Ssout  \u001b[1;33m\\\\\\sssssssssssss///\u001b[0m      888    888 888    888 888     888 Y88b.\n\u0000`sout     \u001b[1;33m.ss\\  \u001b[37m*\u001b[33m  /ss.\u001b[0m         888   d88P 888   d88P 888     888  \"Y888b.\n\u0000xsout \u001b[1;33m.+bm\u001b[0m  \u001b[1;33m.s\u001b[37m  *  \u001b[33ms.\u001b[0m  \u001b[1;33mmd+.\u001b[0m     8888888P\"  8888888P\"  888     888     \"Y88b.\n\u0000xsout\u001b[1;33m.hMMMMs\u001b[0m \u001b[1;33m.\u001b[37m  *  \u001b[33m.\u001b[0m \u001b[1;33msMMMMh.\u001b[0m    888        888 T88b   888     888       \"888\n\u0000xsout \u001b[1;33m`\\hMMMb\u001b[0m \u001b[1;33m\\\u001b[37m | \u001b[33m/\u001b[0m \u001b[1;33mdMMMh:\u001b[0m      888        888  T88b  Y88b. .d88P Y88b  d88P\n\u0000msout   \u001b[1;33m-SNMNo\u001b[0m  \u001b[1;33m-\u001b[0m  \u001b[1;33moNMNs-\u001b[0m       888        888   T88b  \"Y88888P\"   \"Y8888P\"\n\u0000\"sout     \u001b[1;33m`+dMh\\./dMd/\u001b[0m\n\u0000[sout        \u001b[1;33m`:yNy:`\u001b[0m                      \u001b[1;33mPowered by PROS for VEX V5\u001b[0m\n\u0000Xsout           \u001b[1;33m\"\u001b[0m                Copyright (c) Purdue University ACM SIGBots\n\u0000fsoutVersion:\u001b[1m        4.1.1\u001b[0m     Platform:  \u001b[1mV1.1.5 (b18)\u001b[0m     Uptime:\u001b[1m    0.000 s\u001b[0m\n\u0000]soutCompiled:   \u001b[1mOct  8 2026 10:43:07\u001b[0m     Directory:  \u001b[1m            /workspace\u001b[0m\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000nsoutV5X_HW_OK ez-template reference value=30 macro=Oct  8 2026 10:43:07 meta=1791456187 Oct  8 2026 10:43:07\n\u0000nsoutV5X_HW_OK ez-template reference value=30 macro=Oct  8 2026 10:43:07 meta=1791456187 Oct  8 2026 10:43:07\n\u0000nsoutV5X_HW_OK ez-template reference value=30 macro=Oct  8 2026 10:43:07 meta=1791456187 Oct  8 2026 10:43:07\n\u0000nsoutV5X_HW_OK ez-template reference value=30 macro=Oct  8 2026 10:43:07 meta=1791456187 Oct  8 2026 10:43:07\n\u0000",
+      "screenText": "",
+      "screenFile": "ez-template-reference-upload.png",
+      "readBackPassed": true,
+      "readBackMethod": "aligned compressed bytes and full-file Brain size/CRC32",
+      "coldReadBackPassed": true,
+      "commitSha": "hardware-ez-template-reference"
+    },
+    {
+      "template": "ez-template",
+      "variant": "optimized",
+      "scenario": "missing",
+      "firmware": "1.1.5",
+      "uploadMs": 7434.637378000007,
+      "runtimeMs": 4966.429620999988,
+      "artifactBytes": 2397884,
+      "progress": [
+        {
+          "state": "INI",
+          "bytes": 280
+        },
+        {
+          "state": "COLD",
+          "bytes": 1058651
+        },
+        {
+          "state": "BIN",
+          "bytes": 4085
+        }
+      ],
+      "passed": true,
+      "metadataFresh": true,
+      "reusePassed": true,
+      "terminal": "\u0006sout\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000\u001fsout         \u001b[1;33m_+=+_\u001b[0m\n\u0000Wsout     \u001b[1;33m .-`  .  `-. \u001b[0m         8888888b.  8888888b.   .d88888b.   .d8888b.\n\u0000Xsout  \u001b[1;33m _+`     \"     `+_ \u001b[0m      888   Y88b 888   Y88b d88P\" \"Y88b d88P  Y88b\n\u0000Ssout  \u001b[1;33m\\\\\\sssssssssssss///\u001b[0m      888    888 888    888 888     888 Y88b.\n\u0000`sout     \u001b[1;33m.ss\\  \u001b[37m*\u001b[33m  /ss.\u001b[0m         888   d88P 888   d88P 888     888  \"Y888b.\n\u0000xsout \u001b[1;33m.+bm\u001b[0m  \u001b[1;33m.s\u001b[37m  *  \u001b[33ms.\u001b[0m  \u001b[1;33mmd+.\u001b[0m     8888888P\"  8888888P\"  888     888     \"Y88b.\n\u0000xsout\u001b[1;33m.hMMMMs\u001b[0m \u001b[1;33m.\u001b[37m  *  \u001b[33m.\u001b[0m \u001b[1;33msMMMMh.\u001b[0m    888        888 T88b   888     888       \"888\n\u0000xsout \u001b[1;33m`\\hMMMb\u001b[0m \u001b[1;33m\\\u001b[37m | \u001b[33m/\u001b[0m \u001b[1;33mdMMMh:\u001b[0m      888        888  T88b  Y88b. .d88P Y88b  d88P\n\u0000msout   \u001b[1;33m-SNMNo\u001b[0m  \u001b[1;33m-\u001b[0m  \u001b[1;33moNMNs-\u001b[0m       888        888   T88b  \"Y88888P\"   \"Y8888P\"\n\u0000\"sout     \u001b[1;33m`+dMh\\./dMd/\u001b[0m\n\u0000[sout        \u001b[1;33m`:yNy:`\u001b[0m                      \u001b[1;33mPowered by PROS for VEX V5\u001b[0m\n\u0000Xsout           \u001b[1;33m\"\u001b[0m                Copyright (c) Purdue University ACM SIGBots\n\u0000fsoutVersion:\u001b[1m        4.1.1\u001b[0m     Platform:  \u001b[1mV1.1.5 (b18)\u001b[0m     Uptime:\u001b[1m    0.000 s\u001b[0m\n\u0000]soutCompiled:   \u001b[1mOct  8 2026 10:43:13\u001b[0m     Directory:  \u001b[1m            /workspace\u001b[0m\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000nsoutV5X_HW_OK ez-template optimized value=30 macro=Oct  8 2026 10:43:13 meta=1791456193 Oct  8 2026 10:43:13\n\u0000nsoutV5X_HW_OK ez-template optimized value=30 macro=Oct  8 2026 10:43:13 meta=1791456193 Oct  8 2026 10:43:13\n\u0000nsoutV5X_HW_OK ez-template optimized value=30 macro=Oct  8 2026 10:43:13 meta=1791456193 Oct  8 2026 10:43:13\n\u0000nsoutV5X_HW_OK ez-template optimized value=30 macro=Oct  8 2026 10:43:13 meta=1791456193 Oct  8 2026 10:43:13\n\u0000nsoutV5X_HW_OK ez-template optimized value=30 macro=Oct  8 2026 10:43:13 meta=1791456193 Oct  8 2026 10:43:13\n\u0000nsoutV5X_HW_OK ez-template optimized value=30 macro=Oct  8 2026 10:43:13 meta=1791456193 Oct  8 2026 10:43:13\n\u0000nsoutV5X_HW_OK ez-template optimized value=30 macro=Oct  8 2026 10:43:13 meta=1791456193 Oct  8 2026 10:43:13\n\u0000nsoutV5X_HW_OK ez-template optimized value=30 macro=Oct  8 2026 10:43:13 meta=1791456193 Oct  8 2026 10:43:13\n\u0000nsoutV5X_HW_OK ez-template optimized value=30 macro=Oct  8 2026 10:43:13 meta=1791456193 Oct  8 2026 10:43:13\n\u0000nsoutV5X_HW_OK ez-template optimized value=30 macro=Oct  8 2026 10:43:13 meta=1791456193 Oct  8 2026 10:43:13\n\u0000",
+      "screenText": "",
+      "screenFile": "ez-template-optimized-missing.png",
+      "readBackPassed": true,
+      "readBackMethod": "aligned compressed bytes and full-file Brain size/CRC32",
+      "coldReadBackPassed": true,
+      "commitSha": "hardware-ez-template-optimized"
+    },
+    {
+      "template": "ez-template",
+      "variant": "optimized",
+      "scenario": "matching",
+      "firmware": "1.1.5",
+      "uploadMs": 2006.1787320000003,
+      "runtimeMs": 1873.6100189999997,
+      "artifactBytes": 2397884,
+      "progress": [
+        {
+          "state": "INI",
+          "bytes": 280
+        },
+        {
+          "state": "COLD (cached)",
+          "bytes": 1058651
+        },
+        {
+          "state": "BIN",
+          "bytes": 4085
+        }
+      ],
+      "passed": true,
+      "metadataFresh": true,
+      "reusePassed": true,
+      "terminal": "\u0006sout\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000\u001fsout         \u001b[1;33m_+=+_\u001b[0m\n\u0000Wsout     \u001b[1;33m .-`  .  `-. \u001b[0m         8888888b.  8888888b.   .d88888b.   .d8888b.\n\u0000Xsout  \u001b[1;33m _+`     \"     `+_ \u001b[0m      888   Y88b 888   Y88b d88P\" \"Y88b d88P  Y88b\n\u0000Ssout  \u001b[1;33m\\\\\\sssssssssssss///\u001b[0m      888    888 888    888 888     888 Y88b.\n\u0000`sout     \u001b[1;33m.ss\\  \u001b[37m*\u001b[33m  /ss.\u001b[0m         888   d88P 888   d88P 888     888  \"Y888b.\n\u0000xsout \u001b[1;33m.+bm\u001b[0m  \u001b[1;33m.s\u001b[37m  *  \u001b[33ms.\u001b[0m  \u001b[1;33mmd+.\u001b[0m     8888888P\"  8888888P\"  888     888     \"Y88b.\n\u0000xsout\u001b[1;33m.hMMMMs\u001b[0m \u001b[1;33m.\u001b[37m  *  \u001b[33m.\u001b[0m \u001b[1;33msMMMMh.\u001b[0m    888        888 T88b   888     888       \"888\n\u0000xsout \u001b[1;33m`\\hMMMb\u001b[0m \u001b[1;33m\\\u001b[37m | \u001b[33m/\u001b[0m \u001b[1;33mdMMMh:\u001b[0m      888        888  T88b  Y88b. .d88P Y88b  d88P\n\u0000msout   \u001b[1;33m-SNMNo\u001b[0m  \u001b[1;33m-\u001b[0m  \u001b[1;33moNMNs-\u001b[0m       888        888   T88b  \"Y88888P\"   \"Y8888P\"\n\u0000\"sout     \u001b[1;33m`+dMh\\./dMd/\u001b[0m\n\u0000[sout        \u001b[1;33m`:yNy:`\u001b[0m                      \u001b[1;33mPowered by PROS for VEX V5\u001b[0m\n\u0000Xsout           \u001b[1;33m\"\u001b[0m                Copyright (c) Purdue University ACM SIGBots\n\u0000fsoutVersion:\u001b[1m        4.1.1\u001b[0m     Platform:  \u001b[1mV1.1.5 (b18)\u001b[0m     Uptime:\u001b[1m    0.000 s\u001b[0m\n\u0000]soutCompiled:   \u001b[1mOct  8 2026 10:43:13\u001b[0m     Directory:  \u001b[1m            /workspace\u001b[0m\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000nsoutV5X_HW_OK ez-template optimized value=30 macro=Oct  8 2026 10:43:13 meta=1791456193 Oct  8 2026 10:43:13\n\u0000nsoutV5X_HW_OK ez-template optimized value=30 macro=Oct  8 2026 10:43:13 meta=1791456193 Oct  8 2026 10:43:13\n\u0000nsoutV5X_HW_OK ez-template optimized value=30 macro=Oct  8 2026 10:43:13 meta=1791456193 Oct  8 2026 10:43:13\n\u0000nsoutV5X_HW_OK ez-template optimized value=30 macro=Oct  8 2026 10:43:13 meta=1791456193 Oct  8 2026 10:43:13\n\u0000",
+      "screenText": "",
+      "screenFile": "ez-template-optimized-matching.png",
+      "readBackPassed": true,
+      "readBackMethod": "aligned compressed bytes and full-file Brain size/CRC32",
+      "coldReadBackPassed": true,
+      "commitSha": "hardware-ez-template-optimized"
+    },
+    {
+      "template": "ez-template",
+      "variant": "optimized",
+      "scenario": "mismatched",
+      "firmware": "1.1.5",
+      "uploadMs": 8822.978015999994,
+      "runtimeMs": 5255.865932000001,
+      "artifactBytes": 2397884,
+      "progress": [
+        {
+          "state": "INI",
+          "bytes": 280
+        },
+        {
+          "state": "COLD",
+          "bytes": 1058651
+        },
+        {
+          "state": "BIN",
+          "bytes": 4085
+        }
+      ],
+      "passed": true,
+      "metadataFresh": true,
+      "reusePassed": true,
+      "terminal": "\u0006sout\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000\u001fsout         \u001b[1;33m_+=+_\u001b[0m\n\u0000Wsout     \u001b[1;33m .-`  .  `-. \u001b[0m         8888888b.  8888888b.   .d88888b.   .d8888b.\n\u0000Xsout  \u001b[1;33m _+`     \"     `+_ \u001b[0m      888   Y88b 888   Y88b d88P\" \"Y88b d88P  Y88b\n\u0000Ssout  \u001b[1;33m\\\\\\sssssssssssss///\u001b[0m      888    888 888    888 888     888 Y88b.\n\u0000`sout     \u001b[1;33m.ss\\  \u001b[37m*\u001b[33m  /ss.\u001b[0m         888   d88P 888   d88P 888     888  \"Y888b.\n\u0000xsout \u001b[1;33m.+bm\u001b[0m  \u001b[1;33m.s\u001b[37m  *  \u001b[33ms.\u001b[0m  \u001b[1;33mmd+.\u001b[0m     8888888P\"  8888888P\"  888     888     \"Y88b.\n\u0000xsout\u001b[1;33m.hMMMMs\u001b[0m \u001b[1;33m.\u001b[37m  *  \u001b[33m.\u001b[0m \u001b[1;33msMMMMh.\u001b[0m    888        888 T88b   888     888       \"888\n\u0000xsout \u001b[1;33m`\\hMMMb\u001b[0m \u001b[1;33m\\\u001b[37m | \u001b[33m/\u001b[0m \u001b[1;33mdMMMh:\u001b[0m      888        888  T88b  Y88b. .d88P Y88b  d88P\n\u0000msout   \u001b[1;33m-SNMNo\u001b[0m  \u001b[1;33m-\u001b[0m  \u001b[1;33moNMNs-\u001b[0m       888        888   T88b  \"Y88888P\"   \"Y8888P\"\n\u0000\"sout     \u001b[1;33m`+dMh\\./dMd/\u001b[0m\n\u0000[sout        \u001b[1;33m`:yNy:`\u001b[0m                      \u001b[1;33mPowered by PROS for VEX V5\u001b[0m\n\u0000Xsout           \u001b[1;33m\"\u001b[0m                Copyright (c) Purdue University ACM SIGBots\n\u0000fsoutVersion:\u001b[1m        4.1.1\u001b[0m     Platform:  \u001b[1mV1.1.5 (b18)\u001b[0m     Uptime:\u001b[1m    0.000 s\u001b[0m\n\u0000]soutCompiled:   \u001b[1mOct  8 2026 10:43:13\u001b[0m     Directory:  \u001b[1m            /workspace\u001b[0m\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000nsoutV5X_HW_OK ez-template optimized value=30 macro=Oct  8 2026 10:43:13 meta=1791456193 Oct  8 2026 10:43:13\n\u0000nsoutV5X_HW_OK ez-template optimized value=30 macro=Oct  8 2026 10:43:13 meta=1791456193 Oct  8 2026 10:43:13\n\u0000nsoutV5X_HW_OK ez-template optimized value=30 macro=Oct  8 2026 10:43:13 meta=1791456193 Oct  8 2026 10:43:13\n\u0000nsoutV5X_HW_OK ez-template optimized value=30 macro=Oct  8 2026 10:43:13 meta=1791456193 Oct  8 2026 10:43:13\n\u0000nsoutV5X_HW_OK ez-template optimized value=30 macro=Oct  8 2026 10:43:13 meta=1791456193 Oct  8 2026 10:43:13\n\u0000nsoutV5X_HW_OK ez-template optimized value=30 macro=Oct  8 2026 10:43:13 meta=1791456193 Oct  8 2026 10:43:13\n\u0000nsoutV5X_HW_OK ez-template optimized value=30 macro=Oct  8 2026 10:43:13 meta=1791456193 Oct  8 2026 10:43:13\n\u0000nsoutV5X_HW_OK ez-template optimized value=30 macro=Oct  8 2026 10:43:13 meta=1791456193 Oct  8 2026 10:43:13\n\u0000nsoutV5X_HW_OK ez-template optimized value=30 macro=Oct  8 2026 10:43:13 meta=1791456193 Oct  8 2026 10:43:13\n\u0000nsoutV5X_HW_OK ez-template optimized value=30 macro=Oct  8 2026 10:43:13 meta=1791456193 Oct  8 2026 10:43:13\n\u0000",
+      "screenText": "",
+      "screenFile": "ez-template-optimized-mismatched.png",
+      "readBackPassed": true,
+      "readBackMethod": "aligned compressed bytes and full-file Brain size/CRC32",
+      "coldReadBackPassed": true,
+      "commitSha": "hardware-ez-template-optimized"
+    },
+    {
+      "template": "ez-template",
+      "variant": "O0",
+      "scenario": "upload",
+      "firmware": "1.1.5",
+      "uploadMs": 1227.9186840000039,
+      "runtimeMs": 1825.4581920000055,
+      "artifactBytes": 2398164,
+      "progress": [
+        {
+          "state": "INI",
+          "bytes": 273
+        },
+        {
+          "state": "COLD (cached)",
+          "bytes": 1058651
+        },
+        {
+          "state": "BIN",
+          "bytes": 5322
+        }
+      ],
+      "passed": true,
+      "metadataFresh": true,
+      "reusePassed": true,
+      "terminal": "\u0006sout\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000\u001fsout         \u001b[1;33m_+=+_\u001b[0m\n\u0000Wsout     \u001b[1;33m .-`  .  `-. \u001b[0m         8888888b.  8888888b.   .d88888b.   .d8888b.\n\u0000Xsout  \u001b[1;33m _+`     \"     `+_ \u001b[0m      888   Y88b 888   Y88b d88P\" \"Y88b d88P  Y88b\n\u0000Ssout  \u001b[1;33m\\\\\\sssssssssssss///\u001b[0m      888    888 888    888 888     888 Y88b.\n\u0000`sout     \u001b[1;33m.ss\\  \u001b[37m*\u001b[33m  /ss.\u001b[0m         888   d88P 888   d88P 888     888  \"Y888b.\n\u0000xsout \u001b[1;33m.+bm\u001b[0m  \u001b[1;33m.s\u001b[37m  *  \u001b[33ms.\u001b[0m  \u001b[1;33mmd+.\u001b[0m     8888888P\"  8888888P\"  888     888     \"Y88b.\n\u0000xsout\u001b[1;33m.hMMMMs\u001b[0m \u001b[1;33m.\u001b[37m  *  \u001b[33m.\u001b[0m \u001b[1;33msMMMMh.\u001b[0m    888        888 T88b   888     888       \"888\n\u0000xsout \u001b[1;33m`\\hMMMb\u001b[0m \u001b[1;33m\\\u001b[37m | \u001b[33m/\u001b[0m \u001b[1;33mdMMMh:\u001b[0m      888        888  T88b  Y88b. .d88P Y88b  d88P\n\u0000msout   \u001b[1;33m-SNMNo\u001b[0m  \u001b[1;33m-\u001b[0m  \u001b[1;33moNMNs-\u001b[0m       888        888   T88b  \"Y88888P\"   \"Y8888P\"\n\u0000\"sout     \u001b[1;33m`+dMh\\./dMd/\u001b[0m\n\u0000[sout        \u001b[1;33m`:yNy:`\u001b[0m                      \u001b[1;33mPowered by PROS for VEX V5\u001b[0m\n\u0000Xsout           \u001b[1;33m\"\u001b[0m                Copyright (c) Purdue University ACM SIGBots\n\u0000fsoutVersion:\u001b[1m        4.1.1\u001b[0m     Platform:  \u001b[1mV1.1.5 (b18)\u001b[0m     Uptime:\u001b[1m    0.000 s\u001b[0m\n\u0000]soutCompiled:   \u001b[1mOct  8 2026 10:43:19\u001b[0m     Directory:  \u001b[1m            /workspace\u001b[0m\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000gsoutV5X_HW_OK ez-template O0 value=30 macro=Oct  8 2026 10:43:18 meta=1791456199 Oct  8 2026 10:43:19\n\u0000gsoutV5X_HW_OK ez-template O0 value=30 macro=Oct  8 2026 10:43:18 meta=1791456199 Oct  8 2026 10:43:19\n\u0000gsoutV5X_HW_OK ez-template O0 value=30 macro=Oct  8 2026 10:43:18 meta=1791456199 Oct  8 2026 10:43:19\n\u0000gsoutV5X_HW_OK ez-template O0 value=30 macro=Oct  8 2026 10:43:18 meta=1791456199 Oct  8 2026 10:43:19\n\u0000",
+      "screenText": "",
+      "screenFile": "ez-template-O0-upload.png",
+      "readBackPassed": true,
+      "readBackMethod": "aligned compressed bytes and full-file Brain size/CRC32",
+      "coldReadBackPassed": true,
+      "commitSha": "hardware-ez-template-O0"
+    },
+    {
+      "template": "ez-template",
+      "variant": "O1",
+      "scenario": "upload",
+      "firmware": "1.1.5",
+      "uploadMs": 1230.9041339999967,
+      "runtimeMs": 1799.2128990000056,
+      "artifactBytes": 2397844,
+      "progress": [
+        {
+          "state": "INI",
+          "bytes": 273
+        },
+        {
+          "state": "COLD (cached)",
+          "bytes": 1058651
+        },
+        {
+          "state": "BIN",
+          "bytes": 3767
+        }
+      ],
+      "passed": true,
+      "metadataFresh": true,
+      "reusePassed": true,
+      "terminal": "\u0006sout\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000\u001fsout         \u001b[1;33m_+=+_\u001b[0m\n\u0000Wsout     \u001b[1;33m .-`  .  `-. \u001b[0m         8888888b.  8888888b.   .d88888b.   .d8888b.\n\u0000Xsout  \u001b[1;33m _+`     \"     `+_ \u001b[0m      888   Y88b 888   Y88b d88P\" \"Y88b d88P  Y88b\n\u0000Ssout  \u001b[1;33m\\\\\\sssssssssssss///\u001b[0m      888    888 888    888 888     888 Y88b.\n\u0000`sout     \u001b[1;33m.ss\\  \u001b[37m*\u001b[33m  /ss.\u001b[0m         888   d88P 888   d88P 888     888  \"Y888b.\n\u0000xsout \u001b[1;33m.+bm\u001b[0m  \u001b[1;33m.s\u001b[37m  *  \u001b[33ms.\u001b[0m  \u001b[1;33mmd+.\u001b[0m     8888888P\"  8888888P\"  888     888     \"Y88b.\n\u0000xsout\u001b[1;33m.hMMMMs\u001b[0m \u001b[1;33m.\u001b[37m  *  \u001b[33m.\u001b[0m \u001b[1;33msMMMMh.\u001b[0m    888        888 T88b   888     888       \"888\n\u0000xsout \u001b[1;33m`\\hMMMb\u001b[0m \u001b[1;33m\\\u001b[37m | \u001b[33m/\u001b[0m \u001b[1;33mdMMMh:\u001b[0m      888        888  T88b  Y88b. .d88P Y88b  d88P\n\u0000msout   \u001b[1;33m-SNMNo\u001b[0m  \u001b[1;33m-\u001b[0m  \u001b[1;33moNMNs-\u001b[0m       888        888   T88b  \"Y88888P\"   \"Y8888P\"\n\u0000\"sout     \u001b[1;33m`+dMh\\./dMd/\u001b[0m\n\u0000[sout        \u001b[1;33m`:yNy:`\u001b[0m                      \u001b[1;33mPowered by PROS for VEX V5\u001b[0m\n\u0000Xsout           \u001b[1;33m\"\u001b[0m                Copyright (c) Purdue University ACM SIGBots\n\u0000fsoutVersion:\u001b[1m        4.1.1\u001b[0m     Platform:  \u001b[1mV1.1.5 (b18)\u001b[0m     Uptime:\u001b[1m    0.000 s\u001b[0m\n\u0000]soutCompiled:   \u001b[1mOct  8 2026 10:43:25\u001b[0m     Directory:  \u001b[1m            /workspace\u001b[0m\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000gsoutV5X_HW_OK ez-template O1 value=30 macro=Oct  8 2026 10:43:24 meta=1791456205 Oct  8 2026 10:43:25\n\u0000gsoutV5X_HW_OK ez-template O1 value=30 macro=Oct  8 2026 10:43:24 meta=1791456205 Oct  8 2026 10:43:25\n\u0000gsoutV5X_HW_OK ez-template O1 value=30 macro=Oct  8 2026 10:43:24 meta=1791456205 Oct  8 2026 10:43:25\n\u0000gsoutV5X_HW_OK ez-template O1 value=30 macro=Oct  8 2026 10:43:24 meta=1791456205 Oct  8 2026 10:43:25\n\u0000",
+      "screenText": "",
+      "screenFile": "ez-template-O1-upload.png",
+      "readBackPassed": true,
+      "readBackMethod": "aligned compressed bytes and full-file Brain size/CRC32",
+      "coldReadBackPassed": true,
+      "commitSha": "hardware-ez-template-O1"
+    },
+    {
+      "template": "ez-template",
+      "variant": "project-pch",
+      "scenario": "upload",
+      "firmware": "1.1.5",
+      "uploadMs": 1226.0585690000007,
+      "runtimeMs": 1799.846498999992,
+      "artifactBytes": 2397884,
+      "progress": [
+        {
+          "state": "INI",
+          "bytes": 282
+        },
+        {
+          "state": "COLD (cached)",
+          "bytes": 1058651
+        },
+        {
+          "state": "BIN",
+          "bytes": 4087
+        }
+      ],
+      "passed": true,
+      "metadataFresh": true,
+      "reusePassed": true,
+      "terminal": "\u0006sout\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000\u001fsout         \u001b[1;33m_+=+_\u001b[0m\n\u0000Wsout     \u001b[1;33m .-`  .  `-. \u001b[0m         8888888b.  8888888b.   .d88888b.   .d8888b.\n\u0000Xsout  \u001b[1;33m _+`     \"     `+_ \u001b[0m      888   Y88b 888   Y88b d88P\" \"Y88b d88P  Y88b\n\u0000Ssout  \u001b[1;33m\\\\\\sssssssssssss///\u001b[0m      888    888 888    888 888     888 Y88b.\n\u0000`sout     \u001b[1;33m.ss\\  \u001b[37m*\u001b[33m  /ss.\u001b[0m         888   d88P 888   d88P 888     888  \"Y888b.\n\u0000xsout \u001b[1;33m.+bm\u001b[0m  \u001b[1;33m.s\u001b[37m  *  \u001b[33ms.\u001b[0m  \u001b[1;33mmd+.\u001b[0m     8888888P\"  8888888P\"  888     888     \"Y88b.\n\u0000xsout\u001b[1;33m.hMMMMs\u001b[0m \u001b[1;33m.\u001b[37m  *  \u001b[33m.\u001b[0m \u001b[1;33msMMMMh.\u001b[0m    888        888 T88b   888     888       \"888\n\u0000xsout \u001b[1;33m`\\hMMMb\u001b[0m \u001b[1;33m\\\u001b[37m | \u001b[33m/\u001b[0m \u001b[1;33mdMMMh:\u001b[0m      888        888  T88b  Y88b. .d88P Y88b  d88P\n\u0000msout   \u001b[1;33m-SNMNo\u001b[0m  \u001b[1;33m-\u001b[0m  \u001b[1;33moNMNs-\u001b[0m       888        888   T88b  \"Y88888P\"   \"Y8888P\"\n\u0000\"sout     \u001b[1;33m`+dMh\\./dMd/\u001b[0m\n\u0000[sout        \u001b[1;33m`:yNy:`\u001b[0m                      \u001b[1;33mPowered by PROS for VEX V5\u001b[0m\n\u0000Xsout           \u001b[1;33m\"\u001b[0m                Copyright (c) Purdue University ACM SIGBots\n\u0000fsoutVersion:\u001b[1m        4.1.1\u001b[0m     Platform:  \u001b[1mV1.1.5 (b18)\u001b[0m     Uptime:\u001b[1m    0.000 s\u001b[0m\n\u0000]soutCompiled:   \u001b[1mOct  8 2026 10:43:42\u001b[0m     Directory:  \u001b[1m            /workspace\u001b[0m\n\u0000\u0006sout\n\u0000\u0006sout\n\u0000psoutV5X_HW_OK ez-template project-pch value=30 macro=Oct  8 2026 10:43:42 meta=1791456222 Oct  8 2026 10:43:42\n\u0000psoutV5X_HW_OK ez-template project-pch value=30 macro=Oct  8 2026 10:43:42 meta=1791456222 Oct  8 2026 10:43:42\n\u0000psoutV5X_HW_OK ez-template project-pch value=30 macro=Oct  8 2026 10:43:42 meta=1791456222 Oct  8 2026 10:43:42\n\u0000psoutV5X_HW_OK ez-template project-pch value=30 macro=Oct  8 2026 10:43:42 meta=1791456222 Oct  8 2026 10:43:42\n\u0000",
+      "screenText": "",
+      "screenFile": "ez-template-project-pch-upload.png",
+      "readBackPassed": true,
+      "readBackMethod": "aligned compressed bytes and full-file Brain size/CRC32",
+      "coldReadBackPassed": true,
+      "commitSha": "hardware-ez-template-project-pch"
+    },
+    {
+      "template": "jar-template",
+      "variant": "reference",
+      "scenario": "upload",
+      "firmware": "1.1.5",
+      "uploadMs": 349.8540989999892,
+      "runtimeMs": 1898.6843769999978,
+      "artifactBytes": 16400,
+      "progress": [
+        {
+          "state": "INI",
+          "bytes": 284
+        },
+        {
+          "state": "BIN",
+          "bytes": 1213
+        }
+      ],
+      "passed": true,
+      "metadataFresh": true,
+      "reusePassed": true,
+      "terminal": "V5X_HW_OK jar-template reference value=30 macro=Oct  8 2026 10:43:43\r\nV5X_HW_OK jar-template reference value=30 macro=Oct  8 2026 10:43:43\r\nV5X_HW_OK jar-template reference value=30 macro=Oct  8 2026 10:43:43\r\nV5X_HW_OK jar-template reference value=30 macro=Oct  8 2026 10:43:43\r\n",
+      "screenText": "V5X_HW_OK jar-template reference\nvalue=30\nOct 8 2026 10:43:43\n",
+      "screenFile": "jar-template-reference-upload.png",
+      "readBackPassed": true,
+      "readBackMethod": "aligned compressed bytes and full-file Brain size/CRC32",
+      "coldReadBackPassed": true,
+      "commitSha": "hardware-jar-template-reference"
+    },
+    {
+      "template": "jar-template",
+      "variant": "optimized",
+      "scenario": "upload",
+      "firmware": "1.1.5",
+      "uploadMs": 350.02459700001054,
+      "runtimeMs": 1935.0904849999934,
+      "artifactBytes": 16400,
+      "progress": [
+        {
+          "state": "INI",
+          "bytes": 284
+        },
+        {
+          "state": "BIN",
+          "bytes": 1214
+        }
+      ],
+      "passed": true,
+      "metadataFresh": true,
+      "reusePassed": true,
+      "terminal": "V5X_HW_OK jar-template optimized value=30 macro=Oct  8 2026 10:43:44\r\nV5X_HW_OK jar-template optimized value=30 macro=Oct  8 2026 10:43:44\r\nV5X_HW_OK jar-template optimized value=30 macro=Oct  8 2026 10:43:44\r\nV5X_HW_OK jar-template optimized value=30 macro=Oct  8 2026 10:43:44\r\n",
+      "screenText": "V5X_HW_OK jar-template optimized\nvalue=30\nOct 8 2026 10:43:44\n",
+      "screenFile": "jar-template-optimized-upload.png",
+      "readBackPassed": true,
+      "readBackMethod": "aligned compressed bytes and full-file Brain size/CRC32",
+      "coldReadBackPassed": true,
+      "commitSha": "hardware-jar-template-optimized"
+    },
+    {
+      "template": "jar-template",
+      "variant": "O0",
+      "scenario": "upload",
+      "firmware": "1.1.5",
+      "uploadMs": 340.22573000000557,
+      "runtimeMs": 1853.430739000003,
+      "artifactBytes": 16400,
+      "progress": [
+        {
+          "state": "INI",
+          "bytes": 277
+        },
+        {
+          "state": "BIN",
+          "bytes": 2011
+        }
+      ],
+      "passed": true,
+      "metadataFresh": true,
+      "reusePassed": true,
+      "terminal": "V5X_HW_OK jar-template O0 value=30 macro=Oct  8 2026 10:43:45\r\nV5X_HW_OK jar-template O0 value=30 macro=Oct  8 2026 10:43:45\r\nV5X_HW_OK jar-template O0 value=30 macro=Oct  8 2026 10:43:45\r\nV5X_HW_OK jar-template O0 value=30 macro=Oct  8 2026 10:43:45\r\n",
+      "screenText": "V5X_HW_OK jar-template 00\nvalue=30\nOct 8 2026 10:43:45\n",
+      "screenFile": "jar-template-O0-upload.png",
+      "readBackPassed": true,
+      "readBackMethod": "aligned compressed bytes and full-file Brain size/CRC32",
+      "coldReadBackPassed": true,
+      "commitSha": "hardware-jar-template-O0"
+    },
+    {
+      "template": "jar-template",
+      "variant": "O1",
+      "scenario": "upload",
+      "firmware": "1.1.5",
+      "uploadMs": 340.50205900000583,
+      "runtimeMs": 1922.5936689999944,
+      "artifactBytes": 16400,
+      "progress": [
+        {
+          "state": "INI",
+          "bytes": 277
+        },
+        {
+          "state": "BIN",
+          "bytes": 1216
+        }
+      ],
+      "passed": true,
+      "metadataFresh": true,
+      "reusePassed": true,
+      "terminal": "V5X_HW_OK jar-template O1 value=30 macro=Oct  8 2026 10:43:46\r\nV5X_HW_OK jar-template O1 value=30 macro=Oct  8 2026 10:43:46\r\nV5X_HW_OK jar-template O1 value=30 macro=Oct  8 2026 10:43:46\r\nV5X_HW_OK jar-template O1 value=30 macro=Oct  8 2026 10:43:46\r\n",
+      "screenText": "V5X_HW_OK jar-template 01\nvalue=30\nOct 8 2026 10:43:46\n",
+      "screenFile": "jar-template-O1-upload.png",
+      "readBackPassed": true,
+      "readBackMethod": "aligned compressed bytes and full-file Brain size/CRC32",
+      "coldReadBackPassed": true,
+      "commitSha": "hardware-jar-template-O1"
+    },
+    {
+      "template": "jar-template",
+      "variant": "project-pch",
+      "scenario": "upload",
+      "firmware": "1.1.5",
+      "uploadMs": 338.1680420000048,
+      "runtimeMs": 1932.9127230000013,
+      "artifactBytes": 16400,
+      "progress": [
+        {
+          "state": "INI",
+          "bytes": 286
+        },
+        {
+          "state": "BIN",
+          "bytes": 1212
+        }
+      ],
+      "passed": true,
+      "metadataFresh": true,
+      "reusePassed": true,
+      "terminal": "V5X_HW_OK jar-template project-pch value=30 macro=Oct  8 2026 10:43:47\r\nV5X_HW_OK jar-template project-pch value=30 macro=Oct  8 2026 10:43:47\r\nV5X_HW_OK jar-template project-pch value=30 macro=Oct  8 2026 10:43:47\r\nV5X_HW_OK jar-template project-pch value=30 macro=Oct  8 2026 10:43:47\r\n",
+      "screenText": "V5X_HW_OK jar-template project-pch\nvalue=30\nOct 8 2026 10:43:47\n",
+      "screenFile": "jar-template-project-pch-upload.png",
+      "readBackPassed": true,
+      "readBackMethod": "aligned compressed bytes and full-file Brain size/CRC32",
+      "coldReadBackPassed": true,
+      "commitSha": "hardware-jar-template-project-pch"
+    }
+  ],
+  "cleanupPassed": true
+}

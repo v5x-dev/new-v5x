@@ -629,7 +629,10 @@ function RouteComponent() {
 
   return (
     <>
-      <SidebarProvider className="h-svh min-h-0 overflow-hidden">
+      <SidebarProvider
+        className="h-svh min-h-0 overflow-hidden"
+        style={{ '--sidebar-width': '20rem' } as React.CSSProperties}
+      >
         <Sidebar variant="floating">
           {program ? (
             <SidebarHeader className="gap-0 pb-0 px-4">
@@ -654,8 +657,8 @@ function RouteComponent() {
               />
             ) : null}
           </SidebarContent>
-          <SidebarFooter className="flex-row justify-between">
-            <div className="flex items-center gap-0.5">
+          <SidebarFooter className="flex-row flex-wrap justify-between">
+            <div className="flex shrink-0 items-center gap-0.5">
               <Button
                 size="icon-sm"
                 variant="ghost"
@@ -671,7 +674,7 @@ function RouteComponent() {
               </Button>
               <FeedbackDialog />
             </div>
-            <div className="flex flex-row gap-0.5 items-center">
+            <div className="flex shrink-0 flex-row gap-0.5 items-center">
               <Button
                 size="icon-sm"
                 variant="ghost"
@@ -718,38 +721,40 @@ function RouteComponent() {
                   <HammerIcon />
                 )}
               </Button>
-              <Popover
-                open={buildOptionsOpen}
-                onOpenChange={setBuildOptionsOpen}
-              >
-                <PopoverTrigger
-                  render={
-                    <Button
-                      size="icon-sm"
-                      variant="ghost"
-                      aria-label="Build options"
-                      title="Build options"
-                    />
-                  }
+              {!isBuilding && (
+                <Popover
+                  open={buildOptionsOpen}
+                  onOpenChange={setBuildOptionsOpen}
                 >
-                  <GearIcon />
-                </PopoverTrigger>
-                <PopoverContent side="bottom" align="end" className="w-72">
-                  <PopoverHeader>
-                    <PopoverTitle>Build options</PopoverTitle>
-                  </PopoverHeader>
-                  <Button
-                    variant="ghost"
-                    disabled={isBuilding}
-                    onClick={() => {
-                      releaseBrowserCompiler()
-                      setBuildOptionsOpen(false)
-                    }}
+                  <PopoverTrigger
+                    render={
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        aria-label="Build options"
+                        title="Build options"
+                      />
+                    }
                   >
-                    Reset browser compiler
-                  </Button>
-                </PopoverContent>
-              </Popover>
+                    <GearIcon />
+                  </PopoverTrigger>
+                  <PopoverContent side="bottom" align="end" className="w-72">
+                    <PopoverHeader>
+                      <PopoverTitle>Build options</PopoverTitle>
+                    </PopoverHeader>
+                    <Button
+                      variant="ghost"
+                      disabled={isBuilding}
+                      onClick={() => {
+                        releaseBrowserCompiler()
+                        setBuildOptionsOpen(false)
+                      }}
+                    >
+                      Reset browser compiler
+                    </Button>
+                  </PopoverContent>
+                </Popover>
+              )}
               {isBuilding && (
                 <Button
                   size="icon-sm"

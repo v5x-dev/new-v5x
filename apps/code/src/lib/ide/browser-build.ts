@@ -602,7 +602,7 @@ export async function compileBrowserProject(
     input.files[`include/${umbrella}`]
       ? commands.filter(
           (command) =>
-            /\.cpp$/.test(command.file) &&
+            command.file.endsWith('.cpp') &&
             firstUmbrellaDirective.test(
               input.files[command.file.slice('/workspace/'.length)] ?? '',
             ),

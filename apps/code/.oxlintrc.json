@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc"],
+  "categories": {
+    "correctness": "error"
+  },
+  "env": {
+    "browser": true,
+    "node": true
+  },
+  "ignorePatterns": [
+    "convex/_generated/**",
+    "src/routeTree.gen.ts",
+    "public/**",
+    "node_modules/**",
+    "dist/**",
+    ".nitro/**",
+    ".tanstack/**",
+    ".wrangler/**",
+    ".output/**",
+    ".vinxi/**"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "semi": false,
+  "singleQuote": false,
+  "printWidth": 80,
+  "trailingComma": "es5",
+  "sortPackageJson": false,
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/coverage/**",
+    "**/node_modules/**",
+    "apps/code/.tanstack/**",
+    "apps/code/.vinxi/**",
+    "apps/code/.output/**",
+    "apps/code/.wrangler/**",
+    "apps/code/convex/_generated/**",
+    "apps/code/src/routeTree.gen.ts",
+    "apps/design/src/routeTree.gen.ts",
+    "artifacts/**",
+    "emulator/**",
+    "apps/brain/public/**",
+    "**/.agents/**",
+    "**/.claude/**",
+    "**/.cursor/**",
+    "apps/code/docs/**"
+  ]
+}

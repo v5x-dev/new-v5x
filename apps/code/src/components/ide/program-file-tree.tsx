@@ -193,8 +193,9 @@ export function ProgramFileTree({
             modelRef.current?.getItem(selectedPath)?.deselect()
           }
 
-          selectedFileRef.current &&
+          if (selectedFileRef.current) {
             modelRef.current?.getItem(selectedFileRef.current)?.select()
+          }
         } finally {
           revertingSelectionRef.current = false
         }

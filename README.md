@@ -18,16 +18,22 @@ bun test
 bun run --cwd packages/serial build
 ```
 
+Run the brain app with `bun run dev:brain`. It serves the V5 simulator on port 5173.
+The simulator's kernel, protocol, and display renderer come from
+[vex-v5-qemu](https://github.com/vexide/vex-v5-qemu). Maintainer credits are in
+the app and in [apps/brain/README.md](apps/brain/README.md).
+
 Run the code app's browser flows with `bun run test:e2e:code`. See
 [the browser test setup](apps/code/e2e/README.md) for Chromium installation,
 backend requirements, and test data handling. `bun test` excludes these browser
 tests and continues to run the unit suite.
 
-Format the repository or verify its formatting:
+Format or lint the repository:
 
 ```sh
 bun run format
 bun run format:check
+bun run lint
 ```
 
 The `@v5x/serial` package has runtime-specific adapters at

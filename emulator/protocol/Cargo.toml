@@ -1,0 +1,36 @@
+[package]
+name = "vex-v5-qemu-protocol"
+version = "0.0.1"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/vexide/vex-v5-qemu"
+description = "Host-to-guest serial communications layer for vex-v5-qemu."
+authors = [
+    "vexide",
+    "doinkythederp <doinkythederp@icloud.com>",
+    "Gavin Niederman <gavinniederman@gmail.com>",
+    "Tropical",
+]
+
+[lints]
+workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bincode = { version = "2.0.1", default-features = false, features = [
+    "derive",
+    "alloc",
+] }
+bitflags = "2.6.0"
+serde = { version = "1.0", default-features = false, features = [
+    "derive",
+], optional = true }
+
+[features]
+serde = ["dep:serde"]
+
+# SDK FFI includes C variadics, which wasm32 does not support. Only the ARM
+# code-signature conversion needs it; the wire protocol itself is portable.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+vex-sdk = "0.19.0"

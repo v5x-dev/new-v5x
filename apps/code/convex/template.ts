@@ -3,7 +3,10 @@ import { ezTemplateFiles } from './ezTemplate'
 import { jarTemplateFiles } from './jarTemplate'
 
 export type ProgramTemplate =
-  'vexcode' | 'pros' | 'ez-template' | 'jar-template'
+  | 'vexcode'
+  | 'pros'
+  | 'ez-template'
+  | 'jar-template'
 
 const vexcodeTemplateFiles: Record<string, string> = {
   '.gitignore': '/bin\n/build\ncompile_commands.json\n',

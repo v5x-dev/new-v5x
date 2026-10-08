@@ -86,7 +86,7 @@ function Part({
 
           const orientation = new Quaternion().setFromUnitVectors(
             new Vector3(0, 0, 1),
-            new Vector3(...hole.axis).normalize()
+            new Vector3(...hole.axis).normalize(),
           )
 
           return (

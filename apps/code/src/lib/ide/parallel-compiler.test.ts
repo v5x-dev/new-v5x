@@ -9,6 +9,8 @@ test('parallel worker failure rejects pending and future jobs and disposal is sa
     onmessage?: (event: { data: unknown }) => void
     terminated = false
     constructor() {
+      // The test needs the instance created inside the Worker constructor.
+      // oxlint-disable-next-line typescript/no-this-alias
       instance = this
     }
     postMessage() {}

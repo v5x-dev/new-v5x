@@ -134,12 +134,14 @@ export enum FileLoadAction {
   STOP = 128,
 }
 
+// oxlint-disable typescript/no-duplicate-enum-values -- protocol values are shared on purpose
 export enum FileExitAction {
   EXIT_NONE = 0,
   EXIT_RUN = 1,
   /** PROS `--after screen`. VEXos shows the user program view. */
   EXIT_RUN_SCREEN = 3,
   /** @deprecated Same value as EXIT_RUN_SCREEN; the LemLib name was wrong. */
+  // oxlint-disable-next-line typescript/no-duplicate-enum-values
   EXIT_HALT = 3,
 }
 
@@ -251,6 +253,7 @@ export enum SerialDeviceType {
   EXP_CONTROLLER_DFU = 1567,
 
   PIXY = 61440,
+  // oxlint-disable-next-line typescript/no-duplicate-enum-values
   PIXY_DFU = 12,
 
   VEXCAM = 1287,

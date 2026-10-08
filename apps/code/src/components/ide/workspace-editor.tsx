@@ -244,6 +244,7 @@ export function WorkspaceEditor(props: Props) {
 
   const saving = React.useRef(false)
   const suppressCompletion = React.useRef(false)
+  const completionAbort = React.useRef<AbortController | null>(null)
   const selected = documents[props.selectedFile]
 
   const publish = (next: Documents) => {
@@ -643,13 +644,30 @@ export function WorkspaceEditor(props: Props) {
         : selection.end
       : position
 
-    const result = await client.request<
-      CompletionList | Array<CompletionItem> | null
-    >('textDocument/completion', {
-      textDocument: { uri: fileUri(doc.path) },
-      position: cursor,
-      context: { triggerKind: 1 },
-    })
+    completionAbort.current?.abort()
+    const controller = new AbortController()
+    completionAbort.current = controller
+
+    let result: CompletionList | Array<CompletionItem> | null
+
+    try {
+      result = await client.request<
+        CompletionList | Array<CompletionItem> | null
+      >(
+        'textDocument/completion',
+        {
+          textDocument: { uri: fileUri(doc.path) },
+          position: cursor,
+          context: { triggerKind: 1 },
+        },
+        controller.signal,
+      )
+    } catch (error) {
+      if (controller.signal.aborted) return
+      throw error
+    }
+
+    if (controller.signal.aborted) return
 
     if (
       propsRef.current.selectedFile !== doc.path ||
@@ -677,7 +695,13 @@ export function WorkspaceEditor(props: Props) {
         .sort((a, b) =>
           (a.sortText ?? a.label).localeCompare(b.sortText ?? b.label),
         )
-        .slice(0, 100),
+        .slice(0, 20)
+        .map((item) => {
+          if (!item.documentation) return item
+          const next = { ...item }
+          delete next.documentation
+          return next
+        }),
     )
 
     setCompletionIndex(0)
@@ -702,7 +726,10 @@ export function WorkspaceEditor(props: Props) {
       if (/(?:[A-Za-z_]\w{1,}|\.|->|::)$/.test(prefix)) void run(complete)
     }, 180)
 
-    return () => clearTimeout(timer)
+    return () => {
+      clearTimeout(timer)
+      completionAbort.current?.abort()
+    }
   }, [selected?.version, ready])
 
   const selectStop = (index: number) => {

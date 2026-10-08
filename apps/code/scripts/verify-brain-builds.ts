@@ -308,7 +308,7 @@ async function run() {
     const original = await directory(FileVendor.USER)
     const libraries = await directory(FileVendor.DEV2)
     originalFiles = signature(original) + signature(libraries)
-    if (original.some((file) => /^slot_8\./.test(file.filename)))
+    if (original.some((file) => file.filename.startsWith('slot_8.')))
       throw new Error(
         'Slot 8 is occupied; select another free slot before running',
       )

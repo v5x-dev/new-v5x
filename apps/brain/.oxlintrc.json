@@ -1,0 +1,27 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc"],
+  "categories": {
+    "correctness": "error"
+  },
+  "env": {
+    "browser": true,
+    "node": true,
+    "svelte": true
+  },
+  "overrides": [
+    {
+      "files": ["**/*.svelte"],
+      "rules": {
+        "no-unused-expressions": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "public/**",
+    "node_modules/**",
+    "dist/**",
+    "dist-ssr/**",
+    "coverage/**"
+  ]
+}

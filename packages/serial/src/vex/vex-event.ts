@@ -41,7 +41,7 @@ export class VexEventEmitter<
 
     const errors: unknown[] = []
 
-    for (const listener of [...listeners]) {
+    for (const listener of listeners.slice()) {
       try {
         listener(data)
       } catch (error) {

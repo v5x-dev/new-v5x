@@ -1,0 +1,21 @@
+[package]
+name = "vex-v5-display-simulator"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/vexide/vex-v5-qemu"
+authors = [
+    "vexide",
+    "doinkythederp <doinkythederp@icloud.com>",
+    "Gavin Niederman <gavinniederman@gmail.com>",
+    "Tropical",
+]
+
+[dependencies]
+fontdue = "0.9.3"
+image = { version = "0.25.2", default-features = false }
+tiny-skia = "0.11.4"
+vex-v5-qemu-protocol = { version = "0.0.1", path = "../protocol" }
+
+[lints]
+workspace = true

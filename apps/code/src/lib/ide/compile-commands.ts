@@ -1,5 +1,8 @@
 export type ProjectTemplate =
-  'vexcode' | 'pros' | 'ez-template' | 'jar-template'
+  | 'vexcode'
+  | 'pros'
+  | 'ez-template'
+  | 'jar-template'
 
 export interface CompileCommand {
   directory: string

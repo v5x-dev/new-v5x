@@ -2,8 +2,8 @@
   "name": "v5x",
   "devDependencies": {
     "@types/bun": "latest",
-    "prettier": "^3.9.6",
-    "prettier-plugin-tailwindcss": "^0.8.1"
+    "oxfmt": "^0.72.0",
+    "oxlint": "^1.87.0"
   },
   "peerDependencies": {
     "typescript": "^7"
@@ -11,9 +11,11 @@
   "private": true,
   "scripts": {
     "dev:code": "bun --cwd=apps/code --bun run dev",
+    "dev:brain": "bun --cwd=apps/brain --bun run dev",
     "convex:code": "bun --cwd=apps/code convex dev",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "lint": "oxlint --deny-warnings .",
     "test:e2e:code": "bun --cwd=apps/code run test:e2e"
   },
   "workspaces": [

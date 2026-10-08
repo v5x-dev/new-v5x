@@ -15,8 +15,8 @@
     "check": "tsc --noEmit",
     "test": "bun test",
     "typecheck": "bun run check",
-    "format": "prettier --config ../../prettier.config.mjs --ignore-path ../../.prettierignore --write .",
-    "format:check": "prettier --config ../../prettier.config.mjs --ignore-path ../../.prettierignore --check ."
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check ."
   },
   "exports": {
     ".": {

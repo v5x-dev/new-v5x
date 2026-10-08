@@ -8,7 +8,6 @@ import {
   SmartDeviceType,
   FileVendor,
   type IProgramInfo,
-  FileExitAction,
   type IFileHandle,
   FileDownloadTarget,
   USER_FLASH_USR_CODE_START,
@@ -29,16 +28,10 @@ import {
   type V5UserProgramTerminal,
 } from "./vex-terminal"
 import {
-  EraseFileH2DPacket,
-  EraseFileReplyD2HPacket,
-  ExitFileTransferH2DPacket,
-  ExitFileTransferReplyD2HPacket,
   FactoryEnableH2DPacket,
   FactoryEnableReplyD2HPacket,
   FactoryStatusH2DPacket,
   FactoryStatusReplyD2HPacket,
-  FileClearUpH2DPacket,
-  FileClearUpReplyD2HPacket,
   FileControlH2DPacket,
   FileControlReplyD2HPacket,
   GetDirectoryEntryH2DPacket,
@@ -601,7 +594,7 @@ export class V5Brain {
       }
 
       pcb("UNZIP VEXOS", 1, 1)
-    } catch (e) {
+    } catch {
       return undefined
     }
 

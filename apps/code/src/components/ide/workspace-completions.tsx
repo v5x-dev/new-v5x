@@ -30,37 +30,62 @@ export function WorkspaceCompletions({
     }
 
     let frame = 0
+    let attempts = 0
+
     const update = () => {
+      attempts += 1
       const caret = getAnchor()
       const popup = popupRef.current
 
-      if (caret && popup) {
-        const next = completionPosition(
-          caret,
-          {
-            width: popup.offsetWidth,
-            height:
-              popup.scrollHeight + popup.offsetHeight - popup.clientHeight,
-          },
-          { width: window.innerWidth, height: window.innerHeight },
-        )
-        setPosition((previous) =>
+      if (!caret || !popup) {
+        setPosition(null)
+        if (attempts < 30) frame = requestAnimationFrame(update)
+        return
+      }
+
+      const next = completionPosition(
+        caret,
+        {
+          width: popup.offsetWidth,
+          height: popup.scrollHeight + popup.offsetHeight - popup.clientHeight,
+        },
+        { width: window.innerWidth, height: window.innerHeight },
+      )
+      let changed = true
+
+      setPosition((previous) => {
+        if (
           previous?.left === next.left &&
           previous.top === next.top &&
           previous.maxHeight === next.maxHeight
-            ? previous
-            : next,
-        )
-      } else {
-        setPosition(null)
-      }
+        ) {
+          changed = false
+          return previous
+        }
 
+        return next
+      })
+
+      // The applied max-height can flip the popup, so measure once more.
+      if (changed && attempts < 4) frame = requestAnimationFrame(update)
+    }
+
+    const schedule = () => {
+      cancelAnimationFrame(frame)
+      attempts = 0
       frame = requestAnimationFrame(update)
     }
 
     update()
-    return () => cancelAnimationFrame(frame)
-  }, [open, getAnchor])
+    window.addEventListener('resize', schedule)
+    window.addEventListener('scroll', schedule, true)
+
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('resize', schedule)
+      window.removeEventListener('scroll', schedule, true)
+    }
+  }, [open, getAnchor, completions])
 
   if (!open) return null
 

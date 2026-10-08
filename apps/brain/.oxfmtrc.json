@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "semi": false,
+  "printWidth": 80,
+  "sortPackageJson": false,
+  "svelte": true,
+  "sortTailwindcss": {
+    "stylesheet": "./src/styles/shadcn.css",
+    "functions": ["cn", "cva"]
+  },
+  "ignorePatterns": [
+    "public/**",
+    "node_modules/**",
+    "dist/**",
+    "dist-ssr/**",
+    "coverage/**"
+  ]
+}

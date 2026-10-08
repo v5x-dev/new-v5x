@@ -11,38 +11,99 @@ let indexPrefix = null
 
 let persistingIndex = false
 
-let header = [],
-  body = [],
-  length = null
+// Keep clangd's stdout in one capped buffer. A completion reply used to be
+// stored as one JavaScript number per byte, and a failed parse left that
+// array growing for the rest of the session.
+function createLspStdout(onMessage, onError, maxMessage = 8 * 1024 * 1024) {
+  const decoder = new TextDecoder()
+  let header = []
+  let expected = null
+  let body = null
+  let received = 0
+  let skip = 0
 
-const decoder = new TextDecoder()
-
-function stdout(byte) {
-  if (length === null) {
-    header.push(byte)
-    if (header.length > 8192) throw new Error('Invalid clangd output header')
-
-    if (header.length >= 4 && header.slice(-4).join(',') === '13,10,13,10') {
-      const match = /Content-Length:\s*(\d+)/i.exec(
-        decoder.decode(new Uint8Array(header)),
-      )
-      if (!match) throw new Error('Missing clangd message length')
-      length = Number(match[1])
-      header = []
+  return (byte) => {
+    if (skip > 0) {
+      skip -= 1
+      return
     }
-  } else {
-    body.push(byte)
 
-    if (body.length === length) {
-      self.postMessage({
-        kind: 'rpc',
-        message: JSON.parse(decoder.decode(new Uint8Array(body))),
-      })
-      body = []
-      length = null
+    if (expected === null) {
+      header.push(byte)
+
+      if (header.length > 8192) {
+        header = []
+        throw new Error('Invalid clangd output header')
+      }
+
+      if (
+        header.length < 4 ||
+        header[header.length - 4] !== 13 ||
+        header[header.length - 3] !== 10 ||
+        header[header.length - 2] !== 13 ||
+        header[header.length - 1] !== 10
+      )
+        return
+
+      const match = /Content-Length:\s*(\d+)/i.exec(
+        decoder.decode(Uint8Array.from(header)),
+      )
+      header = []
+
+      if (!match) throw new Error('Missing clangd message length')
+
+      const length = Number(match[1])
+
+      if (!Number.isSafeInteger(length))
+        throw new Error('Invalid clangd message length')
+
+      if (length > maxMessage) {
+        skip = length
+        onError('Clangd response exceeded the memory limit')
+        return
+      }
+
+      if (length === 0) {
+        onMessage(null)
+        return
+      }
+
+      expected = length
+      body = new Uint8Array(length)
+      return
+    }
+
+    body[received] = byte
+    received += 1
+
+    if (received < expected) return
+
+    const bytes = body
+    expected = null
+    body = null
+    received = 0
+
+    try {
+      onMessage(JSON.parse(decoder.decode(bytes)))
+    } catch {
+      onError('Clangd response could not be read')
     }
   }
 }
+
+const stdout = createLspStdout(
+  (message) => {
+    try {
+      self.postMessage({ kind: 'rpc', message })
+    } catch {
+      self.postMessage({
+        kind: 'error',
+        message: 'Clangd response was too large to deliver',
+      })
+    }
+  },
+  (message) => self.postMessage({ kind: 'error', message }),
+)
 
 function writeFile(path, contents) {
   if (
@@ -206,8 +267,12 @@ self.onmessage = async ({ data }) => {
         arguments: [
           '--compile-commands-dir=/workspace',
           '--background-index',
-          '-j=2',
-          '--pch-storage=memory',
+          // One worker, and preambles on the virtual disk. Memory storage
+          // keeps every completion preamble in the WASM heap, which cannot
+          // shrink and is capped at 2GB.
+          '-j=1',
+          '--pch-storage=disk',
+          '--limit-results=20',
           '--log=error',
           '--enable-config',
           '--clang-tidy',

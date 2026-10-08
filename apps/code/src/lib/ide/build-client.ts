@@ -1,119 +1,209 @@
+import { buildCacheKey } from './build-cache'
+import { setBrowserBuildActive } from './build-activity'
+import type { BuildTimingEvent } from './build-performance'
 import type { BrowserBuildInput, BrowserBuildResult } from './browser-build'
 
+const stableArtifacts = new Map<string, Uint8Array>()
 let idleWorker: Worker | undefined
-let idleTimer: ReturnType<typeof setTimeout> | undefined
+let activeWorker: Worker | undefined
+let cancelActive: (() => void) | undefined
+let sessionGeneration = 0
+let buildQueue: Promise<unknown> = Promise.resolve()
 
 export function releaseBrowserCompiler() {
-  clearTimeout(idleTimer)
+  sessionGeneration++
   idleWorker?.terminate()
   idleWorker = undefined
+  stableArtifacts.clear()
+  cancelActive?.()
+  activeWorker?.terminate()
+  activeWorker = undefined
 }
 
-export function buildInBrowser(
+function executeBuild(
   input: BrowserBuildInput,
   report: (text: string) => void,
   signal?: AbortSignal,
+  timing?: (event: BuildTimingEvent) => void,
 ): Promise<BrowserBuildResult> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
       reject(new DOMException('Build cancelled', 'AbortError'))
       return
     }
-    clearTimeout(idleTimer)
+    const started = performance.now()
+    const lifecycle = (outcome: BuildTimingEvent['outcome']) =>
+      timing?.({
+        buildId: input.buildId!,
+        clock: 'client',
+        phase: 'request-to-artifacts',
+        start: started,
+        end: performance.now(),
+        outcome,
+      })
     const worker =
       idleWorker ??
       new Worker(new URL('./build.worker.ts', import.meta.url), {
         type: 'module',
       })
     idleWorker = undefined
+    activeWorker = worker
+    if (input.kind !== 'preload') setBrowserBuildActive(true)
+    let chunks: Array<string> = []
+    let bufferedBytes = 0
+    const flush = () => {
+      if (!chunks.length) return
+      const text = chunks.join('')
+      chunks = []
+      bufferedBytes = 0
+      report(text)
+    }
+    const outputTimer = setInterval(flush, 75)
     const stop = (reuse = false) => {
       clearTimeout(timer)
+      clearInterval(outputTimer)
+      flush()
+      if (activeWorker === worker) {
+        activeWorker = undefined
+        cancelActive = undefined
+      }
+      setBrowserBuildActive(false)
       signal?.removeEventListener('abort', abort)
       worker.onmessage = null
       worker.onerror = null
       if (reuse && !idleWorker) {
         idleWorker = worker
-        idleTimer = setTimeout(releaseBrowserCompiler, 60_000)
       } else worker.terminate()
     }
     const abort = () => {
       stop()
+      lifecycle('cancelled')
       reject(new DOMException('Build cancelled', 'AbortError'))
     }
+    cancelActive = abort
     const timer = setTimeout(() => {
       stop()
+      lifecycle('error')
       reject(new Error('Browser build exceeded 5 minutes'))
     }, 300_000)
     signal?.addEventListener('abort', abort, { once: true })
     worker.onerror = (event) => {
       stop()
+      lifecycle('error')
       reject(new Error(event.message || 'Browser compiler worker crashed'))
     }
-    worker.onmessage = ({ data }) => {
-      if (data.kind === 'output') report(data.text)
-      else if (data.kind === 'result') {
-        stop(true)
-        resolve(data.result)
+    worker.onmessage = async ({ data }) => {
+      if (data.kind === 'output') {
+        chunks.push(data.text)
+        bufferedBytes += data.text.length
+        if (bufferedBytes >= 64 * 1024) flush()
+      } else if (data.kind === 'timing') timing?.(data.event)
+      else if (data.kind === 'result' || data.kind === 'preloaded') {
+        try {
+          const artifacts = await Promise.all(
+            data.result.artifacts.map(
+              async (artifact: {
+                path: string
+                bytes?: Uint8Array
+                digest?: string
+                size?: number
+              }) => {
+                if (!artifact.digest) {
+                  if (!(artifact.bytes instanceof Uint8Array))
+                    throw new Error('Missing build artifact')
+                  return { path: artifact.path, bytes: artifact.bytes }
+                }
+                let bytes = stableArtifacts.get(artifact.digest)
+                if (artifact.bytes) {
+                  if (
+                    artifact.bytes.length !== artifact.size ||
+                    (await buildCacheKey([artifact.bytes])) !== artifact.digest
+                  )
+                    throw new Error('Build artifact integrity mismatch')
+                  bytes = artifact.bytes.slice()
+                  // One retained cold package, owned separately from public results.
+                  stableArtifacts.clear()
+                  stableArtifacts.set(artifact.digest, bytes)
+                }
+                if (!bytes || bytes.length !== artifact.size)
+                  throw new Error('Missing retained cold artifact; retry build')
+                return { path: artifact.path, bytes: bytes.slice() }
+              },
+            ),
+          )
+          if (signal?.aborted || activeWorker !== worker) return
+          stop(true)
+          lifecycle(data.result.exitCode ? 'error' : 'success')
+          resolve({ ...data.result, artifacts })
+        } catch (error) {
+          if (activeWorker !== worker) return
+          stableArtifacts.clear()
+          stop()
+          lifecycle('error')
+          reject(error)
+        }
       } else if (data.kind === 'error') {
         stop()
+        lifecycle('error')
         reject(new Error(data.message))
       }
     }
-    worker.postMessage(input)
+    worker.postMessage({
+      ...input,
+      knownArtifacts: [...stableArtifacts.keys()],
+    })
   })
 }
 
-const database = () =>
-  new Promise<IDBDatabase>((resolve, reject) => {
-    // Do not restore binaries compiled before the PROS task instruction-mode fix.
-    const request = indexedDB.open('v5x-browser-builds-v2', 1)
-    request.onupgradeneeded = () => request.result.createObjectStore('builds')
-    request.onsuccess = () => resolve(request.result)
-    request.onerror = () => reject(request.error)
-  })
-
-export async function readBrowserBuild(
-  workspaceId: string,
-): Promise<BrowserBuildResult | undefined> {
-  const db = await database()
-  try {
-    return await new Promise((resolve, reject) => {
-      const request = db
-        .transaction('builds')
-        .objectStore('builds')
-        .get(workspaceId)
-      request.onsuccess = () => {
-        const result = request.result as BrowserBuildResult | undefined
-        // Older browser builds stored a monolith. Rebuild it as hot/cold packages.
-        resolve(
-          result?.artifacts.some(
-            (artifact) => artifact.path === 'bin/monolith.bin',
-          )
-            ? undefined
-            : result,
-        )
-      }
-      request.onerror = () => reject(request.error)
-    })
-  } finally {
-    db.close()
+/** Serialize worker ownership; snapshot at submission, not after a queued build. */
+export function buildInBrowser(
+  input: BrowserBuildInput,
+  report: (text: string) => void,
+  signal?: AbortSignal,
+  timing?: (event: BuildTimingEvent) => void,
+): Promise<BrowserBuildResult> {
+  const snapshot = {
+    ...input,
+    files: { ...input.files },
+    buildId: crypto.randomUUID(),
+    trace: Boolean(timing),
   }
+  const generation = sessionGeneration
+  const result = buildQueue.then(() => {
+    if (generation !== sessionGeneration)
+      throw new DOMException('Build cancelled', 'AbortError')
+    return executeBuild(snapshot, report, signal, timing)
+  })
+  buildQueue = result.catch(() => undefined)
+  return result
 }
 
-export async function writeBrowserBuild(
-  workspaceId: string,
-  result: BrowserBuildResult,
-) {
-  const db = await database()
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const transaction = db.transaction('builds', 'readwrite')
-      transaction.objectStore('builds').put(result, workspaceId)
-      transaction.oncomplete = () => resolve()
-      transaction.onerror = () => reject(transaction.error)
-      transaction.onabort = () => reject(transaction.error)
-    })
-  } finally {
-    db.close()
+export { readBrowserBuild, writeBrowserBuild } from './build-storage'
+
+/** Preload only the selected SDK after editor readiness; unknown/low memory stays demand-loaded. */
+export function scheduleBrowserCompilerPreload(input: BrowserBuildInput) {
+  const navigatorWithHints = navigator as Navigator & {
+    deviceMemory?: number
+    connection?: { saveData?: boolean; effectiveType?: string }
+  }
+  if (
+    !navigatorWithHints.deviceMemory ||
+    navigatorWithHints.deviceMemory <= 4 ||
+    navigatorWithHints.connection?.saveData ||
+    /(^|-)2g$/.test(navigatorWithHints.connection?.effectiveType ?? '')
+  )
+    return () => {}
+  const controller = new AbortController()
+  const timer = setTimeout(() => {
+    if (document.visibilityState !== 'visible' || activeWorker) return
+    void buildInBrowser(
+      { ...input, kind: 'preload' },
+      () => {},
+      controller.signal,
+    ).catch(() => {})
+  }, 10_000)
+  return () => {
+    clearTimeout(timer)
+    controller.abort()
   }
 }

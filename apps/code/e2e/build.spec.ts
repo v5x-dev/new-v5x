@@ -17,7 +17,9 @@ test('build a program, show output, enable upload and restore artifacts on reloa
   await expect(
     page.getByRole('button', { name: /^Building program,/ }),
   ).toBeDisabled()
-  await expect(page.getByText('Build succeeded', { exact: true })).toBeVisible({
+  await expect(
+    page.getByRole('button', { name: 'Build succeeded', exact: true }),
+  ).toBeVisible({
     timeout: 240_000,
   })
   await page.getByRole('button', { name: 'Output', exact: true }).click()
@@ -86,7 +88,7 @@ for (const template of ['VEXcode', 'PROS', 'EZ', 'JAR']) {
       .getByRole('button', { name: 'Build program', exact: true })
       .click()
     await expect(
-      page.getByText('Build succeeded', { exact: true }),
+      page.getByRole('button', { name: 'Build succeeded', exact: true }),
     ).toBeVisible({ timeout: 240_000 })
     await page.getByRole('button', { name: 'Output', exact: true }).click()
     await expect(
@@ -237,14 +239,18 @@ test('a cached project compiles with the network disabled', async ({
 }) => {
   test.setTimeout(300_000)
   await page.getByRole('button', { name: 'Build program', exact: true }).click()
-  await expect(page.getByText('Build succeeded', { exact: true })).toBeVisible({
+  await expect(
+    page.getByRole('button', { name: 'Build succeeded', exact: true }),
+  ).toBeVisible({
     timeout: 240_000,
   })
   await page.context().setOffline(true)
   await page
     .getByRole('button', { name: 'Build succeeded', exact: true })
     .click()
-  await expect(page.getByText('Build succeeded', { exact: true })).toBeVisible({
+  await expect(
+    page.getByRole('button', { name: 'Build succeeded', exact: true }),
+  ).toBeVisible({
     timeout: 240_000,
   })
   await page.getByRole('button', { name: 'Output', exact: true }).click()
@@ -265,7 +271,9 @@ test('report compiler failures and retain the compiler output', async ({
     page.getByRole('button', { name: 'Commit changes', exact: true }),
   ).toBeDisabled()
   await page.getByRole('button', { name: 'Build program', exact: true }).click()
-  await expect(page.getByText(/^Build failed \(exit code/)).toBeVisible({
+  await expect(
+    page.getByRole('button', { name: /^Build failed \(exit code/ }),
+  ).toBeVisible({
     timeout: 240_000,
   })
   await page.getByRole('button', { name: 'Output', exact: true }).click()
@@ -288,7 +296,7 @@ test('EZ reuses unchanged objects and the cold package after a source edit', asy
       })
       .click()
     await expect(
-      page.getByText('Build succeeded', { exact: true }),
+      page.getByRole('button', { name: 'Build succeeded', exact: true }),
     ).toBeVisible({ timeout: 240_000 })
     timings[label] = Date.now() - started
   }
@@ -317,13 +325,15 @@ test('EZ reuses unchanged objects and the cold package after a source edit', asy
   console.log('EZ browser build timings (ms):', JSON.stringify(timings))
 })
 
-test('a corrupt compiler asset is not hidden by a previously restored build', async ({
+test('a corrupt optional PCH falls back and recovers after a restored build', async ({
   signedInPage: page,
 }) => {
   test.setTimeout(300_000)
   await createProgram(page, 'EZ')
   await page.getByRole('button', { name: 'Build program', exact: true }).click()
-  await expect(page.getByText('Build succeeded', { exact: true })).toBeVisible({
+  await expect(
+    page.getByRole('button', { name: 'Build succeeded', exact: true }),
+  ).toBeVisible({
     timeout: 240_000,
   })
   await page.evaluate(async () => {
@@ -339,16 +349,39 @@ test('a corrupt compiler asset is not hidden by a previously restored build', as
     page.getByRole('button', { name: 'Build restored' }),
   ).toBeEnabled()
   await page.getByRole('button', { name: 'Build restored' }).click()
-  await expect(page.getByText('Build failed', { exact: true })).toBeVisible({
-    timeout: 240_000,
-  })
+  await expect(
+    page.getByRole('button', { name: 'Build succeeded', exact: true }),
+  ).toBeVisible({ timeout: 240_000 })
   await page.getByRole('button', { name: 'Output', exact: true }).click()
   await expect(
     page.getByRole('dialog', { name: 'Output', exact: true }),
-  ).toContainText('Build asset checksum mismatch')
+  ).toContainText(
+    'Optional precompiled headers unavailable; compiling normally.',
+  )
   await page.keyboard.press('Escape')
-  await page.getByRole('button', { name: 'Build failed', exact: true }).click()
-  await expect(page.getByText('Build succeeded', { exact: true })).toBeVisible({
-    timeout: 240_000,
+  await reloadReady(page)
+  await expect(editor(page)).toBeVisible()
+  await page.getByRole('button', { name: 'Build restored' }).click()
+  await expect(
+    page.getByRole('button', { name: 'Build succeeded', exact: true }),
+  ).toBeVisible({ timeout: 240_000 })
+})
+
+test('cancel a browser build and retry with a fresh worker', async ({
+  programPage: page,
+}) => {
+  test.setTimeout(300_000)
+  await page.getByRole('button', { name: 'Build program', exact: true }).click()
+  const cancel = page.getByRole('button', { name: 'Cancel build', exact: true })
+  await expect(cancel).toBeVisible()
+  await cancel.click()
+  const retry = page.getByRole('button', {
+    name: 'Build cancelled',
+    exact: true,
   })
+  await expect(retry).toBeEnabled()
+  await retry.click()
+  await expect(
+    page.getByRole('button', { name: 'Build succeeded', exact: true }),
+  ).toBeEnabled({ timeout: 240_000 })
 })

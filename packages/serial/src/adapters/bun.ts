@@ -11,6 +11,7 @@ import {
 
 export type BunAdapterOptions = {
   path?: string
+  signals?: { dataTerminalReady?: boolean; requestToSend?: boolean }
 }
 
 type ListedSerialPort = {
@@ -48,13 +49,15 @@ async function enrichPortList(
 
 class BunSerialPort implements AdapterSerialPort {
   #info: SerialPortInfo
+  #signals: BunAdapterOptions["signals"]
   #port: SerialPort | undefined
   #readable: ReadableStream<Uint8Array> | null = null
   #writable: WritableStream<Uint8Array> | null = null
   #onDisconnect?: () => void
 
-  constructor(info: SerialPortInfo) {
+  constructor(info: SerialPortInfo, signals?: BunAdapterOptions["signals"]) {
     this.#info = info
+    this.#signals = signals
   }
 
   get readable(): ReadableStream<Uint8Array> | null {
@@ -82,6 +85,18 @@ class BunSerialPort implements AdapterSerialPort {
 
     await port.open()
     this.#port = port
+    if (this.#signals) {
+      try {
+        await port.set({
+          dtr: this.#signals.dataTerminalReady,
+          rts: this.#signals.requestToSend,
+        })
+      } catch (error) {
+        await port.close()
+        this.#port = undefined
+        throw error
+      }
+    }
 
     const streams = createByteStreams({
       write: async (data) => {
@@ -146,11 +161,14 @@ export function createBunAdapter(
       )
       .map(
         (port) =>
-          new BunSerialPort({
-            path: port.path,
-            usbVendorId: parseUsbId(port.vendorId),
-            usbProductId: parseUsbId(port.productId),
-          })
+          new BunSerialPort(
+            {
+              path: port.path,
+              usbVendorId: parseUsbId(port.vendorId),
+              usbProductId: parseUsbId(port.productId),
+            },
+            options.signals
+          )
       )
   }
 

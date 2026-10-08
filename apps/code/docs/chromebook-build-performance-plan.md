@@ -1,8 +1,11 @@
 # Chromebook browser build performance plan
 
-Status: implementation brief, October 7, 2026. No optimizations in this plan have
-been implemented by writing this document. Experimental work needs a measured
-benefit before it becomes the default.
+Status: implementation and local experiments delivered October 8, 2026. See
+[implementation status](browser-build-performance-status.md) for package decisions,
+local evidence and remaining acceptance runs. A connected V5 Brain now supports
+[hardware checks](browser-performance/2026-10-08/hardware-checks.md). Chromebook
+measurements remain pending. P14 was removed at the user's request. Experimental
+options stay disabled by default.
 
 ## Objective and scope
 
@@ -545,49 +548,28 @@ Implementation:
 Acceptance: full regression matrix and compatibility report; retain the pinned
 toolchain fallback until the slimmer one is proven. Publish maintenance costs.
 
-### P14. Offer an explicit remote build fallback if needed
+### P14. Removed
 
-Owner: cloud/integration agent. Depends on local measurements and product decision.
-
-Files: existing cloud build actions/coordinator, project route, artifact adapters.
-
-Implementation:
-
-- Inspect and reuse the existing cloud pipeline instead of building another one.
-  Read Convex guidelines before working on these files.
-- Offer an explicit cloud choice for heavy projects or constrained devices. Local
-  build failure must not silently send source to a remote service.
-- Define authorization, exact committed-snapshot semantics, cancellation, queueing,
-  error recovery, limits, and cost. Keep build mode/compiler provenance visible
-  where relevant to results; cloud and browser currently use different toolchains.
-- Adapt outputs to the existing download/upload flow with verified bytes and the
-  same correct commit identity. Do not present cloud latency as local performance.
-- Preserve local/offline compilation. Network/service unavailability must leave
-  the local choice usable. Add clear progress and actionable errors.
-- Measure full request/queue/compile/download latency on a Chromebook connection.
-  Existing server-only medians exclude some of those costs.
-
-Acceptance: deliberate user choice, correct source and artifacts, authorization
-checks, cancellation/recovery, and working local mode without cloud availability.
-Do not make remote infrastructure a dependency of P1–P13.
+The explicit remote build fallback was removed at the user's request. P0–P13
+remain in scope. The earlier backend build pipeline remains available to existing
+tooling, without a cloud option in the project route.
 
 ## Assignment and integration order
 
 Suggested rounds for agents. This is a handoff structure, not a requirement to
 launch agents merely to read the plan.
 
-| Round    | Work                                   | Integration requirement                                             |
-| -------- | -------------------------------------- | ------------------------------------------------------------------- |
-| 0        | P0, shared identity/protocol contracts | Land instrumentation and baseline                                   |
-| 1        | P1 and P2                              | Serialize shared compiler-module changes                            |
-| 2        | P3, P4, P7, P9                         | Agree manifest/cache schemas first; integrate one owner at a time   |
-| 3        | P5, P6, P8                             | Coordinate timestamps, artifact references, and packaging migration |
-| 4        | P10 and P12                            | Use established mode and dependency keys                            |
-| 5        | P11 and P13                            | Experiments gated by memory and measured benefit                    |
-| Separate | P14                                    | Explicit optional cloud path; no local dependency                   |
+| Round | Work                                   | Integration requirement                                             |
+| ----- | -------------------------------------- | ------------------------------------------------------------------- |
+| 0     | P0, shared identity/protocol contracts | Land instrumentation and baseline                                   |
+| 1     | P1 and P2                              | Serialize shared compiler-module changes                            |
+| 2     | P3, P4, P7, P9                         | Agree manifest/cache schemas first; integrate one owner at a time   |
+| 3     | P5, P6, P8                             | Coordinate timestamps, artifact references, and packaging migration |
+| 4     | P10 and P12                            | Use established mode and dependency keys                            |
+| 5     | P11 and P13                            | Experiments gated by memory and measured benefit                    |
 
 The fastest practical first delivery is P0–P4 with P7 and P9. Then address final
-artifact reuse and cold asset costs. Keep P10–P14 as fully scoped follow-ups, with
+artifact reuse and cold asset costs. Keep P10–P13 as fully scoped follow-ups, with
 go/no-go results accepted when an experiment does not help the target device.
 
 One integration owner controls `browser-build.ts` changes and validates combined

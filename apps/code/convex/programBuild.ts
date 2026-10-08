@@ -248,14 +248,14 @@ export const build = action({
 
       if (warmBuild) {
         try {
-          machine = await measure('Resume warm build machine', async () => {
+          machine = await measure('Resume warm build machine', () => {
             // Ownership is transferred atomically from a ready worker. The build
             // exec itself validates availability; stale workers take the fallback.
             const warm = new CloudBuildMachine(
               warmBuild.machineId,
               cloudConnection,
             )
-            return warm
+            return Promise.resolve(warm)
           })
           usingWarmBuild = true
         } catch {

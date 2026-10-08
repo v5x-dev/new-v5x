@@ -3,6 +3,9 @@
 The Build button on `/p/:programId` compiles the editor's committed workspace in
 a dedicated browser worker. It does not call `programBuild.build`, allocate a
 cloud machine, send source to a compiler service, or download build artifacts.
+The Build options menu can reset the browser compiler. The cancel button stops
+the active local build.
+
 Clang and LLD execute as WebAssembly through pinned `microbit-clang-wasm`.
 Its ARM backend can target the V5's Cortex-A9. We discard its micro:bit runtime
 libraries and use the existing V5 SDK and ARM GCC libraries.
@@ -14,14 +17,31 @@ the hot package links the user's program against the cold package's symbols.
 Brain upload consumes both packages directly and reuses a matching cold library
 already on the Brain.
 
-Compiler output streams to the existing Output panel. Every build gets a fresh
-project filesystem. The compiler worker stays warm for up to 60 seconds between
-builds and terminates on navigation or a five-minute build timeout. A local
-intermediate cache checks compiler arguments, SDK versions, the workspace file
-inventory, and every compiler-reported dependency before reusing objects. Deleted
-headers, changed flags, and removed sources cannot reuse stale objects. Cold
-packages are cached against their complete library and linker-script inputs. Binaries and failed compiler logs remain in IndexedDB
-on this device and restore for the same commit. The same commit can be rebuilt.
+Compiler output streams to the existing Output panel in bounded batches. One
+compiler worker retains the active workspace filesystem through editing pauses.
+SDK overlays mount once; synchronization writes changed project files, removes
+deletions, restores SDK overrides, and clears scratch outputs. Navigation,
+cancellation, timeout, and runtime failure release the worker. Builds serialize
+and consume snapshots captured at submission.
+
+A bounded intermediate cache checks compiler arguments, SDK generation, include
+inventory, and normalized compiler-reported dependencies before reusing objects.
+Shared file digests persist for unchanged content versions. Include uncertainty
+uses conservative inventory invalidation. PROS/EZ can use checked packaged cold
+symbols and binaries when effective firmware inputs match; other configurations
+retain the dynamic path. VEXcode/JAR can reuse validated completed binaries.
+PROS/EZ patch a validated ARM metadata object with fresh UTC timestamps, falling
+back to compilation if the object is incompatible, and relink their hot program.
+
+Stable cold artifacts are stored once by digest. Result records reference them
+internally and restore owned, verified bytes. IndexedDB keeps at most 32 builds
+and 128 MiB of artifact data; corruption or missing blobs is a cache miss.
+Binaries and failed logs remain in IndexedDB on this device and restore for the
+same commit.
+The same commit can be rebuilt.
+
+See [implementation status](browser-build-performance-status.md) for exact cache
+rules, reproduction, experiment decisions and hardware verification limits.
 
 ## Offline use
 

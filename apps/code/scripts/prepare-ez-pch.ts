@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { gzipSync, gunzipSync } from 'node:zlib'
+import { gzipSync } from 'node:zlib'
 import { resolve } from 'node:path'
 import { createSession, setAssetLoader } from 'microbit-clang-wasm'
 import { templateFiles } from '../convex/template'
@@ -9,6 +9,7 @@ import {
   browserPchArguments,
 } from '../src/lib/ide/browser-build'
 import { buildCacheKey, dependencyPaths } from '../src/lib/ide/build-cache'
+import { readSdkBundle } from './read-sdk-bundle'
 
 const publicDir = resolve(import.meta.dir, '../public')
 const compilerDir = resolve(publicDir, 'compiler')
@@ -31,7 +32,7 @@ const command = browserCompileCommands(
 )[0]
 const args = browserPchArguments(command)
 const signature = await buildCacheKey([
-  'ez-pch-v2',
+  'ez-pch-v4',
   JSON.stringify(compiler),
   JSON.stringify(args),
   JSON.stringify(files),
@@ -72,18 +73,11 @@ for (const binary of [false, true]) {
   const manifest = binary ? libraries : headers
   for (const name of manifest.templates['ez-template']) {
     const asset = manifest.bundles[name]
-    const bundle = JSON.parse(
-      gunzipSync(
-        await readFile(resolve(publicDir, asset.url.slice(1))),
-      ).toString(),
-    )
-    for (const [path, contents] of Object.entries(bundle.files))
-      await session.writeFile(
-        path,
-        binary
-          ? Buffer.from(contents as string, 'base64')
-          : (contents as string),
-      )
+    for (const [path, contents] of await readSdkBundle(
+      resolve(publicDir, asset.url.slice(1)),
+      binary,
+    ))
+      await session.writeFile(path, contents)
   }
 }
 for (const [path, contents] of Object.entries(files))
@@ -112,13 +106,15 @@ const paths = dependencyPaths(
   new TextDecoder().decode((await session.readFile(pchPath + '.d'))!),
 )
 const parts: Array<string | Uint8Array> = []
-for (const path of paths) parts.push(path, (await session.readFile(path))!)
+for (const path of paths)
+  parts.push(path, await buildCacheKey([(await session.readFile(path))!]))
 const digest = await buildCacheKey(parts)
 const bytes = gzipSync((await session.readFile(pchPath))!, { level: 9 })
 const sha256 = createHash('sha256').update(bytes).digest('hex')
 const filename = `ez-pch-${sha256.slice(0, 16)}.pch.bundle`
 const metadata = Buffer.from(
   JSON.stringify({
+    version: 3,
     arguments: args,
     paths,
     digest,

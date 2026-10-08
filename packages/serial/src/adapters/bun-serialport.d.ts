@@ -25,6 +25,7 @@ declare module "bun-serialport" {
     readonly isOpen: boolean
     open(): Promise<void>
     close(): Promise<void>
+    set(flags: { dtr?: boolean; rts?: boolean }): Promise<void>
 
     write(
       data: Uint8Array | ArrayBuffer | number[] | string

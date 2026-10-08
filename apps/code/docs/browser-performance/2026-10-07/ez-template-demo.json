@@ -1,0 +1,2176 @@
+{
+  "schema": 1,
+  "template": "ez-template",
+  "route": "demo",
+  "browserName": "chromium",
+  "device": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+    "hardwareConcurrency": 12,
+    "deviceMemory": 32,
+    "memory": "Total browser/WASM memory unavailable; JS heap is not total memory"
+  },
+  "mode": "unthrottled-real-route",
+  "upload": "No V5 Brain connected",
+  "compiler": "21.11.0-alpha.1",
+  "fixtureDigest": "4e568cc8171ec5df81e141fbcfa6d44c441846c993ce961b217f4675c2cadfa2",
+  "deviceLabel": "Development host, model/CPU/power state unspecified",
+  "baseline": "No pre-change alternating reference samples",
+  "records": [
+    {
+      "scenario": "initial-site-cache-unspecified",
+      "wallMs": 38487.90616,
+      "commitMs": 0,
+      "spans": [
+        {
+          "buildId": "c283d5cb-181d-4b85-af76-06df2e629186",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 95.96000003814697,
+          "end": 111.6800000667572,
+          "outcome": "success"
+        },
+        {
+          "buildId": "c283d5cb-181d-4b85-af76-06df2e629186",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 112.125,
+          "end": 33033.71000003815,
+          "outcome": "success"
+        },
+        {
+          "buildId": "c283d5cb-181d-4b85-af76-06df2e629186",
+          "clock": "worker",
+          "phase": "sdk-mount",
+          "start": 33033.735000133514,
+          "end": 33141.36500000954,
+          "outcome": "success"
+        },
+        {
+          "buildId": "c283d5cb-181d-4b85-af76-06df2e629186",
+          "clock": "worker",
+          "phase": "cold-assets",
+          "start": 33141.454999923706,
+          "end": 34627.329999923706,
+          "outcome": "success"
+        },
+        {
+          "buildId": "c283d5cb-181d-4b85-af76-06df2e629186",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 34627.97000002861,
+          "end": 34628.33500003815,
+          "outcome": "success"
+        },
+        {
+          "buildId": "c283d5cb-181d-4b85-af76-06df2e629186",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 34697.704999923706,
+          "end": 36397.72000002861,
+          "outcome": "success"
+        },
+        {
+          "buildId": "c283d5cb-181d-4b85-af76-06df2e629186",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 36406.295000076294,
+          "end": 37889.63499999046,
+          "outcome": "success"
+        },
+        {
+          "buildId": "c283d5cb-181d-4b85-af76-06df2e629186",
+          "clock": "worker",
+          "phase": "timestamp-compile",
+          "start": 37897.325000047684,
+          "end": 37926.66000008583,
+          "outcome": "success"
+        },
+        {
+          "buildId": "c283d5cb-181d-4b85-af76-06df2e629186",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 37926.83999991417,
+          "end": 37980.765000104904,
+          "outcome": "success"
+        },
+        {
+          "buildId": "c283d5cb-181d-4b85-af76-06df2e629186",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 37982.08999991417,
+          "end": 38191.10500001907,
+          "outcome": "success"
+        },
+        {
+          "buildId": "c283d5cb-181d-4b85-af76-06df2e629186",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 38191.77500009537,
+          "end": 38192.08500003815,
+          "outcome": "success"
+        },
+        {
+          "buildId": "c283d5cb-181d-4b85-af76-06df2e629186",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 34627.96000003815,
+          "end": 38192.16499996185,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 0,
+            "commands": 4,
+            "projectWrites": 10,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ],
+      "longTasks": [],
+      "success": true
+    },
+    {
+      "scenario": "warm-noop",
+      "wallMs": 384.9599229999876,
+      "commitMs": 0,
+      "spans": [
+        {
+          "buildId": "d614a926-39c7-491f-b694-83f495c8bd6f",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 38495.31500005722,
+          "end": 38495.31500005722,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d614a926-39c7-491f-b694-83f495c8bd6f",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 38495.43499994278,
+          "end": 38495.44499993324,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d614a926-39c7-491f-b694-83f495c8bd6f",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 38495.47000002861,
+          "end": 38495.56999993324,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d614a926-39c7-491f-b694-83f495c8bd6f",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 38501.90000009537,
+          "end": 38510.53999996185,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d614a926-39c7-491f-b694-83f495c8bd6f",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 38511.56999993324,
+          "end": 38519.22500014305,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d614a926-39c7-491f-b694-83f495c8bd6f",
+          "clock": "worker",
+          "phase": "timestamp-compile",
+          "start": 38519.58500003815,
+          "end": 38559.94000005722,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d614a926-39c7-491f-b694-83f495c8bd6f",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 38559.97500014305,
+          "end": 38560.204999923706,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d614a926-39c7-491f-b694-83f495c8bd6f",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 38560.69000005722,
+          "end": 38744.55500006676,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d614a926-39c7-491f-b694-83f495c8bd6f",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 38745.27500009537,
+          "end": 38745.375,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d614a926-39c7-491f-b694-83f495c8bd6f",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 38495.46000003815,
+          "end": 38745.41000008583,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 2,
+            "commands": 2,
+            "projectWrites": 0,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ],
+      "longTasks": [],
+      "success": true
+    },
+    {
+      "scenario": "warm-noop",
+      "wallMs": 388.36965899998904,
+      "commitMs": 0,
+      "spans": [
+        {
+          "buildId": "298c3260-67db-4914-8221-3aea1cfb2602",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 38896.58999991417,
+          "end": 38896.58999991417,
+          "outcome": "success"
+        },
+        {
+          "buildId": "298c3260-67db-4914-8221-3aea1cfb2602",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 38896.765000104904,
+          "end": 38896.77999997139,
+          "outcome": "success"
+        },
+        {
+          "buildId": "298c3260-67db-4914-8221-3aea1cfb2602",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 38896.799999952316,
+          "end": 38896.88499999046,
+          "outcome": "success"
+        },
+        {
+          "buildId": "298c3260-67db-4914-8221-3aea1cfb2602",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 38905.30999994278,
+          "end": 38910.049999952316,
+          "outcome": "success"
+        },
+        {
+          "buildId": "298c3260-67db-4914-8221-3aea1cfb2602",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 38910.545000076294,
+          "end": 38916.24500012398,
+          "outcome": "success"
+        },
+        {
+          "buildId": "298c3260-67db-4914-8221-3aea1cfb2602",
+          "clock": "worker",
+          "phase": "timestamp-compile",
+          "start": 38916.44000005722,
+          "end": 38944.515000104904,
+          "outcome": "success"
+        },
+        {
+          "buildId": "298c3260-67db-4914-8221-3aea1cfb2602",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 38944.55500006676,
+          "end": 38944.75,
+          "outcome": "success"
+        },
+        {
+          "buildId": "298c3260-67db-4914-8221-3aea1cfb2602",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 38945.25500011444,
+          "end": 39111.02999997139,
+          "outcome": "success"
+        },
+        {
+          "buildId": "298c3260-67db-4914-8221-3aea1cfb2602",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 39111.72500014305,
+          "end": 39111.81500005722,
+          "outcome": "success"
+        },
+        {
+          "buildId": "298c3260-67db-4914-8221-3aea1cfb2602",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 38896.78999996185,
+          "end": 39111.83999991417,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 2,
+            "commands": 2,
+            "projectWrites": 0,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ],
+      "longTasks": [],
+      "success": true
+    },
+    {
+      "scenario": "warm-noop",
+      "wallMs": 395.47598799999105,
+      "commitMs": 0,
+      "spans": [
+        {
+          "buildId": "6c8d1d6e-38af-46ff-8c7e-b82844ab119e",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 39313.795000076294,
+          "end": 39313.799999952316,
+          "outcome": "success"
+        },
+        {
+          "buildId": "6c8d1d6e-38af-46ff-8c7e-b82844ab119e",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 39314.09500002861,
+          "end": 39314.110000133514,
+          "outcome": "success"
+        },
+        {
+          "buildId": "6c8d1d6e-38af-46ff-8c7e-b82844ab119e",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 39314.13000011444,
+          "end": 39314.25999999046,
+          "outcome": "success"
+        },
+        {
+          "buildId": "6c8d1d6e-38af-46ff-8c7e-b82844ab119e",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 39322.13499999046,
+          "end": 39328.21000003815,
+          "outcome": "success"
+        },
+        {
+          "buildId": "6c8d1d6e-38af-46ff-8c7e-b82844ab119e",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 39328.75500011444,
+          "end": 39334.37000012398,
+          "outcome": "success"
+        },
+        {
+          "buildId": "6c8d1d6e-38af-46ff-8c7e-b82844ab119e",
+          "clock": "worker",
+          "phase": "timestamp-compile",
+          "start": 39334.575000047684,
+          "end": 39361.91499996185,
+          "outcome": "success"
+        },
+        {
+          "buildId": "6c8d1d6e-38af-46ff-8c7e-b82844ab119e",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 39361.96499991417,
+          "end": 39362.170000076294,
+          "outcome": "success"
+        },
+        {
+          "buildId": "6c8d1d6e-38af-46ff-8c7e-b82844ab119e",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 39362.69499993324,
+          "end": 39530.65499997139,
+          "outcome": "success"
+        },
+        {
+          "buildId": "6c8d1d6e-38af-46ff-8c7e-b82844ab119e",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 39531.640000104904,
+          "end": 39531.795000076294,
+          "outcome": "success"
+        },
+        {
+          "buildId": "6c8d1d6e-38af-46ff-8c7e-b82844ab119e",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 39314.125,
+          "end": 39531.83999991417,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 2,
+            "commands": 2,
+            "projectWrites": 0,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ],
+      "longTasks": [],
+      "success": true
+    },
+    {
+      "scenario": "warm-noop",
+      "wallMs": 399.42018099999405,
+      "commitMs": 0,
+      "spans": [
+        {
+          "buildId": "b8ea028f-6afd-44ec-9d31-dc5b79476c4b",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 39712.28500008583,
+          "end": 39712.28500008583,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b8ea028f-6afd-44ec-9d31-dc5b79476c4b",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 39712.50500011444,
+          "end": 39712.515000104904,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b8ea028f-6afd-44ec-9d31-dc5b79476c4b",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 39712.52999997139,
+          "end": 39712.625,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b8ea028f-6afd-44ec-9d31-dc5b79476c4b",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 39719.97000002861,
+          "end": 39725.60500001907,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b8ea028f-6afd-44ec-9d31-dc5b79476c4b",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 39726.19499993324,
+          "end": 39731.21499991417,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b8ea028f-6afd-44ec-9d31-dc5b79476c4b",
+          "clock": "worker",
+          "phase": "timestamp-compile",
+          "start": 39731.39499998093,
+          "end": 39762.96000003815,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b8ea028f-6afd-44ec-9d31-dc5b79476c4b",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 39763.00999999046,
+          "end": 39763.31500005722,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b8ea028f-6afd-44ec-9d31-dc5b79476c4b",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 39763.91499996185,
+          "end": 39946.93000006676,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b8ea028f-6afd-44ec-9d31-dc5b79476c4b",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 39947.610000133514,
+          "end": 39947.74500012398,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b8ea028f-6afd-44ec-9d31-dc5b79476c4b",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 39712.52500009537,
+          "end": 39947.78999996185,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 2,
+            "commands": 2,
+            "projectWrites": 0,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ],
+      "longTasks": [],
+      "success": true
+    },
+    {
+      "scenario": "warm-noop",
+      "wallMs": 379.9822619999759,
+      "commitMs": 0,
+      "spans": [
+        {
+          "buildId": "27d09730-eca0-45b0-bd37-b967a728c4b4",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 40129.890000104904,
+          "end": 40129.89499998093,
+          "outcome": "success"
+        },
+        {
+          "buildId": "27d09730-eca0-45b0-bd37-b967a728c4b4",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 40130.08500003815,
+          "end": 40130.10500001907,
+          "outcome": "success"
+        },
+        {
+          "buildId": "27d09730-eca0-45b0-bd37-b967a728c4b4",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 40130.11500000954,
+          "end": 40130.19000005722,
+          "outcome": "success"
+        },
+        {
+          "buildId": "27d09730-eca0-45b0-bd37-b967a728c4b4",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 40136.829999923706,
+          "end": 40141.71499991417,
+          "outcome": "success"
+        },
+        {
+          "buildId": "27d09730-eca0-45b0-bd37-b967a728c4b4",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 40142.204999923706,
+          "end": 40147.10500001907,
+          "outcome": "success"
+        },
+        {
+          "buildId": "27d09730-eca0-45b0-bd37-b967a728c4b4",
+          "clock": "worker",
+          "phase": "timestamp-compile",
+          "start": 40147.25500011444,
+          "end": 40174.13499999046,
+          "outcome": "success"
+        },
+        {
+          "buildId": "27d09730-eca0-45b0-bd37-b967a728c4b4",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 40174.16000008583,
+          "end": 40174.37000012398,
+          "outcome": "success"
+        },
+        {
+          "buildId": "27d09730-eca0-45b0-bd37-b967a728c4b4",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 40174.99500012398,
+          "end": 40343.62000012398,
+          "outcome": "success"
+        },
+        {
+          "buildId": "27d09730-eca0-45b0-bd37-b967a728c4b4",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 40344.38000011444,
+          "end": 40344.46499991417,
+          "outcome": "success"
+        },
+        {
+          "buildId": "27d09730-eca0-45b0-bd37-b967a728c4b4",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 40130.110000133514,
+          "end": 40344.50500011444,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 2,
+            "commands": 2,
+            "projectWrites": 0,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ],
+      "longTasks": [],
+      "success": true
+    },
+    {
+      "scenario": "warm-noop",
+      "wallMs": 388.0580100000079,
+      "commitMs": 0,
+      "spans": [
+        {
+          "buildId": "eb6bf1a9-9285-4fe6-b705-3fc42c35676d",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 40529.545000076294,
+          "end": 40529.549999952316,
+          "outcome": "success"
+        },
+        {
+          "buildId": "eb6bf1a9-9285-4fe6-b705-3fc42c35676d",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 40529.76999998093,
+          "end": 40529.78500008583,
+          "outcome": "success"
+        },
+        {
+          "buildId": "eb6bf1a9-9285-4fe6-b705-3fc42c35676d",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 40529.795000076294,
+          "end": 40529.87000012398,
+          "outcome": "success"
+        },
+        {
+          "buildId": "eb6bf1a9-9285-4fe6-b705-3fc42c35676d",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 40536.575000047684,
+          "end": 40541.85000014305,
+          "outcome": "success"
+        },
+        {
+          "buildId": "eb6bf1a9-9285-4fe6-b705-3fc42c35676d",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 40542.329999923706,
+          "end": 40547.16000008583,
+          "outcome": "success"
+        },
+        {
+          "buildId": "eb6bf1a9-9285-4fe6-b705-3fc42c35676d",
+          "clock": "worker",
+          "phase": "timestamp-compile",
+          "start": 40547.31999993324,
+          "end": 40574.10000014305,
+          "outcome": "success"
+        },
+        {
+          "buildId": "eb6bf1a9-9285-4fe6-b705-3fc42c35676d",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 40574.12000012398,
+          "end": 40574.31999993324,
+          "outcome": "success"
+        },
+        {
+          "buildId": "eb6bf1a9-9285-4fe6-b705-3fc42c35676d",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 40574.80500006676,
+          "end": 40742.40499997139,
+          "outcome": "success"
+        },
+        {
+          "buildId": "eb6bf1a9-9285-4fe6-b705-3fc42c35676d",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 40743.03500008583,
+          "end": 40743.125,
+          "outcome": "success"
+        },
+        {
+          "buildId": "eb6bf1a9-9285-4fe6-b705-3fc42c35676d",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 40529.795000076294,
+          "end": 40743.14499998093,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 2,
+            "commands": 2,
+            "projectWrites": 0,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ],
+      "longTasks": [],
+      "success": true
+    },
+    {
+      "scenario": "warm-noop",
+      "wallMs": 418.3617030000023,
+      "commitMs": 0,
+      "spans": [
+        {
+          "buildId": "7a22250b-0983-43e8-9611-64731867be84",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 40932.515000104904,
+          "end": 40932.515000104904,
+          "outcome": "success"
+        },
+        {
+          "buildId": "7a22250b-0983-43e8-9611-64731867be84",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 40932.78500008583,
+          "end": 40932.799999952316,
+          "outcome": "success"
+        },
+        {
+          "buildId": "7a22250b-0983-43e8-9611-64731867be84",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 40932.81500005722,
+          "end": 40932.890000104904,
+          "outcome": "success"
+        },
+        {
+          "buildId": "7a22250b-0983-43e8-9611-64731867be84",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 40939.49500012398,
+          "end": 40944.90000009537,
+          "outcome": "success"
+        },
+        {
+          "buildId": "7a22250b-0983-43e8-9611-64731867be84",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 40945.46499991417,
+          "end": 40950.98000001907,
+          "outcome": "success"
+        },
+        {
+          "buildId": "7a22250b-0983-43e8-9611-64731867be84",
+          "clock": "worker",
+          "phase": "timestamp-compile",
+          "start": 40951.14499998093,
+          "end": 40989.674999952316,
+          "outcome": "success"
+        },
+        {
+          "buildId": "7a22250b-0983-43e8-9611-64731867be84",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 40989.69499993324,
+          "end": 40990.079999923706,
+          "outcome": "success"
+        },
+        {
+          "buildId": "7a22250b-0983-43e8-9611-64731867be84",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 40990.64499998093,
+          "end": 41166.85500001907,
+          "outcome": "success"
+        },
+        {
+          "buildId": "7a22250b-0983-43e8-9611-64731867be84",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 41167.485000133514,
+          "end": 41167.575000047684,
+          "outcome": "success"
+        },
+        {
+          "buildId": "7a22250b-0983-43e8-9611-64731867be84",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 40932.80500006676,
+          "end": 41167.59500002861,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 2,
+            "commands": 2,
+            "projectWrites": 0,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ],
+      "longTasks": [],
+      "success": true
+    },
+    {
+      "scenario": "warm-noop",
+      "wallMs": 409.1223989999853,
+      "commitMs": 0,
+      "spans": [
+        {
+          "buildId": "b56a71f4-77f8-45d9-a3a4-84441f42a480",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 41373.56500005722,
+          "end": 41373.56500005722,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b56a71f4-77f8-45d9-a3a4-84441f42a480",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 41373.765000104904,
+          "end": 41373.77999997139,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b56a71f4-77f8-45d9-a3a4-84441f42a480",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 41373.78500008583,
+          "end": 41373.860000133514,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b56a71f4-77f8-45d9-a3a4-84441f42a480",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 41380.39499998093,
+          "end": 41386.265000104904,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b56a71f4-77f8-45d9-a3a4-84441f42a480",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 41386.77999997139,
+          "end": 41391.76999998093,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b56a71f4-77f8-45d9-a3a4-84441f42a480",
+          "clock": "worker",
+          "phase": "timestamp-compile",
+          "start": 41391.93499994278,
+          "end": 41418.450000047684,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b56a71f4-77f8-45d9-a3a4-84441f42a480",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 41418.48000001907,
+          "end": 41418.71000003815,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b56a71f4-77f8-45d9-a3a4-84441f42a480",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 41419.28500008583,
+          "end": 41591.15499997139,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b56a71f4-77f8-45d9-a3a4-84441f42a480",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 41591.80999994278,
+          "end": 41591.90499997139,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b56a71f4-77f8-45d9-a3a4-84441f42a480",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 41373.78500008583,
+          "end": 41591.93499994278,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 2,
+            "commands": 2,
+            "projectWrites": 0,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ],
+      "longTasks": [],
+      "success": true
+    },
+    {
+      "scenario": "warm-noop",
+      "wallMs": 389.2793599999859,
+      "commitMs": 0,
+      "spans": [
+        {
+          "buildId": "80ac7c63-31a9-449e-9338-c9e4e9ce76fb",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 41780.079999923706,
+          "end": 41780.08500003815,
+          "outcome": "success"
+        },
+        {
+          "buildId": "80ac7c63-31a9-449e-9338-c9e4e9ce76fb",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 41780.27500009537,
+          "end": 41780.28999996185,
+          "outcome": "success"
+        },
+        {
+          "buildId": "80ac7c63-31a9-449e-9338-c9e4e9ce76fb",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 41780.299999952316,
+          "end": 41780.38000011444,
+          "outcome": "success"
+        },
+        {
+          "buildId": "80ac7c63-31a9-449e-9338-c9e4e9ce76fb",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 41786.64499998093,
+          "end": 41791.60500001907,
+          "outcome": "success"
+        },
+        {
+          "buildId": "80ac7c63-31a9-449e-9338-c9e4e9ce76fb",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 41792.09500002861,
+          "end": 41796.829999923706,
+          "outcome": "success"
+        },
+        {
+          "buildId": "80ac7c63-31a9-449e-9338-c9e4e9ce76fb",
+          "clock": "worker",
+          "phase": "timestamp-compile",
+          "start": 41797.015000104904,
+          "end": 41822.68499994278,
+          "outcome": "success"
+        },
+        {
+          "buildId": "80ac7c63-31a9-449e-9338-c9e4e9ce76fb",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 41822.71000003815,
+          "end": 41822.91499996185,
+          "outcome": "success"
+        },
+        {
+          "buildId": "80ac7c63-31a9-449e-9338-c9e4e9ce76fb",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 41823.53500008583,
+          "end": 41991.40000009537,
+          "outcome": "success"
+        },
+        {
+          "buildId": "80ac7c63-31a9-449e-9338-c9e4e9ce76fb",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 41992.06500005722,
+          "end": 41992.15000009537,
+          "outcome": "success"
+        },
+        {
+          "buildId": "80ac7c63-31a9-449e-9338-c9e4e9ce76fb",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 41780.295000076294,
+          "end": 41992.18499994278,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 2,
+            "commands": 2,
+            "projectWrites": 0,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ],
+      "longTasks": [],
+      "success": true
+    },
+    {
+      "scenario": "warm-noop",
+      "wallMs": 382.63384600001154,
+      "commitMs": 0,
+      "spans": [
+        {
+          "buildId": "afa5ea00-f4e3-46be-8bfb-570dceb2e5b9",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 42181.99000000954,
+          "end": 42181.99000000954,
+          "outcome": "success"
+        },
+        {
+          "buildId": "afa5ea00-f4e3-46be-8bfb-570dceb2e5b9",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 42182.174999952316,
+          "end": 42182.19000005722,
+          "outcome": "success"
+        },
+        {
+          "buildId": "afa5ea00-f4e3-46be-8bfb-570dceb2e5b9",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 42182.204999923706,
+          "end": 42182.27999997139,
+          "outcome": "success"
+        },
+        {
+          "buildId": "afa5ea00-f4e3-46be-8bfb-570dceb2e5b9",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 42189.65000009537,
+          "end": 42197.53999996185,
+          "outcome": "success"
+        },
+        {
+          "buildId": "afa5ea00-f4e3-46be-8bfb-570dceb2e5b9",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 42198.43000006676,
+          "end": 42204.94499993324,
+          "outcome": "success"
+        },
+        {
+          "buildId": "afa5ea00-f4e3-46be-8bfb-570dceb2e5b9",
+          "clock": "worker",
+          "phase": "timestamp-compile",
+          "start": 42205.15000009537,
+          "end": 42231.44000005722,
+          "outcome": "success"
+        },
+        {
+          "buildId": "afa5ea00-f4e3-46be-8bfb-570dceb2e5b9",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 42231.46000003815,
+          "end": 42231.68000006676,
+          "outcome": "success"
+        },
+        {
+          "buildId": "afa5ea00-f4e3-46be-8bfb-570dceb2e5b9",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 42232.18499994278,
+          "end": 42405.41499996185,
+          "outcome": "success"
+        },
+        {
+          "buildId": "afa5ea00-f4e3-46be-8bfb-570dceb2e5b9",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 42406.25,
+          "end": 42406.375,
+          "outcome": "success"
+        },
+        {
+          "buildId": "afa5ea00-f4e3-46be-8bfb-570dceb2e5b9",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 42182.19499993324,
+          "end": 42406.40499997139,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 2,
+            "commands": 2,
+            "projectWrites": 0,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ],
+      "longTasks": [],
+      "success": true
+    },
+    {
+      "scenario": "one-source-comment-edit",
+      "wallMs": 1625.1180230000173,
+      "commitMs": 244.67297700000927,
+      "spans": [
+        {
+          "buildId": "b40eeb3e-6e68-4765-8476-4707ec5c48af",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 42843.81500005722,
+          "end": 42843.81500005722,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b40eeb3e-6e68-4765-8476-4707ec5c48af",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 42843.99500012398,
+          "end": 42844.00999999046,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b40eeb3e-6e68-4765-8476-4707ec5c48af",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 42844.01999998093,
+          "end": 42844.12000012398,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b40eeb3e-6e68-4765-8476-4707ec5c48af",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 42850.75500011444,
+          "end": 42856.10500001907,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b40eeb3e-6e68-4765-8476-4707ec5c48af",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 42856.59500002861,
+          "end": 42861.44000005722,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b40eeb3e-6e68-4765-8476-4707ec5c48af",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 42861.46499991417,
+          "end": 44068.37000012398,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b40eeb3e-6e68-4765-8476-4707ec5c48af",
+          "clock": "worker",
+          "phase": "timestamp-compile",
+          "start": 44079.99500012398,
+          "end": 44117.71000003815,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b40eeb3e-6e68-4765-8476-4707ec5c48af",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 44117.77999997139,
+          "end": 44118.22500014305,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b40eeb3e-6e68-4765-8476-4707ec5c48af",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 44119.02999997139,
+          "end": 44273.735000133514,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b40eeb3e-6e68-4765-8476-4707ec5c48af",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 44274.33500003815,
+          "end": 44274.420000076294,
+          "outcome": "success"
+        },
+        {
+          "buildId": "b40eeb3e-6e68-4765-8476-4707ec5c48af",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 42844.015000104904,
+          "end": 44274.450000047684,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 1,
+            "commands": 3,
+            "projectWrites": 1,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ],
+      "longTasks": [],
+      "success": true
+    },
+    {
+      "scenario": "one-source-comment-edit",
+      "wallMs": 1565.90978300001,
+      "commitMs": 176.91503100001137,
+      "spans": [
+        {
+          "buildId": "de9162a0-e143-4b03-baf8-9f35799e3363",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 44704.549999952316,
+          "end": 44704.55500006676,
+          "outcome": "success"
+        },
+        {
+          "buildId": "de9162a0-e143-4b03-baf8-9f35799e3363",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 44704.66499996185,
+          "end": 44704.674999952316,
+          "outcome": "success"
+        },
+        {
+          "buildId": "de9162a0-e143-4b03-baf8-9f35799e3363",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 44704.69000005722,
+          "end": 44704.795000076294,
+          "outcome": "success"
+        },
+        {
+          "buildId": "de9162a0-e143-4b03-baf8-9f35799e3363",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 44710.63499999046,
+          "end": 44716.420000076294,
+          "outcome": "success"
+        },
+        {
+          "buildId": "de9162a0-e143-4b03-baf8-9f35799e3363",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 44716.98000001907,
+          "end": 44721.80999994278,
+          "outcome": "success"
+        },
+        {
+          "buildId": "de9162a0-e143-4b03-baf8-9f35799e3363",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 44721.829999923706,
+          "end": 45861.625,
+          "outcome": "success"
+        },
+        {
+          "buildId": "de9162a0-e143-4b03-baf8-9f35799e3363",
+          "clock": "worker",
+          "phase": "timestamp-compile",
+          "start": 45871.94000005722,
+          "end": 45895.97500014305,
+          "outcome": "success"
+        },
+        {
+          "buildId": "de9162a0-e143-4b03-baf8-9f35799e3363",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 45895.99500012398,
+          "end": 45896.19000005722,
+          "outcome": "success"
+        },
+        {
+          "buildId": "de9162a0-e143-4b03-baf8-9f35799e3363",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 45900.920000076294,
+          "end": 46061.89499998093,
+          "outcome": "success"
+        },
+        {
+          "buildId": "de9162a0-e143-4b03-baf8-9f35799e3363",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 46062.579999923706,
+          "end": 46062.66000008583,
+          "outcome": "success"
+        },
+        {
+          "buildId": "de9162a0-e143-4b03-baf8-9f35799e3363",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 44704.69000005722,
+          "end": 46062.68499994278,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 1,
+            "commands": 3,
+            "projectWrites": 1,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ],
+      "longTasks": [],
+      "success": true
+    },
+    {
+      "scenario": "one-source-comment-edit",
+      "wallMs": 1595.6710240000102,
+      "commitMs": 205.89709999997285,
+      "spans": [
+        {
+          "buildId": "9db9e707-bf9f-4abf-911e-a5f0507bd4c0",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 46502.920000076294,
+          "end": 46502.920000076294,
+          "outcome": "success"
+        },
+        {
+          "buildId": "9db9e707-bf9f-4abf-911e-a5f0507bd4c0",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 46503.02500009537,
+          "end": 46503.03500008583,
+          "outcome": "success"
+        },
+        {
+          "buildId": "9db9e707-bf9f-4abf-911e-a5f0507bd4c0",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 46503.045000076294,
+          "end": 46503.15000009537,
+          "outcome": "success"
+        },
+        {
+          "buildId": "9db9e707-bf9f-4abf-911e-a5f0507bd4c0",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 46509.13000011444,
+          "end": 46514.079999923706,
+          "outcome": "success"
+        },
+        {
+          "buildId": "9db9e707-bf9f-4abf-911e-a5f0507bd4c0",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 46514.60000014305,
+          "end": 46519.75999999046,
+          "outcome": "success"
+        },
+        {
+          "buildId": "9db9e707-bf9f-4abf-911e-a5f0507bd4c0",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 46519.78500008583,
+          "end": 47651.77999997139,
+          "outcome": "success"
+        },
+        {
+          "buildId": "9db9e707-bf9f-4abf-911e-a5f0507bd4c0",
+          "clock": "worker",
+          "phase": "timestamp-compile",
+          "start": 47658.97500014305,
+          "end": 47691.299999952316,
+          "outcome": "success"
+        },
+        {
+          "buildId": "9db9e707-bf9f-4abf-911e-a5f0507bd4c0",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 47691.31999993324,
+          "end": 47691.63000011444,
+          "outcome": "success"
+        },
+        {
+          "buildId": "9db9e707-bf9f-4abf-911e-a5f0507bd4c0",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 47698.62000012398,
+          "end": 47862.74500012398,
+          "outcome": "success"
+        },
+        {
+          "buildId": "9db9e707-bf9f-4abf-911e-a5f0507bd4c0",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 47863.34500002861,
+          "end": 47863.424999952316,
+          "outcome": "success"
+        },
+        {
+          "buildId": "9db9e707-bf9f-4abf-911e-a5f0507bd4c0",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 46503.045000076294,
+          "end": 47863.450000047684,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 1,
+            "commands": 3,
+            "projectWrites": 1,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ],
+      "longTasks": [],
+      "success": true
+    },
+    {
+      "scenario": "one-source-comment-edit",
+      "wallMs": 1576.221550999995,
+      "commitMs": 223.60232800000813,
+      "spans": [
+        {
+          "buildId": "3b87cb1b-05cf-4926-8a4a-3319103a25d0",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 48338.51999998093,
+          "end": 48338.51999998093,
+          "outcome": "success"
+        },
+        {
+          "buildId": "3b87cb1b-05cf-4926-8a4a-3319103a25d0",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 48338.63499999046,
+          "end": 48338.64499998093,
+          "outcome": "success"
+        },
+        {
+          "buildId": "3b87cb1b-05cf-4926-8a4a-3319103a25d0",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 48338.65499997139,
+          "end": 48338.76999998093,
+          "outcome": "success"
+        },
+        {
+          "buildId": "3b87cb1b-05cf-4926-8a4a-3319103a25d0",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 48344.670000076294,
+          "end": 48350.31999993324,
+          "outcome": "success"
+        },
+        {
+          "buildId": "3b87cb1b-05cf-4926-8a4a-3319103a25d0",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 48350.80999994278,
+          "end": 48355.88000011444,
+          "outcome": "success"
+        },
+        {
+          "buildId": "3b87cb1b-05cf-4926-8a4a-3319103a25d0",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 48355.91000008583,
+          "end": 49494.140000104904,
+          "outcome": "success"
+        },
+        {
+          "buildId": "3b87cb1b-05cf-4926-8a4a-3319103a25d0",
+          "clock": "worker",
+          "phase": "timestamp-compile",
+          "start": 49501.74000000954,
+          "end": 49542.97000002861,
+          "outcome": "success"
+        },
+        {
+          "buildId": "3b87cb1b-05cf-4926-8a4a-3319103a25d0",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 49542.99500012398,
+          "end": 49543.704999923706,
+          "outcome": "success"
+        },
+        {
+          "buildId": "3b87cb1b-05cf-4926-8a4a-3319103a25d0",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 49548.325000047684,
+          "end": 49702.85000014305,
+          "outcome": "success"
+        },
+        {
+          "buildId": "3b87cb1b-05cf-4926-8a4a-3319103a25d0",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 49703.454999923706,
+          "end": 49703.545000076294,
+          "outcome": "success"
+        },
+        {
+          "buildId": "3b87cb1b-05cf-4926-8a4a-3319103a25d0",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 48338.65000009537,
+          "end": 49703.575000047684,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 1,
+            "commands": 3,
+            "projectWrites": 1,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ],
+      "longTasks": [],
+      "success": true
+    },
+    {
+      "scenario": "one-source-comment-edit",
+      "wallMs": 1590.337319000013,
+      "commitMs": 234.96958599999198,
+      "spans": [
+        {
+          "buildId": "39a47fce-ff69-444f-b8e1-d87860a79b9c",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 50168.58500003815,
+          "end": 50168.58999991417,
+          "outcome": "success"
+        },
+        {
+          "buildId": "39a47fce-ff69-444f-b8e1-d87860a79b9c",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 50168.75999999046,
+          "end": 50168.77500009537,
+          "outcome": "success"
+        },
+        {
+          "buildId": "39a47fce-ff69-444f-b8e1-d87860a79b9c",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 50168.78999996185,
+          "end": 50168.94000005722,
+          "outcome": "success"
+        },
+        {
+          "buildId": "39a47fce-ff69-444f-b8e1-d87860a79b9c",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 50178.93499994278,
+          "end": 50186.795000076294,
+          "outcome": "success"
+        },
+        {
+          "buildId": "39a47fce-ff69-444f-b8e1-d87860a79b9c",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 50187.62000012398,
+          "end": 50195.140000104904,
+          "outcome": "success"
+        },
+        {
+          "buildId": "39a47fce-ff69-444f-b8e1-d87860a79b9c",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 50195.174999952316,
+          "end": 51306.325000047684,
+          "outcome": "success"
+        },
+        {
+          "buildId": "39a47fce-ff69-444f-b8e1-d87860a79b9c",
+          "clock": "worker",
+          "phase": "timestamp-compile",
+          "start": 51313.24000000954,
+          "end": 51354.94499993324,
+          "outcome": "success"
+        },
+        {
+          "buildId": "39a47fce-ff69-444f-b8e1-d87860a79b9c",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 51354.97000002861,
+          "end": 51355.44499993324,
+          "outcome": "success"
+        },
+        {
+          "buildId": "39a47fce-ff69-444f-b8e1-d87860a79b9c",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 51359.18000006676,
+          "end": 51524.735000133514,
+          "outcome": "success"
+        },
+        {
+          "buildId": "39a47fce-ff69-444f-b8e1-d87860a79b9c",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 51525.35500001907,
+          "end": 51525.44000005722,
+          "outcome": "success"
+        },
+        {
+          "buildId": "39a47fce-ff69-444f-b8e1-d87860a79b9c",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 50168.77999997139,
+          "end": 51525.46499991417,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 1,
+            "commands": 3,
+            "projectWrites": 1,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ],
+      "longTasks": [],
+      "success": true
+    },
+    {
+      "scenario": "one-source-comment-edit",
+      "wallMs": 1595.736464000016,
+      "commitMs": 205.7198980000103,
+      "spans": [
+        {
+          "buildId": "fdb38c01-6b9c-4a48-af8f-1c35e778e5d7",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 51986.31999993324,
+          "end": 51986.325000047684,
+          "outcome": "success"
+        },
+        {
+          "buildId": "fdb38c01-6b9c-4a48-af8f-1c35e778e5d7",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 51986.43499994278,
+          "end": 51986.44000005722,
+          "outcome": "success"
+        },
+        {
+          "buildId": "fdb38c01-6b9c-4a48-af8f-1c35e778e5d7",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 51986.450000047684,
+          "end": 51986.60000014305,
+          "outcome": "success"
+        },
+        {
+          "buildId": "fdb38c01-6b9c-4a48-af8f-1c35e778e5d7",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 51992.35500001907,
+          "end": 51999.875,
+          "outcome": "success"
+        },
+        {
+          "buildId": "fdb38c01-6b9c-4a48-af8f-1c35e778e5d7",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 52000.735000133514,
+          "end": 52009.65499997139,
+          "outcome": "success"
+        },
+        {
+          "buildId": "fdb38c01-6b9c-4a48-af8f-1c35e778e5d7",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 52009.700000047684,
+          "end": 53121.60000014305,
+          "outcome": "success"
+        },
+        {
+          "buildId": "fdb38c01-6b9c-4a48-af8f-1c35e778e5d7",
+          "clock": "worker",
+          "phase": "timestamp-compile",
+          "start": 53128.450000047684,
+          "end": 53171.94000005722,
+          "outcome": "success"
+        },
+        {
+          "buildId": "fdb38c01-6b9c-4a48-af8f-1c35e778e5d7",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 53171.97000002861,
+          "end": 53172.450000047684,
+          "outcome": "success"
+        },
+        {
+          "buildId": "fdb38c01-6b9c-4a48-af8f-1c35e778e5d7",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 53176.37000012398,
+          "end": 53337.39499998093,
+          "outcome": "success"
+        },
+        {
+          "buildId": "fdb38c01-6b9c-4a48-af8f-1c35e778e5d7",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 53338.05500006676,
+          "end": 53338.14499998093,
+          "outcome": "success"
+        },
+        {
+          "buildId": "fdb38c01-6b9c-4a48-af8f-1c35e778e5d7",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 51986.44499993324,
+          "end": 53338.174999952316,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 1,
+            "commands": 3,
+            "projectWrites": 1,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ],
+      "longTasks": [],
+      "success": true
+    },
+    {
+      "scenario": "one-source-comment-edit",
+      "wallMs": 1595.273645999987,
+      "commitMs": 170.1564580000122,
+      "spans": [
+        {
+          "buildId": "ca00917a-f5cb-4dab-ba3b-75ef841dc678",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 53816.71499991417,
+          "end": 53816.72000002861,
+          "outcome": "success"
+        },
+        {
+          "buildId": "ca00917a-f5cb-4dab-ba3b-75ef841dc678",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 53816.83999991417,
+          "end": 53816.85500001907,
+          "outcome": "success"
+        },
+        {
+          "buildId": "ca00917a-f5cb-4dab-ba3b-75ef841dc678",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 53816.86500000954,
+          "end": 53817.00500011444,
+          "outcome": "success"
+        },
+        {
+          "buildId": "ca00917a-f5cb-4dab-ba3b-75ef841dc678",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 53822.74500012398,
+          "end": 53828.06500005722,
+          "outcome": "success"
+        },
+        {
+          "buildId": "ca00917a-f5cb-4dab-ba3b-75ef841dc678",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 53828.674999952316,
+          "end": 53833.545000076294,
+          "outcome": "success"
+        },
+        {
+          "buildId": "ca00917a-f5cb-4dab-ba3b-75ef841dc678",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 53833.56999993324,
+          "end": 54899.890000104904,
+          "outcome": "success"
+        },
+        {
+          "buildId": "ca00917a-f5cb-4dab-ba3b-75ef841dc678",
+          "clock": "worker",
+          "phase": "timestamp-compile",
+          "start": 54906.579999923706,
+          "end": 54950.140000104904,
+          "outcome": "success"
+        },
+        {
+          "buildId": "ca00917a-f5cb-4dab-ba3b-75ef841dc678",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 54950.170000076294,
+          "end": 54950.39499998093,
+          "outcome": "success"
+        },
+        {
+          "buildId": "ca00917a-f5cb-4dab-ba3b-75ef841dc678",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 54954.30500006676,
+          "end": 55115.28500008583,
+          "outcome": "success"
+        },
+        {
+          "buildId": "ca00917a-f5cb-4dab-ba3b-75ef841dc678",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 55115.97500014305,
+          "end": 55116.05500006676,
+          "outcome": "success"
+        },
+        {
+          "buildId": "ca00917a-f5cb-4dab-ba3b-75ef841dc678",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 53816.860000133514,
+          "end": 55116.08500003815,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 1,
+            "commands": 3,
+            "projectWrites": 1,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ],
+      "longTasks": [],
+      "success": true
+    },
+    {
+      "scenario": "one-source-comment-edit",
+      "wallMs": 1586.1488710000122,
+      "commitMs": 200.97524800000247,
+      "spans": [
+        {
+          "buildId": "0f733ddc-2fe1-4646-b468-17aeae210a9d",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 55638.575000047684,
+          "end": 55638.575000047684,
+          "outcome": "success"
+        },
+        {
+          "buildId": "0f733ddc-2fe1-4646-b468-17aeae210a9d",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 55638.71000003815,
+          "end": 55638.72000002861,
+          "outcome": "success"
+        },
+        {
+          "buildId": "0f733ddc-2fe1-4646-b468-17aeae210a9d",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 55638.72500014305,
+          "end": 55638.875,
+          "outcome": "success"
+        },
+        {
+          "buildId": "0f733ddc-2fe1-4646-b468-17aeae210a9d",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 55644.65000009537,
+          "end": 55650.11500000954,
+          "outcome": "success"
+        },
+        {
+          "buildId": "0f733ddc-2fe1-4646-b468-17aeae210a9d",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 55650.65499997139,
+          "end": 55655.73000001907,
+          "outcome": "success"
+        },
+        {
+          "buildId": "0f733ddc-2fe1-4646-b468-17aeae210a9d",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 55655.77500009537,
+          "end": 56791.81999993324,
+          "outcome": "success"
+        },
+        {
+          "buildId": "0f733ddc-2fe1-4646-b468-17aeae210a9d",
+          "clock": "worker",
+          "phase": "timestamp-compile",
+          "start": 56799.14499998093,
+          "end": 56847.84500002861,
+          "outcome": "success"
+        },
+        {
+          "buildId": "0f733ddc-2fe1-4646-b468-17aeae210a9d",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 56847.87000012398,
+          "end": 56848.10500001907,
+          "outcome": "success"
+        },
+        {
+          "buildId": "0f733ddc-2fe1-4646-b468-17aeae210a9d",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 56853.16499996185,
+          "end": 57016.41499996185,
+          "outcome": "success"
+        },
+        {
+          "buildId": "0f733ddc-2fe1-4646-b468-17aeae210a9d",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 57017.06500005722,
+          "end": 57017.16000008583,
+          "outcome": "success"
+        },
+        {
+          "buildId": "0f733ddc-2fe1-4646-b468-17aeae210a9d",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 55638.72500014305,
+          "end": 57017.19000005722,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 1,
+            "commands": 3,
+            "projectWrites": 1,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ],
+      "longTasks": [],
+      "success": true
+    },
+    {
+      "scenario": "one-source-comment-edit",
+      "wallMs": 1600.0866410000017,
+      "commitMs": 220.16798800000106,
+      "spans": [
+        {
+          "buildId": "1df50c84-b7d5-41bb-b918-27e6e276aed0",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 57453.55999994278,
+          "end": 57453.56500005722,
+          "outcome": "success"
+        },
+        {
+          "buildId": "1df50c84-b7d5-41bb-b918-27e6e276aed0",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 57453.68499994278,
+          "end": 57453.69499993324,
+          "outcome": "success"
+        },
+        {
+          "buildId": "1df50c84-b7d5-41bb-b918-27e6e276aed0",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 57453.700000047684,
+          "end": 57453.85500001907,
+          "outcome": "success"
+        },
+        {
+          "buildId": "1df50c84-b7d5-41bb-b918-27e6e276aed0",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 57460,
+          "end": 57465.47000002861,
+          "outcome": "success"
+        },
+        {
+          "buildId": "1df50c84-b7d5-41bb-b918-27e6e276aed0",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 57466.01999998093,
+          "end": 57471.53999996185,
+          "outcome": "success"
+        },
+        {
+          "buildId": "1df50c84-b7d5-41bb-b918-27e6e276aed0",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 57471.56500005722,
+          "end": 58609.99000000954,
+          "outcome": "success"
+        },
+        {
+          "buildId": "1df50c84-b7d5-41bb-b918-27e6e276aed0",
+          "clock": "worker",
+          "phase": "timestamp-compile",
+          "start": 58617.12000012398,
+          "end": 58666.55999994278,
+          "outcome": "success"
+        },
+        {
+          "buildId": "1df50c84-b7d5-41bb-b918-27e6e276aed0",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 58666.610000133514,
+          "end": 58667.01999998093,
+          "outcome": "success"
+        },
+        {
+          "buildId": "1df50c84-b7d5-41bb-b918-27e6e276aed0",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 58671.55500006676,
+          "end": 58836.15000009537,
+          "outcome": "success"
+        },
+        {
+          "buildId": "1df50c84-b7d5-41bb-b918-27e6e276aed0",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 58836.85000014305,
+          "end": 58836.94000005722,
+          "outcome": "success"
+        },
+        {
+          "buildId": "1df50c84-b7d5-41bb-b918-27e6e276aed0",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 57453.69499993324,
+          "end": 58836.97000002861,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 1,
+            "commands": 3,
+            "projectWrites": 1,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ],
+      "longTasks": [],
+      "success": true
+    },
+    {
+      "scenario": "one-source-comment-edit",
+      "wallMs": 1608.9826159999939,
+      "commitMs": 216.23608299999614,
+      "spans": [
+        {
+          "buildId": "aa523623-17dc-4d12-b121-975cf74f4727",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 59286.65000009537,
+          "end": 59286.65499997139,
+          "outcome": "success"
+        },
+        {
+          "buildId": "aa523623-17dc-4d12-b121-975cf74f4727",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 59286.76999998093,
+          "end": 59286.77500009537,
+          "outcome": "success"
+        },
+        {
+          "buildId": "aa523623-17dc-4d12-b121-975cf74f4727",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 59286.78500008583,
+          "end": 59286.94000005722,
+          "outcome": "success"
+        },
+        {
+          "buildId": "aa523623-17dc-4d12-b121-975cf74f4727",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 59292.74500012398,
+          "end": 59298.02500009537,
+          "outcome": "success"
+        },
+        {
+          "buildId": "aa523623-17dc-4d12-b121-975cf74f4727",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 59298.53500008583,
+          "end": 59303.30999994278,
+          "outcome": "success"
+        },
+        {
+          "buildId": "aa523623-17dc-4d12-b121-975cf74f4727",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 59303.33500003815,
+          "end": 60477.140000104904,
+          "outcome": "success"
+        },
+        {
+          "buildId": "aa523623-17dc-4d12-b121-975cf74f4727",
+          "clock": "worker",
+          "phase": "timestamp-compile",
+          "start": 60484.200000047684,
+          "end": 60531.00500011444,
+          "outcome": "success"
+        },
+        {
+          "buildId": "aa523623-17dc-4d12-b121-975cf74f4727",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 60531.03500008583,
+          "end": 60531.30999994278,
+          "outcome": "success"
+        },
+        {
+          "buildId": "aa523623-17dc-4d12-b121-975cf74f4727",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 60535.38000011444,
+          "end": 60699.68000006676,
+          "outcome": "success"
+        },
+        {
+          "buildId": "aa523623-17dc-4d12-b121-975cf74f4727",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 60700.30999994278,
+          "end": 60700.420000076294,
+          "outcome": "success"
+        },
+        {
+          "buildId": "aa523623-17dc-4d12-b121-975cf74f4727",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 59286.78500008583,
+          "end": 60700.44499993324,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 1,
+            "commands": 3,
+            "projectWrites": 1,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ],
+      "longTasks": [],
+      "success": true
+    }
+  ],
+  "summary": {
+    "initial-site-cache-unspecified": {
+      "count": 1,
+      "failures": 0,
+      "medianMs": 38487.90616,
+      "p95Ms": null,
+      "rangeMs": [38487.90616, 38487.90616]
+    },
+    "warm-noop": {
+      "count": 10,
+      "failures": 0,
+      "medianMs": 388.82450949998747,
+      "p95Ms": null,
+      "rangeMs": [379.9822619999759, 418.3617030000023]
+    },
+    "one-source-comment-edit": {
+      "count": 10,
+      "failures": 0,
+      "medianMs": 1595.4723349999986,
+      "p95Ms": null,
+      "rangeMs": [1565.90978300001, 1625.1180230000173]
+    }
+  }
+}

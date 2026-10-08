@@ -1028,10 +1028,17 @@ export class ReadFileReplyD2HPacket extends HostBoundPacket {
   constructor(data: DataArray) {
     super(data)
 
+    // V5 USB file-read replies omit the ACK byte and start with the address.
+    // Retain compatibility with ACK-prefixed replies from other transports.
+    const hasAck = this.ack === AckType.CDC2_ACK
+    if (!hasAck) {
+      this.ack = AckType.CDC2_ACK
+      this.ackIndex--
+    }
     const dataView = PacketView.fromPacket(this)
 
     this.addr = dataView.nextUint32(true)
-    this.length = Math.max(0, this.payloadSize - 8)
+    this.length = Math.max(0, this.payloadSize - (hasAck ? 8 : 7))
     const bytes = data instanceof Uint8Array ? data : new Uint8Array(data)
 
     this.buf = bytes.slice(dataView.position, dataView.position + this.length)
@@ -1039,7 +1046,8 @@ export class ReadFileReplyD2HPacket extends HostBoundPacket {
   }
 
   static isValidPacket(data: Uint8Array, n: number): boolean {
-    return super.isValidPacket(data, n)
+    const size = PacketEncoder.getInstance().getPayloadSize(data)
+    return data[n + 1] === AckType.CDC2_ACK ? size > 8 : size > 7
   }
 }
 

@@ -1,0 +1,513 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        font-family: var(--font-sans, system-ui);
+        color: var(--foreground);
+        margin: 0;
+      }
+      h2 {
+        font-size: 20px;
+      }
+      p {
+        color: var(--muted-foreground);
+        line-height: 1.5;
+      }
+      button,
+      select {
+        background: var(--secondary);
+        color: var(--foreground);
+        border: 1px solid var(--border);
+        padding: 8px;
+        border-radius: 6px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      td,
+      th {
+        text-align: left;
+        padding: 10px 4px;
+        border-bottom: 1px solid var(--border);
+      }
+      small {
+        display: block;
+        color: var(--muted-foreground);
+      }
+      .bar {
+        height: 7px;
+        background: var(--chart-1, #488acb);
+        margin-top: 6px;
+        border-radius: 4px;
+      }
+      .edit {
+        background: var(--chart-2, #cc9560);
+      }
+      .lane {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        font-size: 12px;
+        margin: 8px 0;
+      }
+      .label {
+        width: 145px;
+        flex-shrink: 0;
+      }
+      .track {
+        flex: 1;
+        position: relative;
+        height: 14px;
+        background: var(--secondary);
+      }
+      .span {
+        position: absolute;
+        height: 14px;
+        background: var(--chart-3, #679f77);
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Browser build measurements</h2>
+    <p>
+      Intel i7-8700K · 32 GB RAM · Chromium 153 · October 7, 2026<br />Post-change
+      samples. No pre-change baseline, Chromebook, Brain upload, or peak WASM
+      memory measurements.
+    </p>
+    <label
+      >Route
+      <select id="route">
+        <option value="project">Project with Pierre and clangd</option>
+        <option value="demo">Build demo</option>
+      </select></label
+    >
+    <table>
+      <thead>
+        <tr>
+          <th>Template</th>
+          <th>No-op median</th>
+          <th>Comment-edit median</th>
+          <th>Warm work</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <p>
+      10 samples per scenario per template and route. Ranges appear below
+      medians. Build wall time includes automation polling and rendering;
+      editing and commit preparation are outside this timer. EZ project
+      formatting invalidates packaged PCH eligibility.
+    </p>
+    <h2>Overlapping initial worker loading</h2>
+    <select id="template">
+      <option>pros</option>
+      <option>ez-template</option>
+      <option>vexcode</option>
+      <option>jar-template</option>
+    </select>
+    <div id="timeline"></div>
+    <p>
+      One initial sample, unspecified cache state. Bars share the worker clock
+      and must not be summed. Baseline comparisons and concurrency latency
+      versus memory plots await measurements.
+    </p>
+    <script>
+      const data = [
+        {
+          template: 'ez-template',
+          route: 'demo',
+          'warm-noop': { median: 389, min: 380, max: 418 },
+          'comment-edit': { median: 1595, min: 1566, max: 1625 },
+          counts: {
+            sources: 2,
+            objectsReused: 2,
+            commands: 2,
+            projectWrites: 0,
+            projectDeletes: 0,
+            returnedBytes: 2414492,
+          },
+          startup: [
+            {
+              phase: 'manifests',
+              start: 95.96000003814697,
+              end: 111.6800000667572,
+            },
+            {
+              phase: 'wasm-initialization',
+              start: 112.125,
+              end: 33033.71000003815,
+            },
+            {
+              phase: 'sdk-mount',
+              start: 33033.735000133514,
+              end: 33141.36500000954,
+            },
+          ],
+        },
+        {
+          template: 'ez-template',
+          route: 'project',
+          'warm-noop': { median: 507, min: 485, max: 593 },
+          'comment-edit': { median: 5089, min: 5044, max: 11322 },
+          counts: {
+            sources: 2,
+            objectsReused: 2,
+            commands: 2,
+            projectWrites: 0,
+            projectDeletes: 0,
+            returnedBytes: 2414492,
+          },
+          startup: [
+            {
+              phase: 'manifests',
+              start: 36.12999987602234,
+              end: 54.19000005722046,
+            },
+            {
+              phase: 'header-bundle-load',
+              start: 55.33999991416931,
+              end: 81.68499994277954,
+            },
+            {
+              phase: 'header-bundle-load',
+              start: 55.4449999332428,
+              end: 209.8550000190735,
+            },
+            {
+              phase: 'header-bundle-load',
+              start: 55.46000003814697,
+              end: 463.54500007629395,
+            },
+            {
+              phase: 'library-bundle-load',
+              start: 55.50999999046326,
+              end: 1971.2300000190735,
+            },
+            {
+              phase: 'header-bundle-load',
+              start: 55.4300000667572,
+              end: 2985.399999856949,
+            },
+            {
+              phase: 'library-bundle-load',
+              start: 55.53500008583069,
+              end: 7156.964999914169,
+            },
+            {
+              phase: 'library-bundle-load',
+              start: 55.480000019073486,
+              end: 9622.549999952316,
+            },
+            {
+              phase: 'wasm-initialization',
+              start: 54.795000076293945,
+              end: 37943.48000001907,
+            },
+            { phase: 'sdk-mount', start: 37943.50499987602, end: 38056.75 },
+          ],
+        },
+        {
+          template: 'jar-template',
+          route: 'demo',
+          'warm-noop': { median: 98, min: 91, max: 141 },
+          'comment-edit': { median: 1024, min: 1002, max: 1056 },
+          counts: {
+            sources: 7,
+            objectsReused: 0,
+            commands: 0,
+            projectWrites: 0,
+            projectDeletes: 0,
+            returnedBytes: 32796,
+          },
+          startup: [
+            {
+              phase: 'manifests',
+              start: 59.610000133514404,
+              end: 73.29500007629395,
+            },
+            {
+              phase: 'wasm-initialization',
+              start: 73.72000002861023,
+              end: 28948.525000095367,
+            },
+            {
+              phase: 'sdk-mount',
+              start: 28948.555000066757,
+              end: 29006.235000133514,
+            },
+          ],
+        },
+        {
+          template: 'jar-template',
+          route: 'project',
+          'warm-noop': { median: 178, min: 164, max: 208 },
+          'comment-edit': { median: 1045, min: 1026, max: 5339 },
+          counts: {
+            sources: 7,
+            objectsReused: 0,
+            commands: 0,
+            projectWrites: 0,
+            projectDeletes: 0,
+            returnedBytes: 32796,
+          },
+          startup: [
+            {
+              phase: 'manifests',
+              start: 58.96499991416931,
+              end: 77.9449999332428,
+            },
+            {
+              phase: 'header-bundle-load',
+              start: 79.10999989509583,
+              end: 108.98499989509583,
+            },
+            {
+              phase: 'header-bundle-load',
+              start: 79.34999990463257,
+              end: 1222.9449999332428,
+            },
+            {
+              phase: 'library-bundle-load',
+              start: 79.375,
+              end: 6826.924999952316,
+            },
+            {
+              phase: 'wasm-initialization',
+              start: 78.58500003814697,
+              end: 35021.19499993324,
+            },
+            {
+              phase: 'sdk-mount',
+              start: 35021.22499990463,
+              end: 35084.174999952316,
+            },
+          ],
+        },
+        {
+          template: 'pros',
+          route: 'demo',
+          'warm-noop': { median: 257, min: 242, max: 389 },
+          'comment-edit': { median: 1378, min: 1358, max: 1906 },
+          counts: {
+            sources: 1,
+            objectsReused: 1,
+            commands: 2,
+            projectWrites: 0,
+            projectDeletes: 0,
+            returnedBytes: 1364384,
+          },
+          startup: [
+            { phase: 'manifests', start: 34.875, end: 50.05999994277954 },
+            {
+              phase: 'wasm-initialization',
+              start: 50.59500002861023,
+              end: 31752.41000008583,
+            },
+            {
+              phase: 'sdk-mount',
+              start: 31752.47000002861,
+              end: 31988.27999997139,
+            },
+          ],
+        },
+        {
+          template: 'pros',
+          route: 'project',
+          'warm-noop': { median: 440, min: 430, max: 474 },
+          'comment-edit': { median: 1975, min: 1964, max: 1983 },
+          counts: {
+            sources: 1,
+            objectsReused: 1,
+            commands: 2,
+            projectWrites: 0,
+            projectDeletes: 0,
+            returnedBytes: 1364384,
+          },
+          startup: [
+            {
+              phase: 'manifests',
+              start: 34.86500000953674,
+              end: 51.49000000953674,
+            },
+            {
+              phase: 'header-bundle-load',
+              start: 52.27499985694885,
+              end: 82.42499995231628,
+            },
+            {
+              phase: 'header-bundle-load',
+              start: 52.49000000953674,
+              end: 932.7999999523163,
+            },
+            {
+              phase: 'library-bundle-load',
+              start: 52.52499985694885,
+              end: 1505.7400000095367,
+            },
+            {
+              phase: 'header-bundle-load',
+              start: 52.47000002861023,
+              end: 2629.8250000476837,
+            },
+            {
+              phase: 'library-bundle-load',
+              start: 52.50999999046326,
+              end: 8800.02999997139,
+            },
+            {
+              phase: 'wasm-initialization',
+              start: 51.96499991416931,
+              end: 32848.33999991417,
+            },
+            {
+              phase: 'sdk-mount',
+              start: 32848.36500000954,
+              end: 32942.06999993324,
+            },
+          ],
+        },
+        {
+          template: 'vexcode',
+          route: 'demo',
+          'warm-noop': { median: 83, min: 45, max: 96 },
+          'comment-edit': { median: 368, min: 361, max: 386 },
+          counts: {
+            sources: 1,
+            objectsReused: 0,
+            commands: 0,
+            projectWrites: 0,
+            projectDeletes: 0,
+            returnedBytes: 16408,
+          },
+          startup: [
+            {
+              phase: 'manifests',
+              start: 35.96500015258789,
+              end: 52.830000162124634,
+            },
+            {
+              phase: 'wasm-initialization',
+              start: 53.3050000667572,
+              end: 29588.365000009537,
+            },
+            {
+              phase: 'sdk-mount',
+              start: 29588.390000104904,
+              end: 29644.230000019073,
+            },
+          ],
+        },
+        {
+          template: 'vexcode',
+          route: 'project',
+          'warm-noop': { median: 126, min: 99, max: 156 },
+          'comment-edit': { median: 462, min: 443, max: 1059 },
+          counts: {
+            sources: 1,
+            objectsReused: 0,
+            commands: 0,
+            projectWrites: 0,
+            projectDeletes: 0,
+            returnedBytes: 16408,
+          },
+          startup: [
+            {
+              phase: 'manifests',
+              start: 33.40499997138977,
+              end: 48.5550000667572,
+            },
+            {
+              phase: 'header-bundle-load',
+              start: 49.264999866485596,
+              end: 82.71499991416931,
+            },
+            {
+              phase: 'header-bundle-load',
+              start: 49.4449999332428,
+              end: 1507.4749999046326,
+            },
+            {
+              phase: 'library-bundle-load',
+              start: 49.47000002861023,
+              end: 5941.164999961853,
+            },
+            {
+              phase: 'wasm-initialization',
+              start: 48.99000000953674,
+              end: 31590.72000002861,
+            },
+            {
+              phase: 'sdk-mount',
+              start: 31590.74499988556,
+              end: 31653.109999895096,
+            },
+          ],
+        },
+      ]
+      function draw() {
+        const selected = data.filter((x) => x.route === route.value)
+        rows.innerHTML = selected
+          .map(
+            (x) =>
+              '<tr><td>' +
+              x.template +
+              '</td>' +
+              ['warm-noop', 'comment-edit']
+                .map(
+                  (s, i) =>
+                    '<td>' +
+                    x[s].median +
+                    ' ms<small>' +
+                    x[s].min +
+                    '–' +
+                    x[s].max +
+                    ' ms</small><div class="bar ' +
+                    (i ? 'edit' : '') +
+                    '" style="width:' +
+                    Math.max(1, (x[s].median / 6000) * 100) +
+                    '%"></div></td>',
+                )
+                .join('') +
+              '<td>' +
+              x.counts.commands +
+              ' commands<small>' +
+              x.counts.projectWrites +
+              ' project writes; ' +
+              (x.counts.commands === 0
+                ? 'final binary reuse'
+                : x.counts.objectsReused +
+                  '/' +
+                  x.counts.sources +
+                  ' objects reused') +
+              '</small></td></tr>',
+          )
+          .join('')
+        const spans = selected.find(
+          (x) => x.template === template.value,
+        ).startup
+        const low = Math.min(...spans.map((x) => x.start)),
+          high = Math.max(...spans.map((x) => x.end))
+        timeline.innerHTML = spans
+          .map(
+            (x) =>
+              '<div class="lane"><span class="label">' +
+              x.phase +
+              '</span><div class="track"><div class="span" style="left:' +
+              ((x.start - low) / (high - low)) * 100 +
+              '%;width:' +
+              Math.max(0.3, ((x.end - x.start) / (high - low)) * 100) +
+              '%"></div></div><span>' +
+              Math.round(x.end - x.start) +
+              ' ms</span></div>',
+          )
+          .join('')
+      }
+      route.onchange = template.onchange = draw
+      draw()
+    </script>
+  </body>
+</html>

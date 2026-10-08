@@ -89,7 +89,12 @@ function BuildDemo() {
     )
     try {
       const built = await buildInBrowser(
-        { files: { ...files }, template, commitSha: `demo-${Date.now()}` },
+        {
+          workspaceId: `build-demo:${template}`,
+          files: { ...files },
+          template,
+          commitSha: `demo-${Date.now()}`,
+        },
         (text) => setOutput((previous) => (previous + text).slice(-400_000)),
         abort.signal,
       )

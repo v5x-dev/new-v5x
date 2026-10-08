@@ -1,3 +1,4 @@
+import { observeBrowserBuild } from './build-activity'
 import { fileUri } from './workspace'
 import type {
   Diagnostic,
@@ -42,9 +43,13 @@ export class ClangdClient {
   private queuedSyncs = new Map<string, { contents: string; version: number }>()
   private syncTimer: ReturnType<typeof setTimeout> | undefined
 
-  private flushSyncs() {
+  private compiling = false
+  private stopObservingBuild: (() => void) | undefined
+
+  private flushSyncs(force = false) {
     clearTimeout(this.syncTimer)
     this.syncTimer = undefined
+    if (this.compiling && !force) return
     const queued = this.queuedSyncs
     this.queuedSyncs = new Map()
 
@@ -64,6 +69,11 @@ export class ClangdClient {
     commands: Array<CompileCommand>,
     workspaceId: string,
   ) {
+    this.stopObservingBuild?.()
+    this.stopObservingBuild = observeBrowserBuild((active) => {
+      this.compiling = active
+      if (!active) this.flushSyncs()
+    })
     this.worker = new Worker('/language/clangd-host.js')
 
     this.worker.onmessage = ({ data }) => {
@@ -351,7 +361,7 @@ export class ClangdClient {
     signal?: AbortSignal,
   ): Promise<T> {
     // Commands must see the latest text even during a burst of typing.
-    this.flushSyncs()
+    this.flushSyncs(true)
 
     return new Promise<T>((resolve, reject) => {
       const id = ++this.nextId
@@ -395,7 +405,7 @@ export class ClangdClient {
   sync(path: string, contents: string, version: number) {
     if (!this.ready || this.opened.get(path) === version) return
 
-    if (!this.opened.has(path)) {
+    if (!this.opened.has(path) && !this.compiling) {
       this.sendDocument(path, contents, version)
       return
     }
@@ -490,6 +500,9 @@ export class ClangdClient {
   }
 
   stop() {
+    this.stopObservingBuild?.()
+    this.stopObservingBuild = undefined
+    this.compiling = false
     clearTimeout(this.syncTimer)
     this.syncTimer = undefined
     this.queuedSyncs.clear()

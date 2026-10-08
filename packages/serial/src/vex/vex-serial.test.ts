@@ -12,6 +12,7 @@ import {
   GetFileMetadataReplyD2HPacket,
   ReadKeyValueH2DPacket,
   ReadKeyValueReplyD2HPacket,
+  ReadFileH2DPacket,
   ReadFileReplyD2HPacket,
   UserFifoH2DPacket,
   UserFifoReplyD2HPacket,
@@ -215,7 +216,7 @@ test.each([null, "1.0.4", "1.0.5"])(
             >)
       }
 
-      override async getSystemVersion() {
+      override async getSystemVersion(): Promise<never> {
         throw new Error("Upload must query the Brain, not the USB device")
       }
 
@@ -312,6 +313,52 @@ test("same-command requests wait for the previous reply or timeout", async () =>
 
   await connection.close()
   expect(await second).toBe(AckType.NOT_CONNECTED)
+})
+
+test("file downloads avoid exact USB reply packet boundaries", async () => {
+  const source = Uint8Array.from({ length: 500 }, (_, index) => index)
+  const requests: number[] = []
+  class TransferConnection extends V5SerialConnection {
+    override get isConnected(): boolean {
+      return true
+    }
+    override async writeDataAsync(
+      packet: Parameters<V5SerialConnection["writeDataAsync"]>[0]
+    ): Promise<Awaited<ReturnType<V5SerialConnection["writeDataAsync"]>>> {
+      if (packet instanceof InitFileTransferH2DPacket) {
+        const body = new Uint8Array(10)
+        const view = new DataView(body.buffer)
+        view.setUint16(0, 512, true)
+        view.setUint32(2, source.length, true)
+        return new InitFileTransferReplyD2HPacket(reply(86, 17, body))
+      }
+      if (packet instanceof ReadFileH2DPacket) {
+        const view = new DataView(packet.data.buffer, packet.data.byteOffset)
+        const address = view.getUint32(7, true)
+        const size = view.getUint16(11, true)
+        requests.push(size)
+        const body = new Uint8Array(4 + size)
+        new DataView(body.buffer).setUint32(0, address, true)
+        body.set(source.subarray(address, address + size), 4)
+        return new ReadFileReplyD2HPacket(reply(86, 20, body))
+      }
+      if (packet instanceof ExitFileTransferH2DPacket) {
+        return new ExitFileTransferReplyD2HPacket(
+          reply(86, 18, new Uint8Array())
+        )
+      }
+      throw new Error("unexpected transfer packet")
+    }
+  }
+  const connection = new TransferConnection({} as never)
+  expect(
+    await connection.downloadFileToHost({
+      filename: "test.bin",
+      vendor: 1,
+      loadAddress: 0,
+    })
+  ).toEqual(source)
+  expect(requests).toEqual([496, 4])
 })
 
 test("oversized downloads exit file-transfer mode before rejecting", async () => {
@@ -448,4 +495,36 @@ test("device terminals stay open until closed or disposed", async () => {
   expect(second!.isRunning).toBe(true)
   await device.dispose()
   expect(second!.isRunning).toBe(false)
+})
+
+test("USB file-read replies without an ACK decode their address and preserve NACKs", () => {
+  const payload = new Uint8Array(8)
+  new DataView(payload.buffer).setUint32(0, 0x03800000, true)
+  payload.set([0xcc, 0x99, 0, 0], 4)
+  // Actual USB replies place the address immediately after command 0x14.
+  const packet = new Uint8Array(4 + 1 + payload.length + 2)
+  packet.set([0xaa, 0x55, 86, 1 + payload.length + 2, 20], 0)
+  packet.set(payload, 5)
+  const crc = PacketEncoder.getInstance().crcgen.crc16(
+    packet.subarray(0, -2),
+    0
+  )
+  packet[packet.length - 2] = crc >>> 8
+  packet[packet.length - 1] = crc & 0xff
+  expect(ReadFileReplyD2HPacket.isValidPacket(packet, 4)).toBe(true)
+  const decoded = new ReadFileReplyD2HPacket(packet)
+  expect(decoded.addr).toBe(0x03800000)
+  expect(new Uint8Array(decoded.buf)).toEqual(payload.subarray(4))
+  expect(decoded.length).toBe(4)
+  // VEXos also returns an ACK-less signed error address with no data.
+  const errorPacket = packet.slice(0, 11)
+  errorPacket[3] = 7
+  errorPacket.set([0xd6, 0xff, 0xff, 0xff], 5)
+  expect(ReadFileReplyD2HPacket.isValidPacket(errorPacket, 4)).toBe(false)
+  expect(
+    ReadFileReplyD2HPacket.isValidPacket(
+      reply(86, 20, new Uint8Array(), AckType.CDC2_NACK),
+      4
+    )
+  ).toBe(false)
 })

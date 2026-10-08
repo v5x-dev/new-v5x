@@ -27,8 +27,30 @@ export default defineConfig({
     tanstackStart(),
     nitro({
       routeRules: {
-        '/compiler/**': { headers: { vary: 'Accept-Encoding' } },
-        '/language/**': { headers: { vary: 'Accept-Encoding' } },
+        '/compiler/**': {
+          headers: {
+            vary: 'Accept-Encoding',
+            'Cache-Control': 'public, max-age=31536000, immutable',
+          },
+        },
+        '/compiler/sdk-manifest.json': {
+          headers: { 'Cache-Control': 'no-cache' },
+        },
+        '/compiler/llvm-21.11.0-alpha.1/manifest.json': {
+          headers: { 'Cache-Control': 'no-cache' },
+        },
+        '/language/**': {
+          headers: {
+            vary: 'Accept-Encoding',
+            'Cache-Control': 'public, max-age=31536000, immutable',
+          },
+        },
+        '/language/sdk-manifest.json': {
+          headers: { 'Cache-Control': 'no-cache' },
+        },
+        '/language/clangd-host.js': {
+          headers: { 'Cache-Control': 'no-cache' },
+        },
         '/**': {
           headers: {
             'Cross-Origin-Opener-Policy': 'same-origin',

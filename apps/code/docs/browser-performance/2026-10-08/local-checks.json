@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-08",
+  "ideTests": {
+    "passed": 72,
+    "failed": 0
+  },
+  "convexTests": {
+    "passed": 4,
+    "failed": 0
+  },
+  "typecheck": "passed",
+  "changedProductionLint": "passed",
+  "productionBuild": "passed with dependency bundler warnings",
+  "sdkAssetsVerified": 24,
+  "realRoutePairedBuilds": 100,
+  "storageChecks": {
+    "concurrentWrites": true,
+    "coldBlobDeduplication": true,
+    "ownedBytes": true,
+    "corruptionMiss": true,
+    "repair": true,
+    "legacyRead": true,
+    "buildCountBound": true,
+    "projectResultRestoredAfterReload": true
+  },
+  "hardware": {
+    "chromebook": "unavailable",
+    "v5Brain": {
+      "firmware": "1.1.5",
+      "transport": "direct USB via production upload method and Bun adapter",
+      "casesPassed": 24,
+      "cleanupPassed": true,
+      "report": "brain/README.md",
+      "browserWebSerial": "not verified",
+      "fullRobotPrograms": "pending"
+    }
+  },
+  "liveCloud": "not deployed or measured",
+  "totalWasmPeakMemory": "unavailable",
+  "serialTests": {
+    "passed": 26,
+    "failed": 0
+  },
+  "configuration": "Before P14 removal. Current local checks and benchmarks are in after-p14-removal."
+}

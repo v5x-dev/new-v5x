@@ -724,10 +724,15 @@ export class V5SerialConnection extends VexSerialConnection {
       while (bufferOffset < fileSize) {
         const remaining = fileSize - bufferOffset
 
-        const requestedSize = Math.min(
+        let requestedSize = Math.min(
           0xffff,
           Math.min(bufferChunkSize, (remaining + 3) & ~3)
         )
+
+        // ACK-less USB replies have 12 framing bytes. VEXos 1.1.5 can leave
+        // exact 64-byte packet multiples buffered without a terminating packet.
+        if (requestedSize >= 121 && (requestedSize + 12) % 64 === 0)
+          requestedSize -= 4
 
         const p2 = await this.writeDataAsync(
           new ReadFileH2DPacket(nextAddress, requestedSize),

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
+import { setBrowserBuildActive } from './build-activity'
 import { ClangdClient } from './clangd-client'
 
 // Exercise the client protocol without loading the clangd WASM runtime.
@@ -58,6 +59,7 @@ async function setup() {
 }
 
 afterEach(() => {
+  setBrowserBuildActive(false)
   client.stop()
   globalThis.Worker = originalWorker
 })
@@ -68,6 +70,18 @@ const changes = (worker: LanguageWorker) =>
   )
 
 describe('typing synchronization', () => {
+  test('keeps the latest document during compilation and catches up afterward', async () => {
+    const worker = await setup()
+    setBrowserBuildActive(true)
+    client.sync('main.cpp', 'old', 2)
+    client.sync('main.cpp', 'new', 3)
+    await Bun.sleep(150)
+    expect(changes(worker)).toHaveLength(0)
+    setBrowserBuildActive(false)
+    expect(changes(worker)).toHaveLength(1)
+    expect(changes(worker)[0].message.params.textDocument.version).toBe(3)
+  })
+
   test('coalesces a burst into the latest document with a bounded delay', async () => {
     const worker = await setup()
 

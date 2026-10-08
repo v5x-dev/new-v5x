@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'bun:test'
-import { browserCompileCommands, splitBuildFlags } from './browser-build'
+import {
+  browserCompileCommands,
+  compileBrowserProject,
+  splitBuildFlags,
+} from './browser-build'
 import { elfToBinary } from './elf-binary'
+import type { Session } from 'microbit-clang-wasm'
 
 describe('browser compiler arguments', () => {
   it('preserves quoted macro values without interpreting shell expressions', () => {
@@ -99,4 +104,54 @@ describe('V5 binary conversion', () => {
     expect(() => elfToBinary(new Uint8Array(10))).toThrow('Truncated')
     expect(() => elfToBinary(new Uint8Array(52))).toThrow('ELF32 ARM')
   })
+})
+
+it('compiles imported commands and response files without trusting incomplete object metadata', async () => {
+  const { BrowserBuildSession } = await import('./build-session')
+  for (const custom of [true, false]) {
+    let runs = 0
+    const session = {
+      async writeFile() {},
+      async remove() {},
+      readFile: () => Promise.resolve(null),
+      run: () => {
+        runs++
+        return Promise.resolve(1)
+      },
+    } as unknown as Session
+    const files: Record<string, string> = { 'src/main.cpp': '' }
+    if (custom)
+      files['compile_commands.json'] = JSON.stringify([
+        {
+          directory: '/workspace',
+          file: '/workspace/src/main.cpp',
+          arguments: ['clang', '-c', '/workspace/src/main.cpp'],
+        },
+      ])
+    else {
+      files.Makefile = 'EXTRA_CXXFLAGS += @/workspace/flags.rsp'
+      files['flags.rsp'] = '-DSETTING=1'
+    }
+    const result = await compileBrowserProject(
+      session,
+      { files, template: 'pros', commitSha: 'test' },
+      '16.1.0',
+      () => {},
+      {
+        state: new BrowserBuildSession(session),
+        sdkKey: 'test',
+        cache: {
+          get: () => {
+            throw new Error('Must not reuse incomplete dependency metadata')
+          },
+          put: () => {
+            throw new Error('Must not cache incomplete dependency metadata')
+          },
+        },
+      },
+    )
+    expect(runs).toBe(1)
+    expect(result.exitCode).toBe(1)
+    expect(result.artifacts).toEqual([])
+  }
 })

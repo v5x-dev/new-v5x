@@ -1,4 +1,8 @@
 /* Local-only classic worker bridge for @clangd-wasm/core 15.0.7. */
+// JAR's umbrella headers depend on include order. User style files take precedence.
+const defaultFormatStyle = 'BasedOnStyle: LLVM\nSortIncludes: Never\n'
+const projectFormatFiles = new Set()
+
 let runtime
 
 let starting = false
@@ -182,8 +186,13 @@ self.onmessage = async ({ data }) => {
         Object.assign(files, json.files)
       }
 
-      for (const [path, contents] of Object.entries(data.files))
+      for (const [path, contents] of Object.entries(data.files)) {
         files['/workspace/' + path] = contents
+        if (path === '.clang-format' || path === '_clang-format')
+          projectFormatFiles.add(path)
+      }
+      if (!projectFormatFiles.size)
+        files['/workspace/.clang-format'] = defaultFormatStyle
       files['/workspace/compile_commands.json'] = JSON.stringify(data.commands)
       self.postMessage({ kind: 'status', status: 'Starting clangd' })
       importScripts(base + 'clangd.js')
@@ -231,12 +240,27 @@ self.onmessage = async ({ data }) => {
       if (!runtime) throw new Error('clangd has not started')
       runtime.messageBuf.push(data.message)
     } else if (data.kind === 'files') {
+      let formatChanged = false
       for (const [path, contents] of Object.entries(data.files)) {
+        if (path === '.clang-format' || path === '_clang-format') {
+          formatChanged = true
+          if (contents === null) projectFormatFiles.delete(path)
+          else projectFormatFiles.add(path)
+        }
         if (contents === null) {
           try {
             runtime.FS.unlink('/workspace/' + path)
           } catch {}
         } else writeFile('/workspace/' + path, contents)
+      }
+      if (formatChanged) {
+        if (!projectFormatFiles.size)
+          writeFile('/workspace/.clang-format', defaultFormatStyle)
+        else if (!projectFormatFiles.has('.clang-format')) {
+          try {
+            runtime.FS.unlink('/workspace/.clang-format')
+          } catch {}
+        }
       }
     } else if (data.kind === 'read') {
       try {

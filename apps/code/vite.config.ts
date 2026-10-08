@@ -45,6 +45,9 @@ export default defineConfig({
             'Cache-Control': 'public, max-age=31536000, immutable',
           },
         },
+        '/language/clangd-15.0.7/manifest.json': {
+          headers: { 'Cache-Control': 'no-cache' },
+        },
         '/language/sdk-manifest.json': {
           headers: { 'Cache-Control': 'no-cache' },
         },

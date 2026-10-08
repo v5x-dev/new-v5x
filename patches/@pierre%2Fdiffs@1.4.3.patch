@@ -113,7 +113,7 @@ index d11f1c700251c318405e03404d01e7a596a14564..bc904740df7a7741d1a0444141c78a72
 +	getPositionRect(position) {
 +		if (!this.#isLineVisible(position.line) || this.#overlayElement == null) return;
 +		const [left, wrapLine] = this.#getCharX(position.line, position.character);
-+		const rect = this.#overlayElement.getBoundingClientRect();
++		const rect = this.#overlayElement.parentElement.getBoundingClientRect();
 +		return new DOMRect(rect.left + left, rect.top + this.#getLineY(position.line) + wrapLine * this.#metrics.lineHeight, this.#metrics.ch, this.#metrics.lineHeight);
 +	}
 +	/** Semantic colors augment Pierre's syntax tokens without editing document text. */

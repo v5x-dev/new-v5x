@@ -96,7 +96,9 @@ self.onmessage = async ({ data }) => {
       const base = new URL('/language/clangd-15.0.7/', self.location.origin)
         .href
       self.postMessage({ kind: 'status', status: 'Downloading clangd' })
-      const manifestResponse = await fetch(base + 'manifest.json')
+      const manifestResponse = await fetch(base + 'manifest.json', {
+        cache: 'no-cache',
+      })
       if (!manifestResponse.ok)
         throw new Error(
           'Run bun run prepare:language to install local clangd assets',

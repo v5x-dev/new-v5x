@@ -6,6 +6,11 @@
 - Use the browser only to verify behavior afterward, or when the cause depends on DOM state, cookies, network responses, or runtime-only behavior.
 - Verify `apps/code` behavior in the real application routes. Never use `ide.html`, `ide-validation.tsx`, or an isolated editor harness unless the user explicitly requests it. A harness is not a substitute for testing the actual app. If the real app cannot be accessed, report that limitation instead of switching to a harness.
 
+## apps/design
+
+- `apps/design` is planned as a browser-based CAD tool for designing VEX V5 robots, inspired by Protobot.
+- Keep its core workflow centered on assembling VEX V5 parts in an interactive 3D workspace.
+
 ## apps/code editor
 
 - Keep `@pierre/diffs` as the editor foundation in `apps/code`. Do not replace it with Monaco, CodeMirror, or another editor engine.

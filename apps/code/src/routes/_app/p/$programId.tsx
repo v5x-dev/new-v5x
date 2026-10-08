@@ -20,7 +20,6 @@ import { createBrowserAdapter } from '@v5x/serial/browser'
 import { api } from '../../../../convex/_generated/api'
 import type { ProjectSnapshot } from '~/components/ide/workspace-editor'
 import type { FileOperations } from '~/lib/ide/file-operations'
-import type { AdapterSerialPort } from '@v5x/serial'
 import type { Id } from '../../../../convex/_generated/dataModel'
 import {
   buildInBrowser,
@@ -122,7 +121,7 @@ function RouteComponent() {
 
   const brainConnectionRef = React.useRef<{
     device: V5SerialDevice
-    port: AdapterSerialPort
+    serialConnection: V5SerialConnection | null
     onDisconnect: () => void
   } | null>(null)
 
@@ -137,19 +136,36 @@ function RouteComponent() {
     currentCommitShaRef.current = program?.currentCommitSha
   }, [program?.currentCommitSha])
 
-  const disconnectBrain = async () => {
+  const disposeBrainConnection = async (
+    device: V5SerialDevice,
+    forgetPort: boolean,
+  ) => {
     const connection = brainConnectionRef.current
+    if (connection?.device !== device) return
+
     brainConnectionRef.current = null
     setIsBrainConnected(false)
     setBrainDevice(null)
-    if (!connection) return
-    connection.port.removeEventListener?.('disconnect', connection.onDisconnect)
+    connection.serialConnection?.remove('disconnected', connection.onDisconnect)
+
+    const port = device.connection?.port ?? connection.serialConnection?.port
 
     try {
-      await connection.device.dispose()
+      await device.dispose()
     } finally {
-      await connection.port.forget?.()
+      if (forgetPort) await port?.forget?.()
     }
+  }
+
+  const disconnectBrain = async () => {
+    const connection = brainConnectionRef.current
+    if (!connection) {
+      setIsBrainConnected(false)
+      setBrainDevice(null)
+      return
+    }
+
+    await disposeBrainConnection(connection.device, true)
   }
 
   const build = async () => {
@@ -231,64 +247,120 @@ function RouteComponent() {
     }
   }
 
-  const connectBrain = async () => {
-    let connection = brainConnectionRef.current
+  const watchBrainConnection = (device: V5SerialDevice) => {
+    const connection = brainConnectionRef.current
+    if (connection?.device !== device) return
 
-    if (!connection) {
-      const port = await createBrowserAdapter().requestPort({
-        filters: [{ usbVendorId: 10376 }],
-      })
+    const serialConnection = device.connection ?? null
+    if (connection.serialConnection === serialConnection) return
 
-      const device = new V5SerialDevice(
-        {
-          getPorts: () => Promise.resolve([port]),
-          requestPort: () => Promise.resolve(port),
-        },
-        { autoRefresh: false },
-      )
+    connection.serialConnection?.remove('disconnected', connection.onDisconnect)
+    connection.serialConnection = serialConnection
+    serialConnection?.on('disconnected', connection.onDisconnect)
+  }
 
-      const serialConnection = new V5SerialConnection({
-        getPorts: () => Promise.resolve([port]),
-        requestPort: () => Promise.resolve(port),
-      })
-
-      device.autoReconnect = false
-
-      try {
-        if (!(await serialConnection.open(0, false))) {
-          throw new Error(
-            'Could not open the selected Brain serial port. Close VEXcode or another app using the Brain, then retry.',
-          )
-        }
-
-        if (!(await device.connect(serialConnection))) {
-          throw new Error(
-            'The Brain serial port opened, but the Brain did not respond to the V5 handshake.',
-          )
-        }
-
-        const onDisconnect = () => {
-          if (brainConnectionRef.current?.port !== port) return
-          brainConnectionRef.current = null
-          setIsBrainConnected(false)
-          setBrainDevice(null)
-          setUploadMessage('Brain disconnected')
-          void device.dispose()
-        }
-
-        port.addEventListener('disconnect', onDisconnect)
-        connection = { device, port, onDisconnect }
-        brainConnectionRef.current = connection
-        setIsBrainConnected(true)
-        setBrainDevice(device)
-      } catch (error) {
-        await device.dispose()
-        await serialConnection.close()
-        throw error
-      }
+  const ensureBrainReady = async (device: V5SerialDevice) => {
+    const connection = brainConnectionRef.current
+    if (connection?.device !== device) {
+      throw new Error('The Brain connection is no longer available.')
     }
 
-    return connection.device
+    const serialConnection = device.connection
+    if (
+      device.isConnected &&
+      serialConnection &&
+      (await serialConnection.getSystemStatus(2000)) !== null
+    ) {
+      watchBrainConnection(device)
+      setIsBrainConnected(true)
+      setBrainDevice(device)
+      return
+    }
+
+    setIsBrainConnected(false)
+    setUploadMessage('Reconnecting to Brain')
+
+    // Closing a stale-but-open port releases the Web Serial handle so the
+    // device can reopen the already-granted Brain port without another picker.
+    await device.disconnect()
+
+    if (!(await device.reconnect(10_000))) {
+      // Drop the stale instance without revoking permission. The next upload
+      // can ask the user to select a port again if automatic recovery failed.
+      await disposeBrainConnection(device, false)
+      throw new Error(
+        'The Brain is not responding. Check its System Port connection and try again.',
+      )
+    }
+
+    watchBrainConnection(device)
+    setIsBrainConnected(true)
+    setBrainDevice(device)
+    setUploadMessage('Brain reconnected')
+  }
+
+  const connectBrain = async () => {
+    const current = brainConnectionRef.current
+
+    if (current) {
+      await ensureBrainReady(current.device)
+      return current.device
+    }
+
+    const port = await createBrowserAdapter().requestPort({
+      filters: [{ usbVendorId: 10376 }],
+    })
+
+    const device = new V5SerialDevice(
+      {
+        getPorts: () => Promise.resolve([port]),
+        requestPort: () => Promise.resolve(port),
+      },
+      { autoRefresh: false },
+    )
+
+    const serialConnection = new V5SerialConnection({
+      getPorts: () => Promise.resolve([port]),
+      requestPort: () => Promise.resolve(port),
+    })
+
+    device.autoReconnect = false
+
+    try {
+      if (!(await serialConnection.open(0, false))) {
+        throw new Error(
+          'Could not open the selected Brain serial port. Close VEXcode or another app using the Brain, then retry.',
+        )
+      }
+
+      if (!(await device.connect(serialConnection))) {
+        throw new Error(
+          'The Brain serial port opened, but the Brain did not respond to the V5 handshake.',
+        )
+      }
+
+      const onDisconnect = () => {
+        if (brainConnectionRef.current?.device !== device) return
+        setIsBrainConnected(false)
+        setBrainDevice(null)
+        setUploadMessage('Brain disconnected; reconnecting before upload')
+      }
+
+      brainConnectionRef.current = {
+        device,
+        serialConnection: null,
+        onDisconnect,
+      }
+      watchBrainConnection(device)
+      setIsBrainConnected(true)
+      setBrainDevice(device)
+    } catch (error) {
+      await device.dispose()
+      await serialConnection.close()
+      throw error
+    }
+
+    return device
   }
 
   const uploadToBrain = async () => {
@@ -361,9 +433,29 @@ function RouteComponent() {
           throw new Error('Upload failed. Check the Brain connection.')
         }
 
-        setUploadMessage(`Uploaded to slot ${brainSlot}`)
+        const successMessage = `Uploaded to slot ${brainSlot}`
+        setUploadMessage(successMessage)
+
+        // Some Brain firmware sessions stop answering after a file transfer
+        // even though the USB port remains open. Restore the granted port now
+        // so the next upload does not require a manual disconnect/reconnect.
+        try {
+          await ensureBrainReady(device)
+          setUploadMessage(successMessage)
+        } catch (error) {
+          console.warn(
+            'Could not restore the Brain connection after upload:',
+            error,
+          )
+          setUploadMessage(
+            `${successMessage}; reconnect before the next upload`,
+          )
+        }
       } catch (error) {
-        if (!device.isConnected) await disconnectBrain()
+        if (!device.isConnected) {
+          setIsBrainConnected(false)
+          setBrainDevice(null)
+        }
         throw error
       }
     } catch (error) {
@@ -421,8 +513,8 @@ function RouteComponent() {
       brainConnectionRef.current = null
 
       if (connection) {
-        connection.port.removeEventListener?.(
-          'disconnect',
+        connection.serialConnection?.remove(
+          'disconnected',
           connection.onDisconnect,
         )
 

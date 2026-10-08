@@ -54,7 +54,7 @@ export function ThemeProvider({
     setThemeState(
       stored === "light" || stored === "dark" || stored === "system"
         ? stored
-        : defaultTheme
+        : defaultTheme,
     )
     setMounted(true)
   }, [defaultTheme, storageKey])

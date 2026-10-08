@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "semi": false,
+  "printWidth": 80,
+  "sortPackageJson": false,
+  "sortTailwindcss": {
+    "stylesheet": "./src/styles.css",
+    "functions": ["cn", "cva"]
+  },
+  "ignorePatterns": [
+    "src/routeTree.gen.ts",
+    "public/**",
+    "node_modules/**",
+    "dist/**",
+    "dist-ssr/**",
+    "coverage/**",
+    ".nitro/**",
+    ".tanstack/**",
+    ".wrangler/**",
+    ".output/**",
+    ".vinxi/**"
+  ]
+}

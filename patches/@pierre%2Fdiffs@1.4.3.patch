@@ -65,7 +65,7 @@ index d11f1c700251c318405e03404d01e7a596a14564..bc904740df7a7741d1a0444141c78a72
  					refreshPrediction ||= predictionLines?.has(line) === true;
  				}
  			}
-@@ -410,6 +414,108 @@ var Editor = class {
+@@ -410,6 +414,167 @@ var Editor = class {
  		} else if (this.#ownsVerticalViewport) this.#scrollToPrimaryCaret();
  		this.#checkpointEditSessionState();
  	}
@@ -113,7 +113,7 @@ index d11f1c700251c318405e03404d01e7a596a14564..bc904740df7a7741d1a0444141c78a72
 +	getPositionRect(position) {
 +		if (!this.#isLineVisible(position.line) || this.#overlayElement == null) return;
 +		const [left, wrapLine] = this.#getCharX(position.line, position.character);
-+		const rect = this.#overlayElement.getBoundingClientRect();
++		const rect = this.#overlayElement.parentElement.getBoundingClientRect();
 +		return new DOMRect(rect.left + left, rect.top + this.#getLineY(position.line) + wrapLine * this.#metrics.lineHeight, this.#metrics.ch, this.#metrics.lineHeight);
 +	}
 +	/** Semantic colors augment Pierre's syntax tokens without editing document text. */
@@ -149,6 +149,65 @@ index d11f1c700251c318405e03404d01e7a596a14564..bc904740df7a7741d1a0444141c78a72
 +			queueMicrotask(() => { this.#shouldIgnoreSelectionChange = false; });
 +		}
 +	}
++	#remapLanguageTokens(change) {
++		const edits = [...change.changes].sort((a, b) =>
++			comparePosition(b.range.start, a.range.start)
++		);
++		let semantic = Array.from(this.#semanticTokens.values()).flat();
++		let language = this.#languageTokens;
++
++		for (const { range, text } of edits) {
++			const inserted = text.split(/\r\n|\r|\n/);
++			const lineDelta =
++				inserted.length - 1 - (range.end.line - range.start.line);
++			const insertedEnd = {
++				line: range.start.line + inserted.length - 1,
++				character:
++					inserted.length === 1
++						? range.start.character + inserted[0].length
++						: inserted.at(-1).length
++			};
++			const move = (position) => ({
++				line: position.line + lineDelta,
++				character:
++					position.line === range.end.line
++						? insertedEnd.character + position.character - range.end.character
++						: position.character
++			});
++
++			semantic = semantic.flatMap((token) => {
++				// Edited identifiers need fresh analysis. Keep all unaffected colors.
++				if (comparePosition(token.range.end, range.start) <= 0) return [token];
++				if (comparePosition(token.range.start, range.end) < 0) return [];
++				return [
++					{
++						...token,
++						range: {
++							start: move(token.range.start),
++							end: move(token.range.end)
++						}
++					}
++				];
++			});
++
++			const nextLanguage = new Map();
++			for (const [line, tokens] of language) {
++				if (line < range.start.line) nextLanguage.set(line, tokens);
++				else if (line > range.end.line)
++					nextLanguage.set(line + lineDelta, tokens);
++			}
++			language = nextLanguage;
++		}
++
++		this.#languageTokens = language;
++		this.#semanticTokens.clear();
++		for (const token of semantic) {
++			const line = token.range.start.line;
++			const entries = this.#semanticTokens.get(line) ?? [];
++			entries.push(token);
++			this.#semanticTokens.set(line, entries);
++		}
++	}
 +	#renderLanguageTokens(tokens, line) {
 +		this.#languageTokens.set(line, tokens);
 +		const semantic = this.#semanticTokens.get(line);
@@ -174,7 +233,7 @@ index d11f1c700251c318405e03404d01e7a596a14564..bc904740df7a7741d1a0444141c78a72
  	setSelections(selections) {
  		const textDocument = this.#editSession?.document;
  		if (textDocument === void 0) throw new Error("Editor.setSelections: Text document is not initialized");
-@@ -499,6 +605,8 @@ var Editor = class {
+@@ -499,6 +664,8 @@ var Editor = class {
  		dequeueRender(this.#handleCustomPasteEvent);
  		this.#tokenizer?.cleanUp();
  		this.#tokenizer = void 0;
@@ -183,7 +242,11 @@ index d11f1c700251c318405e03404d01e7a596a14564..bc904740df7a7741d1a0444141c78a72
  		this.#globalEventDisposes?.forEach((dispose) => dispose());
  		this.#globalEventDisposes = void 0;
  		this.#editorEventDisposes?.forEach((dispose) => dispose());
-@@ -827,6 +935,9 @@ var Editor = class {
+@@ -755,0 +923,3 @@ var Editor = class {
++		if (this.#semanticTokens.size > 0) {
++			this.setSemanticTokens(Array.from(this.#semanticTokens.values()).flat());
++		}
+@@ -827,6 +997,9 @@ var Editor = class {
  		};
  	}
  	#revealLineIfCollapsed(line) {
@@ -193,7 +256,7 @@ index d11f1c700251c318405e03404d01e7a596a14564..bc904740df7a7741d1a0444141c78a72
  		if (!this.#isLineRenderable(line)) this.#fileDiffInstance?.revealLine?.(line + 1);
  	}
  	get #diffSyle() {
-@@ -1331,6 +1442,7 @@ var Editor = class {
+@@ -1331,6 +1504,7 @@ var Editor = class {
  		if (this.#isDiff && this.#diffSyle === "split" && this.#isWrap) return this.#contentOffset;
  	}
  	#runCommand(command) {
@@ -201,18 +264,17 @@ index d11f1c700251c318405e03404d01e7a596a14564..bc904740df7a7741d1a0444141c78a72
  		const textDocument = this.#editSession?.document;
  		if (textDocument == null) return;
  		switch (command) {
-@@ -1808,6 +1920,10 @@ var Editor = class {
+@@ -1808,6 +1982,9 @@ var Editor = class {
  		if (tokenizer == null || fileInstance == null || applyDocumentChange == null || textDocument == null || contentEl == null) return;
  		tokenizer.stopBackgroundTokenize();
  		const t = performance.now();
-+		this.#semanticTokens.clear();
-+		this.#languageTokens.clear();
++		this.#remapLanguageTokens(change);
 +		this.#foldedLines.clear();
 +		this.#applyFolding();
  		const dirtyLines = tokenizer.tokenize(change, renderRange, !this.#isDiff && this.#virtualizedInstance != null);
  		const t2 = performance.now();
  		if (dirtyLines.size > 0) {
-@@ -1823,7 +1939,7 @@ var Editor = class {
+@@ -1823,7 +2000,7 @@ var Editor = class {
  					const lineIndex = lineNumber - 1;
  					if (dirtyLineIndexes.has(lineIndex)) {
  						const tokens = dirtyLines.get(lineIndex);
@@ -221,7 +283,7 @@ index d11f1c700251c318405e03404d01e7a596a14564..bc904740df7a7741d1a0444141c78a72
  						dirtyLineIndexes.delete(lineIndex);
  						if (dirtyLineIndexes.size === 0) break;
  					}
-@@ -1849,7 +1965,7 @@ var Editor = class {
+@@ -1849,7 +2026,7 @@ var Editor = class {
  							lineType: "context",
  							lineIndex: lineIndex.toString()
  						},
@@ -230,7 +292,7 @@ index d11f1c700251c318405e03404d01e7a596a14564..bc904740df7a7741d1a0444141c78a72
  					}, contentEl);
  					if (gutterEl !== void 0) h("div", {
  						dataset: {
-@@ -1897,6 +2013,7 @@ var Editor = class {
+@@ -1897,6 +2074,7 @@ var Editor = class {
  		if (this.#options.__debug === true) console.log(`[diffs/editor] re-render in: ${round(performance.now() - t2)}ms,`, `tokenize in: ${round(t2 - t)}ms (${dirtyLines.size} dirty lines)`);
  	}
  	#handleInput(inputType, data) {
@@ -238,7 +300,7 @@ index d11f1c700251c318405e03404d01e7a596a14564..bc904740df7a7741d1a0444141c78a72
  		switch (inputType) {
  			case "insertText": {
  				const text = data ?? "";
-@@ -2750,7 +2867,10 @@ var Editor = class {
+@@ -2750,7 +2928,10 @@ var Editor = class {
  				break;
  			}
  		}
@@ -250,7 +312,7 @@ index d11f1c700251c318405e03404d01e7a596a14564..bc904740df7a7741d1a0444141c78a72
  		this.#syncEditPredictionSpacers();
  		this.#primaryCaretElement = void 0;
  		this.#setEditorActiveLineSafe(null);
-@@ -2836,6 +2956,7 @@ var Editor = class {
+@@ -2836,6 +3017,7 @@ var Editor = class {
  		this.#overlayElements?.forEach((el) => el.remove());
  		this.#overlayElements?.clear();
  		this.#overlayElements = renderCtx.elements;
@@ -258,7 +320,7 @@ index d11f1c700251c318405e03404d01e7a596a14564..bc904740df7a7741d1a0444141c78a72
  		this.#updateSelectionActionPopover();
  		if (selectionsChanged) this.#scheduleEditPrediction();
  	}
-@@ -3287,6 +3408,7 @@ var Editor = class {
+@@ -3287,6 +3469,7 @@ var Editor = class {
  		if (selectionTexts.length > 1) clipboardData.setData(MULTI_SELECTION_CLIPBOARD_TYPE, JSON.stringify(selectionTexts));
  	}
  	#cutSelectionText() {
@@ -266,7 +328,7 @@ index d11f1c700251c318405e03404d01e7a596a14564..bc904740df7a7741d1a0444141c78a72
  		const textDocument = this.#editSession?.document;
  		const selections = this.#selections;
  		if (textDocument === void 0 || selections === void 0 || selections.length === 0) return "";
-@@ -3317,6 +3439,7 @@ var Editor = class {
+@@ -3317,6 +3500,7 @@ var Editor = class {
  		this.#applyChange(change, nextSelections, this.#applyChangeToLineAnnotations(change));
  	}
  	#replaceSelectionText(text, selections = this.#selections, undoBoundary = false, textOrder = "selection") {
@@ -274,7 +336,7 @@ index d11f1c700251c318405e03404d01e7a596a14564..bc904740df7a7741d1a0444141c78a72
  		if (selections === void 0) return;
  		const textDocument = this.#editSession?.document;
  		const primarySelection = selections.at(-1);
-@@ -3329,6 +3452,7 @@ var Editor = class {
+@@ -3329,6 +3513,7 @@ var Editor = class {
  		if (change !== void 0) this.#applyChange(change, nextSelections, this.#applyChangeToLineAnnotations(change));
  	}
  	#deleteSelectionText(forward = false) {
@@ -297,7 +359,7 @@ index ed62f9a073e6c6911b7b8d35adfc8eaaebb345e9..00000000000000000000000000000000
 diff --git a/dist/editor/tokenizer.js b/dist/editor/tokenizer.js
 --- a/dist/editor/tokenizer.js
 +++ b/dist/editor/tokenizer.js
-@@ -30,0 +31 @@
+@@ -30,0 +31,1 @@
 +	#hasInterruptedHighlight = false;
 @@ -193,0 +195,13 @@
 +		// A new edit can cancel unfinished highlighting after a large replacement.
@@ -309,11 +371,11 @@ diff --git a/dist/editor/tokenizer.js b/dist/editor/tokenizer.js
 +			change = {
 +				...change,
 +				startLine: 0,
-+				endLine: lineCount - 1,
-+				changedLineRanges: [[0, lineCount - 1]]
++				endLine: this.#textDocument.lineCount - 1,
++				changedLineRanges: [[0, this.#textDocument.lineCount - 1]]
 +			};
 +		}
-@@ -308,0 +323 @@
+@@ -308,0 +323,1 @@
 +		if (this.#backgroundPrebuildEndLine < 0) this.#hasInterruptedHighlight = true;
-@@ -542,0 +558 @@
+@@ -542,0 +558,1 @@
 +			this.#hasInterruptedHighlight = false;

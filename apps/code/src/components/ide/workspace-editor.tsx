@@ -408,7 +408,7 @@ export function WorkspaceEditor(props: Props) {
   }, [documents, props.selectedFile, ready])
 
   React.useEffect(() => {
-    setAnalysis(null)
+    // Pierre remaps existing colors through edits while fresh analysis is pending.
     const client = clientRef.current
 
     if (
@@ -1146,10 +1146,7 @@ export function WorkspaceEditor(props: Props) {
                         : (diagnostics[doc.path] ?? emptyDiagnostics)
                     }
                     semanticTokens={
-                      analysis?.path === doc.path &&
-                      'version' in doc &&
-                      analysis.version === doc.version &&
-                      !readOnly
+                      analysis?.path === doc.path && !readOnly
                         ? analysis.tokens
                         : emptyTokens
                     }

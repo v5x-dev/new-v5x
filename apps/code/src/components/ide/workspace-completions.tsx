@@ -69,7 +69,7 @@ export function WorkspaceCompletions({
       ref={popupRef}
       role="listbox"
       aria-label="Completions"
-      className="fixed z-50 max-h-72 w-96 max-w-[calc(100vw-1rem)] overflow-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-xl"
+      className="no-scrollbar fixed z-50 max-h-72 w-96 max-w-[calc(100vw-1rem)] overflow-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-xl"
       style={{ ...position, visibility: position ? 'visible' : 'hidden' }}
     >
       {completions.map((item, index) => (

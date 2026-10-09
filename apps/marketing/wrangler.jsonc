@@ -1,0 +1,15 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "v5x-website",
+  "account_id": "27baff2fbae00d6d4d7d6abcd59cc3d0",
+  "compatibility_date": "2026-06-21",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "v5x.dev", "custom_domain": true }],
+  "build": {
+    "command": "bun run build",
+  },
+  "assets": {
+    "directory": "./dist",
+  },
+}

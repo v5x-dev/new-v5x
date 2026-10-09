@@ -92,12 +92,16 @@ const headline = ["Code, simulate, design.", "All in your browser."]
                   class="tab press flex flex-col items-start gap-1 rounded-2xl border border-border p-4 text-left"
                   style={`--c:${product.color};--cd:${product.colorOnDark}`}
                 >
-                  <span class="flex w-full items-center gap-2 text-foreground">
+                  <span class="flex w-full flex-wrap items-center gap-x-2 gap-y-1 text-foreground">
                     <span class="product-color" style={`--c:${product.color};--cd:${product.colorOnDark}`}>
                       <Mark class="size-4" />
                     </span>
                     <span class="font-semibold">{product.name}</span>
-                    {product.status !== "live" && <span class="font-mono ml-auto text-[10px] text-muted-foreground uppercase">{product.status}</span>}
+                    {product.status !== "live" && (
+                      <span class="font-mono ml-auto text-[10px] text-muted-foreground uppercase whitespace-nowrap max-sm:ml-0 max-sm:basis-full">
+                        {product.status}
+                      </span>
+                    )}
                   </span>
                   <span class="text-sm text-muted-foreground">{product.line}</span>
                 </button>

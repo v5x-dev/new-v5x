@@ -1,0 +1,333 @@
+---
+import "@fontsource-variable/onest"
+import { Code } from "astro:components"
+import { Icon } from "astro-icon/components"
+import Base from "../layouts/Base.astro"
+import Mark from "../components/Mark.astro"
+import Parts from "../components/Parts.astro"
+import ProductMark from "../components/ProductMark.astro"
+import Shot from "../components/Shot.astro"
+import { links, parts, productById, products, shots } from "../data/org"
+
+const { code, brain, design, serial } = productById
+
+const maintainers = [
+  { name: "Tropical", handle: "tropicaaal" },
+  { name: "wireboy5", handle: "wireboy5" },
+  { name: "Gavin Niederman", handle: "Gavin-Niederman" },
+  { name: "Luminoso-256", handle: "Luminoso-256" },
+  { name: "Lewis McClelland", handle: "lewisfm" },
+]
+
+const serialSnippet = `import { V5SerialConnection, openUserProgramTerminal } from "@v5x/serial"
+import { createBrowserAdapter } from "@v5x/serial/browser"
+
+const connection = new V5SerialConnection(createBrowserAdapter())
+
+if ((await connection.open()) === true) {
+  const version = await connection.getSystemVersion()
+  const terminal = openUserProgramTerminal(connection)
+  terminal?.on("text", (text) => console.log(text))
+}`
+
+const flow = [
+  { product: design, verb: "Plan", detail: "Lay out the drivetrain with real part models." },
+  { product: code, verb: "Build", detail: "Clang compiles hot and cold .bin files on your machine." },
+  { product: brain, verb: "Test", detail: "The simulator runs those same binaries." },
+  { product: serial, verb: "Upload", detail: "code sends them to the Brain over @v5x/serial." },
+]
+
+const hardware = [
+  { part: parts.brainFlat, name: "Robot Brain", size: 1 },
+  { part: { src: "/models/v5-controller.glb", finish: "controller" as const, rotation: [Math.PI, 0, 0] as [number, number, number] }, name: "Controller", size: 1 },
+  { part: parts.motor, name: "Smart Motor", size: 1 },
+  { part: parts.battery, name: "Battery", size: 1 },
+]
+
+const headline = ["Code, simulate, design.", "All in your browser."]
+---
+
+<Base
+  title="v5x | code, simulate, design. All in your browser."
+  description="Four browser tools for VEX V5 teams: a C++ editor, a Brain simulator, robot CAD and a serial library."
+>
+  <div class="su min-h-[100dvh] bg-background text-foreground">
+    <header class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-8">
+      <a href="/" class="flex items-center gap-2.5 font-semibold text-primary dark:text-chart-1">
+        <Mark class="size-6" />
+        v5x
+      </a>
+      <nav class="flex items-center gap-1 text-sm">
+        {
+          products.map((product) => (
+            <a href={product.href} class="hidden items-center gap-2 rounded-lg px-3 py-2 text-muted-foreground hover:bg-secondary hover:text-foreground md:inline-flex">
+              <ProductMark product={product} class="size-3.5" />
+              {product.name}
+            </a>
+          ))
+        }
+        <a href={links.github} aria-label="v5x on GitHub" class="press ml-2 inline-flex size-9 items-center justify-center rounded-lg bg-secondary hover:bg-secondary/80">
+          <Icon name="ph:github-logo" class="size-5" />
+        </a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="mx-auto max-w-7xl px-4 pt-16 md:px-8 md:pt-24">
+        <h1 data-reveal class="text-5xl leading-[0.98] font-semibold tracking-[-0.04em] md:text-7xl">
+          {headline[0]} <span class="block text-muted-foreground">{headline[1]}</span>
+        </h1>
+
+        <div data-reveal style="--i:2" class="suite mt-14" data-suite>
+          <div role="tablist" aria-label="v5x products" class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {
+              products.map((product, index) => (
+                <button
+                  type="button"
+                  role="tab"
+                  id={`tab-${product.id}`}
+                  aria-controls={`panel-${product.id}`}
+                  aria-selected={index === 0 ? "true" : "false"}
+                  tabindex={index === 0 ? 0 : -1}
+                  class="tab press flex flex-col items-start gap-1 rounded-2xl border border-border p-4 text-left"
+                  style={`--c:${product.color};--cd:${product.colorOnDark}`}
+                >
+                  <span class="flex w-full items-center gap-2 text-foreground">
+                    <span class="product-color" style={`--c:${product.color};--cd:${product.colorOnDark}`}>
+                      <Mark class="size-4" />
+                    </span>
+                    <span class="font-semibold">{product.name}</span>
+                    {product.status !== "live" && <span class="font-mono ml-auto text-[10px] text-muted-foreground uppercase">{product.status}</span>}
+                  </span>
+                  <span class="text-sm text-muted-foreground">{product.line}</span>
+                </button>
+              ))
+            }
+          </div>
+
+          <div class="window mt-3 overflow-hidden rounded-2xl border border-input bg-muted">
+            <div class="flex h-11 items-center gap-3 border-b border-border px-4">
+              <span class="flex gap-1.5" aria-hidden="true">
+                <span class="size-2.5 rounded-full bg-input"></span>
+                <span class="size-2.5 rounded-full bg-input"></span>
+                <span class="size-2.5 rounded-full bg-input"></span>
+              </span>
+              <span class="font-mono mx-auto rounded-md bg-secondary px-3 py-1 text-xs text-muted-foreground" data-suite-host>{code.host}</span>
+              <span class="w-[42px]" aria-hidden="true"></span>
+            </div>
+
+            <div id="panel-code" role="tabpanel" aria-labelledby="tab-code" data-host={code.host}>
+              <Shot shot={shots.editor} eager />
+            </div>
+
+            <div id="panel-brain" role="tabpanel" aria-labelledby="tab-brain" data-host={brain.host} hidden>
+              <Shot shot={shots.brainLight} dark={shots.brainDark} />
+            </div>
+
+            <div id="panel-design" role="tabpanel" aria-labelledby="tab-design" data-host={design.host} hidden>
+              <div class="relative aspect-[16/10] bg-muted/40">
+                <Parts
+                  parts={[
+                    { ...parts.channel, size: 3.2, position: [0, -0.35, 0] },
+                    { ...parts.channel, size: 3.2, position: [0, -0.35, -1.1] },
+                    { ...parts.motor, size: 0.7, position: [-0.95, 0.1, -0.55] },
+                    { ...parts.motor, size: 0.7, position: [0.95, 0.1, -0.55], rotation: [0, Math.PI, 0] },
+                    { ...parts.omni, size: 0.95, position: [-1.45, -0.05, 0.45], rotation: [0, Math.PI / 2, 0] },
+                    { ...parts.omni, size: 0.95, position: [1.45, -0.05, 0.45], rotation: [0, Math.PI / 2, 0] },
+                  ]}
+                  label="A drivetrain laid out from VEX CAD parts: two C-channels, two smart motors and two omni wheels"
+                  class="absolute inset-0"
+                  interactive
+                  spin={0.1}
+                  elevation={26}
+                  azimuth={28}
+                />
+                <div class="absolute top-4 left-4 flex flex-col gap-2 rounded-xl border border-border bg-muted/80 p-3 text-sm backdrop-blur">
+                  <span class="font-mono text-[11px] text-muted-foreground uppercase">Parts in scene</span>
+                  <span>2 x C-Channel 1x2x1x35</span>
+                  <span>2 x V5 Smart Motor</span>
+                  <span>2 x 3.25" Omni Wheel</span>
+                </div>
+                <p class="font-mono absolute right-4 bottom-4 text-xs text-muted-foreground">in development. drag to rotate.</p>
+              </div>
+            </div>
+
+            <div id="panel-serial" role="tabpanel" aria-labelledby="tab-serial" data-host={serial.host} hidden>
+              <div class="grid aspect-auto md:aspect-[16/10] md:grid-cols-[1fr_280px]">
+                <div class="code overflow-x-auto bg-muted/40 text-[13.5px]">
+                  <Code code={serialSnippet} lang="ts" themes={{ light: "github-light", dark: "vesper" }} defaultColor={false} />
+                </div>
+                <dl class="grid content-start gap-5 border-t border-border p-6 text-sm md:border-t-0 md:border-l">
+                  <div>
+                    <dt class="text-muted-foreground">Install</dt>
+                    <dd class="font-mono mt-1">bun add @v5x/serial</dd>
+                  </div>
+                  <div>
+                    <dt class="text-muted-foreground">Transports</dt>
+                    <dd class="mt-1">USB, Bluetooth</dd>
+                  </div>
+                  <div>
+                    <dt class="text-muted-foreground">Runtimes</dt>
+                    <dd class="mt-1">Browser, Node, Bun</dd>
+                  </div>
+                  <div>
+                    <dt class="text-muted-foreground">Covers</dt>
+                    <dd class="mt-1">File transfer, screen capture, device state, program terminal</dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="mx-auto max-w-7xl px-4 py-24 md:px-8 md:py-32">
+        <div class="max-w-2xl">
+          <p class="font-mono text-xs text-muted-foreground uppercase">How they connect</p>
+          <h2 class="mt-4 text-4xl leading-[1.02] font-semibold tracking-[-0.035em] md:text-5xl">One program, from idea to the field.</h2>
+        </div>
+        <ol class="mt-14 grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-4">
+          {
+            flow.map((step, index) => (
+              <li data-reveal style={`--i:${index}`} class="relative bg-background p-6 md:min-h-56">
+                <div class="flex items-center justify-between">
+                  <span class="font-mono text-xs text-muted-foreground">0{index + 1}</span>
+                  <ProductMark product={step.product} class="size-5" />
+                </div>
+                <h3 class="mt-12 text-2xl font-semibold tracking-tight">{step.verb}</h3>
+                <p class="mt-2 text-muted-foreground">{step.detail}</p>
+                <p class="font-mono mt-6 text-xs text-muted-foreground">{step.product.host}</p>
+              </li>
+            ))
+          }
+        </ol>
+      </section>
+
+      <section class="border-y border-border bg-muted">
+        <div class="mx-auto max-w-7xl px-4 py-20 md:px-8">
+          <div class="flex flex-col justify-between gap-3 md:flex-row md:items-end">
+            <h2 class="text-3xl font-semibold tracking-[-0.03em]">The hardware, as VEX drew it.</h2>
+            <p class="max-w-[46ch] text-muted-foreground">Rendered live from VEX's V5 CAD files. design ships over 300 of them.</p>
+          </div>
+          <div class="mt-10 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {
+              hardware.map((item, index) => (
+                <figure data-reveal style={`--i:${index}`} class="rounded-2xl border border-border bg-background">
+                  <Parts parts={[{ ...item.part, size: item.size }]} label={`V5 ${item.name}, rendered from the VEX CAD model`} class="aspect-square" spin={0.25} elevation={20} zoom={0.85} />
+                  <figcaption class="border-t border-border px-4 py-3 text-sm">V5 {item.name}</figcaption>
+                </figure>
+              ))
+            }
+          </div>
+        </div>
+      </section>
+
+      <section class="mx-auto max-w-7xl px-4 py-24 md:px-8 md:py-32">
+        <div class="grid gap-10 md:grid-cols-2 md:items-end">
+          <h2 class="text-4xl leading-[1.02] font-semibold tracking-[-0.035em] md:text-6xl">Open a tab and start building.</h2>
+          <div class="grid gap-2 sm:grid-cols-2">
+            {
+              products.map((product) => (
+                <a href={product.href} class="press group flex items-center gap-3 rounded-xl border border-border px-4 py-3.5 hover:bg-muted">
+                  <ProductMark product={product} class="size-4" />
+                  <span class="font-medium">{product.name}</span>
+                  <Icon name="ph:arrow-up-right" class="ml-auto size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </a>
+              ))
+            }
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="border-t border-border">
+      <div class="mx-auto flex max-w-7xl flex-col gap-6 px-4 pt-8 pb-28 text-sm text-muted-foreground md:px-8">
+        <span class="flex items-center gap-2 font-medium text-primary dark:text-chart-1"><Mark class="size-4" /> v5x</span>
+        <div class="flex max-w-[78ch] flex-col gap-3 leading-relaxed">
+          <p>
+            The serial protocol work builds on <a href={links.serialProtocol} class="underline underline-offset-4 hover:text-foreground">vex-v5-serial</a> by
+            vexide. Thank you to its maintainers and contributors:{" "}
+            {maintainers.map((person, index) => (
+              <>
+                <a href={`https://github.com/${person.handle}`} class="underline underline-offset-4 hover:text-foreground">{person.name}</a>{index < maintainers.length - 1 ? ", " : "."}{" "}
+              </>
+            ))}
+          </p>
+          <p>
+            Simulator built on <a href={links.qemu} class="underline underline-offset-4 hover:text-foreground">vex-v5-qemu</a>. VEX is a trademark of Innovation First, Inc.
+          </p>
+        </div>
+      </div>
+    </footer>
+  </div>
+</Base>
+
+<script>
+  for (const suite of document.querySelectorAll<HTMLElement>("[data-suite]")) {
+    const tabs = [...suite.querySelectorAll<HTMLButtonElement>("[role=tab]")]
+    const host = suite.querySelector<HTMLElement>("[data-suite-host]")
+
+    const select = (next: HTMLButtonElement) => {
+      for (const tab of tabs) {
+        const selected = tab === next
+        tab.setAttribute("aria-selected", String(selected))
+        tab.tabIndex = selected ? 0 : -1
+
+        const panel = document.getElementById(tab.getAttribute("aria-controls")!)
+        if (!panel) continue
+        panel.hidden = !selected
+        if (selected && host) host.textContent = panel.dataset.host ?? ""
+      }
+    }
+
+    for (const [index, tab] of tabs.entries()) {
+      tab.addEventListener("click", () => select(tab))
+      tab.addEventListener("keydown", (event) => {
+        const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0
+        if (!step) return
+        const next = tabs[(index + step + tabs.length) % tabs.length]
+        select(next)
+        next.focus()
+      })
+    }
+  }
+</script>
+
+<style is:global>
+  .su :is(h1, h2, h3) {
+    font-family: "Onest Variable", ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .su .tab {
+    color: var(--muted-foreground);
+    transition:
+      background-color 0.2s,
+      border-color 0.2s;
+  }
+
+  .su .tab:hover {
+    background: var(--muted);
+  }
+
+  .su .tab[aria-selected="true"] {
+    border-color: var(--c);
+    background: var(--card);
+    box-shadow: inset 0 -2px 0 var(--c);
+  }
+
+  .dark .su .tab[aria-selected="true"] {
+    border-color: var(--cd);
+    box-shadow: inset 0 -2px 0 var(--cd);
+  }
+
+  .su .window {
+    box-shadow: 0 40px 80px -40px rgb(0 0 0 / 0.35);
+  }
+
+  .su .code pre {
+    margin: 0;
+    padding: 24px 26px;
+    background: transparent !important;
+    line-height: 1.75;
+  }
+</style>

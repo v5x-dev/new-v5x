@@ -1,0 +1,43 @@
+---
+import '../styles/base.css';
+
+interface Props {
+  title: string;
+  description: string;
+  preload?: string;
+}
+
+const { title, description, preload } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    {preload && <link rel="preload" as="image" href={preload} fetchpriority="high" />}
+    <title>{title}</title>
+    <script is:inline>
+      const root = document.documentElement;
+      const dark = matchMedia('(prefers-color-scheme: dark)');
+      const syncTheme = () => root.classList.toggle('dark', dark.matches);
+
+      root.classList.add('js');
+      syncTheme();
+      dark.addEventListener('change', syncTheme);
+    </script>
+    <slot name="head" />
+  </head>
+  <body>
+    <slot />
+    <script>
+      import '../scripts/reveal';
+    </script>
+  </body>
+</html>

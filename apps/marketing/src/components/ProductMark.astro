@@ -1,0 +1,18 @@
+---
+import Mark from "./Mark.astro"
+import type { Product } from "../data/org"
+
+interface Props {
+  product: Product
+  class?: string
+}
+
+const { product, class: className = "size-5" } = Astro.props
+---
+
+<span
+  class="product-color inline-flex"
+  style={`--c:${product.color};--cd:${product.colorOnDark}`}
+>
+  <Mark class={className} />
+</span>

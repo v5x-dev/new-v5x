@@ -1,0 +1,30 @@
+---
+interface Image {
+  src: string
+  w: number
+  h: number
+  alt: string
+}
+
+interface Props {
+  shot: Image
+  dark?: Image
+  class?: string
+  eager?: boolean
+}
+
+const { shot, dark, class: className, eager = false } = Astro.props
+---
+
+<picture>
+  {dark && <source srcset={dark.src} media="(prefers-color-scheme: dark)" />}
+  <img
+    src={shot.src}
+    alt={shot.alt}
+    width={shot.w}
+    height={shot.h}
+    loading={eager ? "eager" : "lazy"}
+    fetchpriority={eager ? "high" : undefined}
+    class:list={["block w-full", className]}
+  />
+</picture>

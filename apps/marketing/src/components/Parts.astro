@@ -1,0 +1,66 @@
+---
+import type { PartPlacement } from "../scripts/parts-viewer"
+
+interface Props {
+  parts: PartPlacement[]
+  label: string
+  class?: string
+  spin?: number
+  elevation?: number
+  azimuth?: number
+  zoom?: number
+  exposure?: number
+  interactive?: boolean
+}
+
+const {
+  parts,
+  label,
+  class: className,
+  spin,
+  elevation,
+  azimuth,
+  zoom,
+  exposure,
+  interactive,
+} = Astro.props
+---
+
+<v5x-parts
+  class:list={["parts-viewer", className]}
+  role="img"
+  aria-label={label}
+  data-parts={JSON.stringify(parts)}
+  data-spin={spin}
+  data-elevation={elevation}
+  data-azimuth={azimuth}
+  data-zoom={zoom}
+  data-exposure={exposure}
+  interactive={interactive ? "" : undefined}></v5x-parts>
+
+<script>
+  import "../scripts/parts-viewer"
+</script>
+
+<style is:global>
+  @layer components {
+    .parts-viewer {
+      display: block;
+      position: relative;
+      touch-action: pan-y;
+    }
+
+    .parts-viewer canvas {
+      position: absolute;
+      inset: 0;
+      width: 100% !important;
+      height: 100% !important;
+      opacity: 0;
+      transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .parts-viewer[data-ready] canvas {
+      opacity: 1;
+    }
+  }
+</style>

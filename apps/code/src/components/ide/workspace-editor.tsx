@@ -68,6 +68,7 @@ export interface CommitChange {
 }
 
 interface Props {
+  statusBarEnd?: React.ReactNode
   brainTerminal?: BrainTerminalProps
   workspaceId: string
   template: ProjectTemplate
@@ -1284,7 +1285,9 @@ export function WorkspaceEditor(props: Props) {
         ready={ready}
         hasSelectedFile={!!selected}
         onFormat={() => void run(formatDocument)}
-      />
+      >
+        {props.statusBarEnd}
+      </WorkspaceEditorToolbar>
       <WorkspaceCompletions
         completions={completions}
         completionIndex={completionIndex}

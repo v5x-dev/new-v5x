@@ -11,7 +11,9 @@ export const test = base.extend<{ signedInPage: Page; programPage: Page }>({
     })
     expect(response.ok(), await response.text()).toBeTruthy()
     await gotoReady(page, '/')
-    await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: 'Account menu' }),
+    ).toBeVisible()
     await use(page)
   },
   programPage: async ({ signedInPage: page }, use) => {
@@ -51,7 +53,7 @@ export async function createProgram(page: Page, template: string) {
   const created = page.locator(`a[href="${createdHref}"]`)
   await expect(
     created
-      .locator('xpath=ancestor::tr')
+      .locator('xpath=ancestor::li')
       .getByRole('img', { name: template, exact: true }),
   ).toBeVisible()
   await created.click()

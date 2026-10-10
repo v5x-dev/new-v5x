@@ -21,6 +21,7 @@ interface Props {
   ready: boolean
   hasSelectedFile: boolean
   onFormat: () => void
+  children?: React.ReactNode
 }
 
 export function WorkspaceEditorToolbar({
@@ -34,17 +35,18 @@ export function WorkspaceEditorToolbar({
   ready,
   hasSelectedFile,
   onFormat,
+  children,
 }: Props) {
   return (
-    <div className="absolute bottom-2 right-2 z-20 flex flex-col items-end gap-2 text-muted-foreground">
-      <div className="flex flex-col items-center gap-1 rounded-lg border border-border bg-card p-1 shadow-sm backdrop-blur-sm">
+    <div className="relative z-20 mx-2 mb-2 mt-2 flex h-9 shrink-0 items-center gap-2 px-2 text-muted-foreground">
+      <div className="flex items-center gap-0.5">
         {problems.some(
           ({ diagnostic }) =>
             diagnostic.severity === 1 || diagnostic.severity === 2,
         ) && (
           <Button
             variant="ghost"
-            size="icon-sm"
+            size="icon-xs"
             title={`${problems.filter(({ diagnostic }) => diagnostic.severity === 1).length} errors, ${problems.filter(({ diagnostic }) => diagnostic.severity === 2).length} warnings (Ctrl+J)`}
             aria-label="Toggle problems panel"
             onClick={() => setPanel(panel ? null : 'problems')}
@@ -54,7 +56,7 @@ export function WorkspaceEditorToolbar({
         )}
         <Button
           variant="ghost"
-          size="icon-sm"
+          size="icon-xs"
           aria-label="Output"
           title="Output"
           onClick={() => setPanel(panel === 'output' ? null : 'output')}
@@ -64,7 +66,7 @@ export function WorkspaceEditorToolbar({
         {hasBrainTerminal && (
           <Button
             variant="ghost"
-            size="icon-sm"
+            size="icon-xs"
             aria-label="Brain terminal"
             title="Brain terminal"
             aria-pressed={panel === 'terminal'}
@@ -75,7 +77,7 @@ export function WorkspaceEditorToolbar({
         )}
         <Button
           variant="ghost"
-          size="icon-sm"
+          size="icon-xs"
           title="Search project (Ctrl+Shift+F)"
           aria-label="Search project"
           aria-pressed={searchOpen}
@@ -87,7 +89,7 @@ export function WorkspaceEditorToolbar({
         {!showingHeader && (
           <Button
             variant="ghost"
-            size="icon-sm"
+            size="icon-xs"
             disabled={!ready || !hasSelectedFile}
             title="Format document (Shift+Alt+F)"
             aria-label="Format document"
@@ -98,7 +100,7 @@ export function WorkspaceEditorToolbar({
         )}
         <span
           role="status"
-          className="inline-flex size-7 shrink-0 items-center justify-center"
+          className="inline-flex size-6 shrink-0 items-center justify-center"
           title={ready ? 'C++ ready' : 'Starting C++'}
           aria-label={ready ? 'C++ ready' : 'Starting C++'}
         >
@@ -108,6 +110,9 @@ export function WorkspaceEditorToolbar({
             <Spinner aria-hidden="true" />
           )}
         </span>
+      </div>
+      <div className="flex min-w-0 flex-1 items-center justify-end gap-1">
+        {children}
       </div>
     </div>
   )

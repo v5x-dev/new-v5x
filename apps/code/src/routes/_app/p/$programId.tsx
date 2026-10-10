@@ -4,12 +4,12 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useAction } from 'convex/react'
 import {
   ArrowLeftIcon,
+  DotsThreeIcon,
   GearIcon,
   GitCommitIcon,
   HammerIcon,
   PlugsIcon,
   UploadSimpleIcon,
-  XIcon,
 } from '@phosphor-icons/react'
 import * as React from 'react'
 import {
@@ -33,7 +33,14 @@ import {
 import { WorkspaceEditor } from '~/components/ide/workspace-editor'
 import { ProgramFileTree } from '~/components/ide/program-file-tree'
 import { Button } from '~/components/ui/button'
-import { FeedbackDialog } from '~/components/feedback-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu'
+import { AccountMenu } from '~/components/account-menu'
 import {
   Popover,
   PopoverContent,
@@ -171,7 +178,7 @@ function RouteComponent() {
     await disposeBrainConnection(connection.device, true)
   }
 
-  const [buildOptionsOpen, setBuildOptionsOpen] = React.useState(false)
+  const [accountError, setAccountError] = React.useState<string | null>(null)
 
   const build = async () => {
     if (
@@ -633,14 +640,36 @@ function RouteComponent() {
         className="h-svh min-h-0 overflow-hidden"
         style={{ '--sidebar-width': '20rem' } as React.CSSProperties}
       >
-        <Sidebar variant="floating">
-          {program ? (
-            <SidebarHeader className="gap-0 pb-0 px-4">
-              <span className="truncate text-xs text-muted-foreground py-1">
-                {program.name}
-              </span>
-            </SidebarHeader>
-          ) : null}
+        <Sidebar
+          variant="floating"
+          innerClassName="relative group-data-[variant=floating]:rounded-br-none group-data-[variant=floating]:shadow-none [filter:drop-shadow(0_1px_2px_rgb(0_0_0/0.08))]"
+        >
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute bottom-0 left-full h-9 w-[calc(100svw-var(--sidebar-width))] rounded-r-lg bg-sidebar shadow-[0_-1px_0_var(--sidebar-border),1px_0_0_var(--sidebar-border),0_1px_0_var(--sidebar-border)]"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute bottom-9 left-full size-(--radius-lg) bg-[radial-gradient(circle_at_100%_0,transparent_calc(var(--radius-lg)-1px),var(--sidebar-border)_calc(var(--radius-lg)-1px),var(--sidebar-border)_var(--radius-lg),var(--sidebar)_var(--radius-lg))]"
+          />
+          <SidebarHeader className="flex-row items-center gap-1 px-2">
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              aria-label="Back to programs"
+              title="Back to programs"
+              disabled={isSaving || isUploading}
+              onClick={() => {
+                if (isSaving || isUploading) return
+                void navigate({ to: '/' })
+              }}
+            >
+              <ArrowLeftIcon />
+            </Button>
+            <span className="truncate text-sm font-medium">
+              {program?.name}
+            </span>
+          </SidebarHeader>
           <SidebarContent className="min-h-0 p-0">
             {treePaths ? (
               <ProgramFileTree
@@ -657,220 +686,26 @@ function RouteComponent() {
               />
             ) : null}
           </SidebarContent>
-          <SidebarFooter className="flex-row flex-wrap justify-between">
-            <div className="flex shrink-0 items-center gap-0.5">
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                aria-label="Back to programs"
-                title="Back to programs"
-                disabled={isSaving || isUploading}
-                onClick={() => {
-                  if (isSaving || isUploading) return
-                  void navigate({ to: '/' })
-                }}
-              >
-                <ArrowLeftIcon />
-              </Button>
-              <FeedbackDialog />
-            </div>
-            <div className="flex shrink-0 flex-row gap-0.5 items-center">
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                aria-label="Commit changes"
-                title="Commit changes"
-                onClick={() => {
-                  const save = saveHandlerRef.current
-                  if (save) void save()
-                }}
-                disabled={
-                  !hasUnsavedChanges ||
-                  isSaving ||
-                  saveHandlerRef.current === null
-                }
-              >
-                <GitCommitIcon />
-              </Button>
-              <Button
-                size={isBuilding ? 'sm' : 'icon-sm'}
-                variant="ghost"
-                aria-label={buildButtonLabel}
-                title={buildButtonLabel}
-                onClick={() => void build()}
-                disabled={
-                  !program ||
-                  !program.currentCommitSha ||
-                  isBuilding ||
-                  isSaving ||
-                  hasUnsavedChanges ||
-                  isUploading
-                }
-              >
-                {isBuilding ? (
-                  <>
-                    <Spinner />
-                    <span
-                      aria-hidden="true"
-                      className="font-mono text-xs tabular-nums"
-                    >
-                      {formatBuildElapsed(buildElapsedSeconds)}
-                    </span>
-                  </>
-                ) : (
-                  <HammerIcon />
-                )}
-              </Button>
-              {!isBuilding && (
-                <Popover
-                  open={buildOptionsOpen}
-                  onOpenChange={setBuildOptionsOpen}
-                >
-                  <PopoverTrigger
-                    render={
-                      <Button
-                        size="icon-sm"
-                        variant="ghost"
-                        aria-label="Build options"
-                        title="Build options"
-                      />
-                    }
-                  >
-                    <GearIcon />
-                  </PopoverTrigger>
-                  <PopoverContent side="bottom" align="end" className="w-72">
-                    <PopoverHeader>
-                      <PopoverTitle>Build options</PopoverTitle>
-                    </PopoverHeader>
-                    <Button
-                      variant="ghost"
-                      disabled={isBuilding}
-                      onClick={() => {
-                        releaseBrowserCompiler()
-                        setBuildOptionsOpen(false)
-                      }}
-                    >
-                      Reset browser compiler
-                    </Button>
-                  </PopoverContent>
-                </Popover>
-              )}
-              {isBuilding && (
-                <Button
-                  size="icon-sm"
-                  variant="ghost"
-                  aria-label="Cancel build"
-                  title="Cancel build"
-                  onClick={() => buildAbortRef.current?.abort()}
-                >
-                  <XIcon data-icon="inline-start" />
-                </Button>
-              )}
-              <Popover>
-                <PopoverTrigger
-                  render={
-                    <Button
-                      size="icon-sm"
-                      variant="ghost"
-                      aria-label="Upload to Brain"
-                      title="Upload to Brain"
-                    />
-                  }
-                >
-                  <UploadSimpleIcon />
-                </PopoverTrigger>
-                <PopoverContent side="top" align="end" className="w-64">
-                  <PopoverHeader>
-                    <PopoverTitle className="text-base font-semibold">
-                      Upload to Brain
-                    </PopoverTitle>
-                  </PopoverHeader>
-                  <Separator />
-                  <div className="grid gap-2">
-                    <p className="text-xs font-medium text-muted-foreground">
-                      Brain slot
-                    </p>
-                    <div
-                      role="group"
-                      aria-label="Brain slot"
-                      className="grid grid-cols-4 gap-1.5"
-                    >
-                      {Array.from({ length: 8 }, (_, index) => index + 1).map(
-                        (slot) => (
-                          <Button
-                            key={slot}
-                            type="button"
-                            size="sm"
-                            variant={brainSlot === slot ? 'default' : 'outline'}
-                            className="w-full"
-                            aria-pressed={brainSlot === slot}
-                            disabled={isUploading}
-                            onClick={() => setBrainSlot(slot)}
-                          >
-                            {slot}
-                          </Button>
-                        ),
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="icon"
-                        aria-label="Upload to Brain"
-                        title={
-                          isUploading ? 'Uploading to Brain' : 'Upload to Brain'
-                        }
-                        onClick={() => void uploadToBrain()}
-                        disabled={
-                          !program ||
-                          buildArtifacts.size === 0 ||
-                          buildArtifactsCommitSha !==
-                            program.currentCommitSha ||
-                          isBuilding ||
-                          isSaving ||
-                          isUploading ||
-                          hasUnsavedChanges
-                        }
-                      >
-                        {isUploading ? <Spinner /> : <UploadSimpleIcon />}
-                      </Button>
-                      {isBrainConnected ? (
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          aria-label="Disconnect Brain"
-                          title="Disconnect Brain"
-                          disabled={isUploading}
-                          onClick={() => void disconnectBrain()}
-                        >
-                          <PlugsIcon />
-                        </Button>
-                      ) : null}
-                    </div>
-                    {uploadMessage ? (
-                      <p className="text-xs text-muted-foreground">
-                        {uploadMessage}
-                      </p>
-                    ) : null}
-                    {!uploadMessage && uploadUnavailableReason ? (
-                      <p className="text-xs text-muted-foreground">
-                        {uploadUnavailableReason}
-                      </p>
-                    ) : null}
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </div>
-            <span className="sr-only" role="status" aria-live="polite">
-              {[buildMessage, uploadMessage].filter(Boolean).join('. ')}
-            </span>
+          <SidebarFooter className="p-2">
+            {accountError && (
+              <p role="alert" className="px-2 text-xs text-destructive">
+                {accountError}
+              </p>
+            )}
+            <AccountMenu
+              side="top"
+              align="start"
+              showName
+              onError={setAccountError}
+            />
           </SidebarFooter>
         </Sidebar>
 
-        <SidebarInset className="relative h-svh min-h-0 overflow-hidden">
+        <SidebarInset className="relative flex h-svh min-h-0 flex-col overflow-hidden">
           {loadError ? (
             <p className="p-4 text-sm text-muted-foreground">{loadError}</p>
           ) : programIsPending || paths === null ? (
-            <div className="grid h-full place-items-center">
+            <div className="grid flex-1 place-items-center">
               <Spinner />
             </div>
           ) : !program ? (
@@ -892,10 +727,207 @@ function RouteComponent() {
                 className={
                   activeFile && buildFiles.includes(activeFile)
                     ? 'hidden'
-                    : 'h-full min-h-0'
+                    : 'min-h-0 flex-1'
                 }
               >
                 <WorkspaceEditor
+                  statusBarEnd={
+                    <>
+                      <p
+                        aria-hidden="true"
+                        className="min-w-0 truncate text-xs text-muted-foreground"
+                      >
+                        {isBuilding
+                          ? `Building ${formatBuildElapsed(buildElapsedSeconds)}`
+                          : uploadMessage || buildMessage}
+                      </p>
+                      <Button
+                        size="icon-xs"
+                        variant="ghost"
+                        aria-label="Commit changes"
+                        title="Commit changes"
+                        onClick={() => {
+                          const save = saveHandlerRef.current
+                          if (save) void save()
+                        }}
+                        disabled={
+                          !hasUnsavedChanges ||
+                          isSaving ||
+                          saveHandlerRef.current === null
+                        }
+                      >
+                        <GitCommitIcon />
+                      </Button>
+                      {isBuilding ? (
+                        <Button
+                          size="icon-xs"
+                          variant="ghost"
+                          aria-label="Cancel build"
+                          title="Cancel build"
+                          onClick={() => buildAbortRef.current?.abort()}
+                        >
+                          <Spinner />
+                        </Button>
+                      ) : (
+                        <Button
+                          size="icon-xs"
+                          variant="ghost"
+                          aria-label={buildButtonLabel}
+                          title={buildButtonLabel}
+                          onClick={() => void build()}
+                          disabled={
+                            !program ||
+                            !program.currentCommitSha ||
+                            isSaving ||
+                            hasUnsavedChanges ||
+                            isUploading
+                          }
+                        >
+                          <HammerIcon />
+                        </Button>
+                      )}
+                      <Popover>
+                        <PopoverTrigger
+                          render={
+                            <Button
+                              size="icon-xs"
+                              variant="ghost"
+                              aria-label="Upload to Brain"
+                              title="Upload to Brain"
+                            />
+                          }
+                        >
+                          <UploadSimpleIcon />
+                        </PopoverTrigger>
+                        <PopoverContent
+                          side="bottom"
+                          align="end"
+                          className="w-64"
+                        >
+                          <PopoverHeader>
+                            <PopoverTitle className="text-base font-semibold">
+                              Upload to Brain
+                            </PopoverTitle>
+                          </PopoverHeader>
+                          <Separator />
+                          <div className="grid gap-2">
+                            <p className="text-xs font-medium text-muted-foreground">
+                              Brain slot
+                            </p>
+                            <div
+                              role="group"
+                              aria-label="Brain slot"
+                              className="grid grid-cols-4 gap-1.5"
+                            >
+                              {Array.from(
+                                { length: 8 },
+                                (_, index) => index + 1,
+                              ).map((slot) => (
+                                <Button
+                                  key={slot}
+                                  type="button"
+                                  size="xs"
+                                  variant={
+                                    brainSlot === slot ? 'default' : 'outline'
+                                  }
+                                  className="w-full"
+                                  aria-pressed={brainSlot === slot}
+                                  disabled={isUploading}
+                                  onClick={() => setBrainSlot(slot)}
+                                >
+                                  {slot}
+                                </Button>
+                              ))}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="icon"
+                                aria-label="Upload to Brain"
+                                title={
+                                  isUploading
+                                    ? 'Uploading to Brain'
+                                    : 'Upload to Brain'
+                                }
+                                onClick={() => void uploadToBrain()}
+                                disabled={
+                                  !program ||
+                                  buildArtifacts.size === 0 ||
+                                  buildArtifactsCommitSha !==
+                                    program.currentCommitSha ||
+                                  isBuilding ||
+                                  isSaving ||
+                                  isUploading ||
+                                  hasUnsavedChanges
+                                }
+                              >
+                                {isUploading ? (
+                                  <Spinner />
+                                ) : (
+                                  <UploadSimpleIcon />
+                                )}
+                              </Button>
+                              {isBrainConnected ? (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  aria-label="Disconnect Brain"
+                                  title="Disconnect Brain"
+                                  disabled={isUploading}
+                                  onClick={() => void disconnectBrain()}
+                                >
+                                  <PlugsIcon />
+                                </Button>
+                              ) : null}
+                            </div>
+                            {uploadMessage ? (
+                              <p className="text-xs text-muted-foreground">
+                                {uploadMessage}
+                              </p>
+                            ) : null}
+                            {!uploadMessage && uploadUnavailableReason ? (
+                              <p className="text-xs text-muted-foreground">
+                                {uploadUnavailableReason}
+                              </p>
+                            ) : null}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          render={
+                            <Button
+                              size="icon-xs"
+                              variant="ghost"
+                              aria-label="More actions"
+                              title="More actions"
+                            />
+                          }
+                        >
+                          <DotsThreeIcon />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="min-w-48">
+                          <DropdownMenuGroup>
+                            <DropdownMenuItem
+                              disabled={isBuilding}
+                              onClick={() => releaseBrowserCompiler()}
+                            >
+                              <GearIcon />
+                              Reset browser compiler
+                            </DropdownMenuItem>
+                          </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      <span
+                        className="sr-only"
+                        role="status"
+                        aria-live="polite"
+                      >
+                        {[buildMessage, uploadMessage]
+                          .filter(Boolean)
+                          .join('. ')}
+                      </span>
+                    </>
+                  }
                   key={programId}
                   workspaceId={programId}
                   template={program.template ?? 'vexcode'}

@@ -19,9 +19,10 @@ test('anonymous login survives reload and logout revokes access', async ({
   await gotoReady(page, '/login')
   await page.getByRole('button', { name: 'Sign in anonymously' }).click()
   await expect(page).toHaveURL('/')
-  await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Account menu' })).toBeVisible()
   await reloadReady(page)
-  await page.getByRole('button', { name: 'Sign out' }).click()
+  await page.getByRole('button', { name: 'Account menu' }).click()
+  await page.getByRole('menuitem', { name: 'Log out', exact: true }).click()
   await expect(page).toHaveURL('/login')
   await gotoReady(page, '/')
   await expect(page).toHaveURL('/login')
@@ -71,11 +72,13 @@ test('failed logout keeps the session and allows retry', async ({
       json: { message: 'Unavailable' },
     }),
   )
-  await page.getByRole('button', { name: 'Sign out' }).click()
+  await page.getByRole('button', { name: 'Account menu' }).click()
+  await page.getByRole('menuitem', { name: 'Log out', exact: true }).click()
   await expect(page.getByRole('alert')).toHaveText(
     'Unable to sign out. Try again.',
   )
   await page.unroute('**/api/auth/sign-out')
-  await page.getByRole('button', { name: 'Sign out' }).click()
+  await page.getByRole('button', { name: 'Account menu' }).click()
+  await page.getByRole('menuitem', { name: 'Log out', exact: true }).click()
   await expect(page).toHaveURL('/login')
 })

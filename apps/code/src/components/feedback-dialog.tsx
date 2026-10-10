@@ -19,11 +19,22 @@ import { Spinner } from '~/components/ui/spinner'
 import { Tabs, TabsList, TabsTrigger } from '~/components/ui/tabs'
 import { Textarea } from '~/components/ui/textarea'
 
-export function FeedbackDialog() {
+export function FeedbackDialog({
+  open: controlledOpen,
+  onOpenChange,
+  showTrigger = true,
+  finalFocus,
+}: {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  showTrigger?: boolean
+  finalFocus?: React.RefObject<HTMLElement | null>
+} = {}) {
   const submit = useMutation(api.feedback.submit)
   const titleId = React.useId()
   const descriptionId = React.useId()
-  const [open, setOpen] = React.useState(false)
+  const [internalOpen, setInternalOpen] = React.useState(false)
+  const open = controlledOpen ?? internalOpen
   const [kind, setKind] = React.useState<'bug' | 'feature'>('bug')
   const [title, setTitle] = React.useState('')
   const [description, setDescription] = React.useState('')
@@ -31,6 +42,13 @@ export function FeedbackDialog() {
   const [sent, setSent] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const submittingRef = React.useRef(false)
+
+  React.useEffect(() => {
+    if (open) {
+      setSent(false)
+      setError(null)
+    }
+  }, [open])
 
   const send = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -66,27 +84,26 @@ export function FeedbackDialog() {
       open={open}
       onOpenChange={(nextOpen) => {
         if (submittingRef.current) return
-        setOpen(nextOpen)
-
-        if (nextOpen) {
-          setSent(false)
-          setError(null)
-        }
+        setInternalOpen(nextOpen)
+        onOpenChange?.(nextOpen)
       }}
     >
-      <DialogTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Send feedback"
-            title="Send feedback"
-          />
-        }
-      >
-        <ChatCircleIcon />
-      </DialogTrigger>
+      {showTrigger && (
+        <DialogTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Send feedback"
+              title="Send feedback"
+            />
+          }
+        >
+          <ChatCircleIcon />
+        </DialogTrigger>
+      )}
       <DialogContent
+        finalFocus={finalFocus}
         className="max-h-[calc(100svh-2rem)] overflow-y-auto sm:max-w-lg"
         showCloseButton={!pending}
       >

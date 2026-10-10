@@ -1,0 +1,74 @@
+[
+  {
+    "level": "-O2",
+    "output": ".build/compiler-edits/binaryen-O2.wasm",
+    "seconds": 55.755286478,
+    "bytes": 53441152,
+    "sourceSha256": "21ae6e9371064766efadd978ddc81cb9573669072583b7d9f4fc49c1c810b7ec",
+    "sourceBytes": 63386658,
+    "sha256": "1c2f1dc3d41166fa14f4b3d5be448bee045622bbf76836e96f27f8b6a1b83b58",
+    "optimizer": {
+      "version": 133,
+      "releaseSha256": "2dc9c7813f5375db93d96ead4b78222fcc3e2677bbb832297af4797782a37489",
+      "flags": [
+        "-O2",
+        "--enable-bulk-memory",
+        "--enable-bulk-memory-opt",
+        "--enable-mutable-globals",
+        "--enable-sign-ext",
+        "--enable-nontrapping-float-to-int",
+        "--enable-multivalue",
+        "--enable-reference-types"
+      ]
+    },
+    "reproduction": "BINARYEN_CORES=4 wasm-opt apps/code/node_modules/microbit-clang-wasm/gen/llvm.core.wasm -O2 --enable-bulk-memory --enable-bulk-memory-opt --enable-mutable-globals --enable-sign-ext --enable-nontrapping-float-to-int --enable-multivalue --enable-reference-types -o .build/compiler-edits/binaryen-O2.wasm"
+  },
+  {
+    "level": "-Os",
+    "output": ".build/compiler-edits/binaryen-Os.wasm",
+    "seconds": 116.396301718,
+    "bytes": 52675336,
+    "sourceSha256": "21ae6e9371064766efadd978ddc81cb9573669072583b7d9f4fc49c1c810b7ec",
+    "sourceBytes": 63386658,
+    "sha256": "76cfcc2f83e86bfc1ea4f68b8873e340ef54996f4d63de33ba8bb6b14e7d4ee2",
+    "optimizer": {
+      "version": 133,
+      "releaseSha256": "2dc9c7813f5375db93d96ead4b78222fcc3e2677bbb832297af4797782a37489",
+      "flags": [
+        "-Os",
+        "--enable-bulk-memory",
+        "--enable-bulk-memory-opt",
+        "--enable-mutable-globals",
+        "--enable-sign-ext",
+        "--enable-nontrapping-float-to-int",
+        "--enable-multivalue",
+        "--enable-reference-types"
+      ]
+    },
+    "reproduction": "BINARYEN_CORES=4 wasm-opt apps/code/node_modules/microbit-clang-wasm/gen/llvm.core.wasm -Os --enable-bulk-memory --enable-bulk-memory-opt --enable-mutable-globals --enable-sign-ext --enable-nontrapping-float-to-int --enable-multivalue --enable-reference-types -o .build/compiler-edits/binaryen-Os.wasm"
+  },
+  {
+    "level": "-Oz",
+    "output": ".build/compiler-edits/binaryen-Oz.wasm",
+    "seconds": 117.75400956800001,
+    "bytes": 52010538,
+    "sourceSha256": "21ae6e9371064766efadd978ddc81cb9573669072583b7d9f4fc49c1c810b7ec",
+    "sourceBytes": 63386658,
+    "sha256": "2c261c2c1937b4ca1a638de32cd8b3e4e2db91fff4a30bc9a5dcaea5771f4fec",
+    "optimizer": {
+      "version": 133,
+      "releaseSha256": "2dc9c7813f5375db93d96ead4b78222fcc3e2677bbb832297af4797782a37489",
+      "flags": [
+        "-Oz",
+        "--enable-bulk-memory",
+        "--enable-bulk-memory-opt",
+        "--enable-mutable-globals",
+        "--enable-sign-ext",
+        "--enable-nontrapping-float-to-int",
+        "--enable-multivalue",
+        "--enable-reference-types"
+      ]
+    },
+    "reproduction": "BINARYEN_CORES=4 wasm-opt apps/code/node_modules/microbit-clang-wasm/gen/llvm.core.wasm -Oz --enable-bulk-memory --enable-bulk-memory-opt --enable-mutable-globals --enable-sign-ext --enable-nontrapping-float-to-int --enable-multivalue --enable-reference-types -o .build/compiler-edits/binaryen-Oz.wasm"
+  }
+]

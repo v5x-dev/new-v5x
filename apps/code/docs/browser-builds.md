@@ -47,9 +47,9 @@ rules, reproduction, experiment decisions and hardware verification limits.
 
 Compiler assets download on first use. Production serves Brotli or gzip
 companions prepared alongside the original files. Clang WASM and its resource
-archive total about 16.3 MB over Brotli; clangd adds 11.3 MB for language support.
-Decoded bytes retain the original manifest checksums. Development serves the
-uncompressed originals.
+archive total about 15.8 MB over Brotli; clangd adds 11.3 MB for language support.
+Decoded bytes retain the original manifest checksums. Development uses the compressed resource archive companion and streams WASM
+from the development server. Production negotiates WASM compression.
 SDK download sizes depend on the template. Every asset has a size and SHA-256
 check. Cache Storage retains the assets, and the workspace service worker caches
 language and compiler assets. Manifests refresh online and use their cache
@@ -87,21 +87,30 @@ The legacy cloud action remains available to existing tooling.
 
 ## Assets and compatibility fixes
 
-`bun run prepare:language` prepares checked EZ precompiled headers and copies
+`bun run prepare:language` prepares checked SDK-prefix precompiled headers for all
+four templates and copies
 the pinned compiler WebAssembly, licenses, and builtin headers into `public/compiler/llvm-21.11.0-alpha.1`. Generated compiler
 assets are ignored by Git and prepared for development and production builds.
 Binary SDK bundles and their provenance manifest are committed. Packaging
 removes debug sections from the archives without changing loadable code. EZ's
 library download shrinks from 21 MB to 2.14 MB after stripping debug records
 and inheriting identical firmware files from PROS. Its precompiled-header asset adds
-13.7 MB on first use; subsequent builds reuse it locally. Precompiled headers
-apply only when compiler flags, the workspace inventory, and all header bytes
-match. Other projects compile their headers normally. Regenerate them
+14.10 MB on first use; subsequent builds reuse it locally. VEX, PROS and JAR add
+1.07, 5.54 and 2.66 MB respectively. Precompiled headers apply when compiler flags,
+the exact preprocessing prefix, include inventory and SDK dependency bytes match.
+Project declarations after that prefix remain live, so editing them retains the
+SDK PCH. Changed prefixes and unsupported configurations compile normally. Regenerate them
 from the SDK and rootfs used to package the language headers:
 
 ```sh
 python3 scripts/package-build-sdk.py --sdk /path/to/sdk --rootfs /path/to/rootfs
 ```
+
+PROS, EZ and JAR instantiate pending SDK templates during PCH preparation with
+Clang's `-fpch-instantiate-templates`. This avoids repeating those instantiations
+after each source or header edit. VEX keeps its previous configuration. Dependency
+digests reuse unchanged input identities; writes and deletions invalidate them.
+See the [one-line edit measurements](browser-performance/2026-10-10/one-line-edits/report.md).
 
 The header and library manifests list the ordered bundles for each template.
 Clang 8 builtin headers are shared separately. VEX/JAR load their GCC 4.9 headers
@@ -140,7 +149,24 @@ five per-program symbols stripped by upstream PROS and weakens the imported cold
 cold symbols with the same precedence as GNU ld's `-R`. Loadable cold bytes stay
 unchanged.
 
-The dependency patch fixes parent-directory traversal in the WASI filesystem,
+A main compiler module optimized with Binaryen 133 is published under a
+content-addressed filename and checked against recorded provenance. EZ browser
+builds use it; VEX, PROS and JAR use the original core after Chromium comparisons.
+Bun tooling uses the optimized core. Module caches retain two immutable compiler
+identities so template changes select the correct engine. Development serves
+prepared WASM compression and transfers gzip SDK bundles directly, avoiding
+Nitro's expensive recompression. See
+[compiler reproduction](../compiler/README.md). Compiler-generated frontend plans
+replay the pinned driver's standard commands through `Session.exec`; unmatched
+flags use the full driver. Verification compares generated code, data, symbols
+and relocations with the original WASM compiler.
+
+The dependency patch grows writable files geometrically instead of copying the
+whole file on every write, and compiles independent WASM modules concurrently.
+Integrity-gated streaming overlaps WASM compilation with download. Optional PCH,
+metadata and cold SDK assets load alongside initialization.
+
+The dependency patch also fixes parent-directory traversal in the WASI filesystem,
 which LVGL headers need. It also prevents Vite from globbing fallback asset URLs;
 the app loads compiler assets through its checked cache adapter.
 
@@ -152,6 +178,10 @@ are compared byte for byte with native
 `arm-none-eabi-objcopy`.
 
 ## Measured build times
+
+The latest fresh-build, source-edit and header-only measurements are in the
+[October 10 report](browser-performance/2026-10-10/report.md). The measurements
+below are historical and use different fixtures.
 
 On this machine, the EZ compile/link benchmark fell from 19.99 seconds to
 3.13 seconds, a 6.4× improvement. An unchanged build took 0.33 seconds, and a
@@ -173,7 +203,7 @@ intermediates, and 0.62 seconds with a warm worker. The headless browser suite
 measured 15.69 seconds first, 1.02 seconds unchanged, and 4.62 seconds after a
 main-only edit following workspace formatting. The first commit formats all
 workspace documents, which invalidates their objects and can disable the checked
-template PCH. Header and compiler-option changes also fall back to ordinary
+SDK-prefix PCH. SDK header, prefix and compiler-option changes fall back to ordinary
 compilation. The 5× improvement applies to the default EZ compile/link benchmark;
 first browser startup has not achieved 5× in every measured environment.
 

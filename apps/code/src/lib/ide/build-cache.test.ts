@@ -1,7 +1,26 @@
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it, spyOn } from 'bun:test'
 import { buildCacheKey, dependencyPaths } from './build-cache'
 
 describe('build cache dependencies', () => {
+  it('reuses immutable string hashes while rehashing edited byte buffers', async () => {
+    const digest = spyOn(crypto.subtle, 'digest')
+    const prefix = crypto.randomUUID()
+    try {
+      const parts = [prefix + '/path', prefix + '/digest']
+      const first = await buildCacheKey(parts)
+      expect(digest).toHaveBeenCalledTimes(3)
+      expect(await buildCacheKey(parts)).toBe(first)
+      expect(digest).toHaveBeenCalledTimes(4)
+      const bytes = new Uint8Array([1])
+      const original = await buildCacheKey([parts[0], bytes])
+      bytes[0] = 2
+      expect(await buildCacheKey([parts[0], bytes])).not.toBe(original)
+      expect(digest).toHaveBeenCalledTimes(8)
+    } finally {
+      digest.mockRestore()
+    }
+  })
+
   it('separates ordered inputs and invalidates changed bytes', async () => {
     expect(await buildCacheKey(['ab', 'c'])).not.toBe(
       await buildCacheKey(['a', 'bc']),

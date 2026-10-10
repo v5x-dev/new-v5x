@@ -5,19 +5,56 @@ export interface BuildCache {
   put: (key: string, bytes: Uint8Array) => Promise<void>
 }
 
-// Bump when compiler ABI or link semantics change. Asset digests and project
-// dependencies are also part of every key, so entries never cross SDK versions.
-export async function buildCacheKey(parts: Array<string | Uint8Array>) {
-  const encoder = new TextEncoder()
-  const hashes = await Promise.all(
-    parts.map(async (part) => {
-      const bytes =
-        typeof part === 'string' ? encoder.encode(part) : new Uint8Array(part)
-      return new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))
-    }),
+const encoder = new TextEncoder()
+// Dependency paths and their content digests recur across edited builds. Cache
+// only short immutable strings; mutable file bytes always get a fresh digest.
+const stringHashes = new Map<string, Uint8Array | Promise<Uint8Array>>()
+const stringHashLimit = 4096
+const stringLengthLimit = 512
+
+function partHash(part: string | Uint8Array) {
+  const cacheable = typeof part === 'string' && part.length <= stringLengthLimit
+  const hit = cacheable ? stringHashes.get(part) : undefined
+  if (hit) return hit
+  const bytes =
+    typeof part === 'string' ? encoder.encode(part) : new Uint8Array(part)
+  const pending = crypto.subtle.digest('SHA-256', bytes).then(
+    (digest) => {
+      const hash = new Uint8Array(digest)
+      if (cacheable && stringHashes.get(part) === pending)
+        stringHashes.set(part, hash)
+      return hash
+    },
+    (error) => {
+      if (cacheable && stringHashes.get(part) === pending)
+        stringHashes.delete(part)
+      throw error
+    },
   )
-  const joined = new Uint8Array(hashes.length * 32)
-  hashes.forEach((hash, index) => joined.set(hash, index * 32))
+  if (cacheable) {
+    stringHashes.set(part, pending)
+    if (stringHashes.size > stringHashLimit)
+      stringHashes.delete(stringHashes.keys().next().value!)
+  }
+  return pending
+}
+
+// Bump callers' namespaces when compiler ABI or link semantics change. Asset
+// digests and project dependencies keep entries separate across SDK versions.
+export async function buildCacheKey(parts: Array<string | Uint8Array>) {
+  const joined = new Uint8Array(parts.length * 32)
+  const pending: Array<Promise<void>> = []
+  parts.forEach((part, index) => {
+    const hash = partHash(part)
+    if (hash instanceof Uint8Array) joined.set(hash, index * 32)
+    else
+      pending.push(
+        hash.then((bytes) => {
+          joined.set(bytes, index * 32)
+        }),
+      )
+  })
+  if (pending.length) await Promise.all(pending)
   return Array.from(
     new Uint8Array(await crypto.subtle.digest('SHA-256', joined)),
     (byte) => byte.toString(16).padStart(2, '0'),

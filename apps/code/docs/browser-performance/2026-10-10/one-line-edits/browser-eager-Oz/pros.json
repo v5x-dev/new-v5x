@@ -1,0 +1,3856 @@
+{
+  "route": "/build-demo",
+  "wasmVariant": "/home/pingu/.t3/worktrees/v5x/t3-ef3614b7/.build/compiler-edits/binaryen-Oz.wasm",
+  "syncInstance": false,
+  "snapshotDebug": false,
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36",
+  "network": "local Vite; first sample clears asset and object caches, subsequent fresh samples clear objects and restart worker",
+  "records": [
+    {
+      "template": "pros",
+      "sample": 0,
+      "scenario": "fresh",
+      "wallMs": 2860.0260719999997,
+      "artifactBytes": 16560,
+      "spans": [
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 50.579999923706055,
+          "end": 64.47000002861023,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 67.97499990463257,
+          "end": 68.47000002861023,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 68.05999994277954,
+          "end": 68.72499990463257,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 68.07999992370605,
+          "end": 68.875,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 68.10500001907349,
+          "end": 69.00499987602234,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 68.13499999046326,
+          "end": 69.14999985694885,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 68.18499994277954,
+          "end": 69.3899998664856,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 68.21000003814697,
+          "end": 69.5699999332428,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 68.23499989509583,
+          "end": 69.74000000953674,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 68.25999999046326,
+          "end": 69.91999983787537,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 68.29499983787537,
+          "end": 70.09500002861023,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 68.3199999332428,
+          "end": 70.2649998664856,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 68.34500002861023,
+          "end": 70.43999981880188,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 68.36999988555908,
+          "end": 70.6399998664856,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 68.39499998092651,
+          "end": 70.82499980926514,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 68.42499995231628,
+          "end": 71.00999999046326,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-download",
+          "start": 68.73499989509583,
+          "end": 101.625,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-download",
+          "start": 68.88499999046326,
+          "end": 102.47499990463257,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-download",
+          "start": 69.00999999046326,
+          "end": 102.74499988555908,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-integrity",
+          "start": 103.54999995231628,
+          "end": 103.75499987602234,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 37626
+          },
+          "phase": "wasm-stream-download",
+          "start": 101.90999984741211,
+          "end": 104.42999982833862,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-integrity",
+          "start": 104.98499989509583,
+          "end": 105.02499985694885,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 5458
+          },
+          "phase": "wasm-stream-download",
+          "start": 102.51999998092651,
+          "end": 105.47000002861023,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-integrity",
+          "start": 105.89999985694885,
+          "end": 105.91999983787537,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 787
+          },
+          "phase": "wasm-stream-download",
+          "start": 102.76999998092651,
+          "end": 106.25,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-download",
+          "start": 68.48499989509583,
+          "end": 1066.9449999332428,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-integrity",
+          "start": 1220.329999923706,
+          "end": 1355.1150000095367,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 52010538
+          },
+          "phase": "wasm-stream-download",
+          "start": 1066.9800000190735,
+          "end": 1456.369999885559,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-download",
+          "start": 69.15999984741211,
+          "end": 1456.659999847412,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-download",
+          "start": 69.57999992370605,
+          "end": 1456.835000038147,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-download",
+          "start": 70.10500001907349,
+          "end": 1457.0049998760223,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-download",
+          "start": 69.93999981880188,
+          "end": 1457.1449999809265,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-download",
+          "start": 69.75499987602234,
+          "end": 1457.3550000190735,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-download",
+          "start": 70.27499985694885,
+          "end": 1457.5749998092651,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-download",
+          "start": 70.45499992370605,
+          "end": 1457.8099999427795,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-download",
+          "start": 70.82999992370605,
+          "end": 1458.0549998283386,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-download",
+          "start": 69.40999984741211,
+          "end": 1458.244999885559,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-download",
+          "start": 70.64999985694885,
+          "end": 1458.3949999809265,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "asset-download",
+          "start": 71.0149998664856,
+          "end": 1458.6150000095367,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 176116,
+            "cachedBytes": 0,
+            "hashedBytes": 176116
+          },
+          "phase": "asset-integrity",
+          "start": 1519.369999885559,
+          "end": 1519.9299998283386,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 1327080,
+            "cachedBytes": 0,
+            "hashedBytes": 1327080
+          },
+          "phase": "asset-integrity",
+          "start": 1521.2999999523163,
+          "end": 1524.664999961853,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 161014,
+            "cachedBytes": 0,
+            "hashedBytes": 161014
+          },
+          "phase": "asset-integrity",
+          "start": 1527.4499998092651,
+          "end": 1527.9649999141693,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 832635,
+            "cachedBytes": 0,
+            "hashedBytes": 832635
+          },
+          "phase": "asset-integrity",
+          "start": 1537.1499998569489,
+          "end": 1540.5099999904633,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 976039,
+            "cachedBytes": 0,
+            "hashedBytes": 976039
+          },
+          "phase": "asset-integrity",
+          "start": 1545.4249999523163,
+          "end": 1563.034999847412,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 16770,
+            "cachedBytes": 0,
+            "hashedBytes": 16770
+          },
+          "phase": "asset-integrity",
+          "start": 1565.1999998092651,
+          "end": 1567.704999923706,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 1044,
+            "cachedBytes": 0,
+            "hashedBytes": 1044
+          },
+          "phase": "asset-integrity",
+          "start": 1568.2400000095367,
+          "end": 1568.2549998760223,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 666018,
+            "cachedBytes": 0,
+            "hashedBytes": 666018
+          },
+          "phase": "asset-integrity",
+          "start": 1568.5249998569489,
+          "end": 1570.1799998283386,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 2417939,
+            "cachedBytes": 0,
+            "hashedBytes": 2417939
+          },
+          "phase": "asset-integrity",
+          "start": 1583.75,
+          "end": 1589.9499998092651,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 5544576,
+            "cachedBytes": 0,
+            "hashedBytes": 5544576
+          },
+          "phase": "asset-integrity",
+          "start": 1656.619999885559,
+          "end": 1670.5299999713898,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 1032238,
+            "cachedBytes": 0,
+            "hashedBytes": 15104000
+          },
+          "phase": "asset-integrity",
+          "start": 1693.3149998188019,
+          "end": 1733.3949999809265,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "bundle-decompression",
+          "start": 1645.5249998569489,
+          "end": 1852.8049998283386,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "counts": {
+            "compressedBytes": 176116
+          },
+          "phase": "header-bundle-load",
+          "start": 67.59500002861023,
+          "end": 1859.034999847412,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "bundle-decompression",
+          "start": 1646.4700000286102,
+          "end": 1861.9800000190735,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "counts": {
+            "compressedBytes": 1327080
+          },
+          "phase": "library-bundle-load",
+          "start": 67.71499991416931,
+          "end": 1862.2249999046326,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "bundle-decompression",
+          "start": 1648.039999961853,
+          "end": 1862.7649998664856,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "counts": {
+            "compressedBytes": 161014
+          },
+          "phase": "header-bundle-load",
+          "start": 67.6949999332428,
+          "end": 1871.8799998760223,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "bundle-decompression",
+          "start": 1648.9049999713898,
+          "end": 1873.8049998283386,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "counts": {
+            "compressedBytes": 832635
+          },
+          "phase": "library-bundle-load",
+          "start": 67.73499989509583,
+          "end": 1873.909999847412,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "cold-assets",
+          "start": 67.8899998664856,
+          "end": 1876.579999923706,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "bundle-decompression",
+          "start": 1652.2599999904633,
+          "end": 1884.210000038147,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "counts": {
+            "compressedBytes": 2417939
+          },
+          "phase": "header-bundle-load",
+          "start": 67.67999982833862,
+          "end": 1930.9199998378754,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 66.49000000953674,
+          "end": 1967.1949999332428,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "pch-decompression",
+          "start": 1819.534999847412,
+          "end": 1974.125,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "sdk-mount",
+          "start": 1980.5749998092651,
+          "end": 2078.869999885559,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 2079.5950000286102,
+          "end": 2079.819999933243,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 2116.609999895096,
+          "end": 2117.7249999046326,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 0,
+            "cachedBytes": 0,
+            "memoryBytes": 0,
+            "pendingBytes": 0
+          },
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 2117.829999923706,
+          "end": 2655.1299998760223,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "timestamp-patch",
+          "start": 2663.25,
+          "end": 2663.949999809265,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 2664.1399998664856,
+          "end": 2664.6399998664856,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 2664.710000038147,
+          "end": 2665.3399999141693,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 0,
+            "cachedBytes": 0,
+            "memoryBytes": 17702,
+            "pendingBytes": 15738
+          },
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 2665.5149998664856,
+          "end": 2772.2200000286102,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 2772.960000038147,
+          "end": 2773.3550000190735,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 2079.579999923706,
+          "end": 2773.4749999046326,
+          "outcome": "success",
+          "counts": {
+            "sources": 1,
+            "objectsReused": 0,
+            "starterObjectsReused": 0,
+            "commands": 2,
+            "projectWrites": 5,
+            "projectDeletes": 0,
+            "returnedBytes": 1364384
+          }
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-persistence",
+          "start": 2665.109999895096,
+          "end": 2782.609999895096,
+          "outcome": "success",
+          "counts": {
+            "cachedBytes": 1964,
+            "pendingBytes": 15738,
+            "memoryBytes": 17702
+          },
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-persistence",
+          "start": 2782.6549999713898,
+          "end": 2783.909999847412,
+          "outcome": "success",
+          "counts": {
+            "cachedBytes": 15738,
+            "pendingBytes": 0,
+            "memoryBytes": 17702
+          },
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-eviction",
+          "start": 2784.25,
+          "end": 2784.694999933243,
+          "outcome": "success",
+          "counts": {
+            "evictedEntries": 0,
+            "evictedBytes": 0,
+            "persistentBytes": 17702
+          },
+          "buildId": "5ef7fbad-3eef-4c64-8c3a-096360b0167d"
+        }
+      ]
+    },
+    {
+      "template": "pros",
+      "sample": 0,
+      "scenario": "source-edit",
+      "wallMs": 266.63273000000027,
+      "artifactBytes": 16560,
+      "spans": [
+        {
+          "buildId": "5c1da506-4ef8-4fe8-835b-3d4ccb8cff7a",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 3030.1150000095367,
+          "end": 3030.1150000095367,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5c1da506-4ef8-4fe8-835b-3d4ccb8cff7a",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 3031.5899999141693,
+          "end": 3031.609999895096,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5c1da506-4ef8-4fe8-835b-3d4ccb8cff7a",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 3031.6449999809265,
+          "end": 3031.7300000190735,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 3032.579999923706,
+          "end": 3032.5950000286102,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 1,
+            "cachedBytes": 15738,
+            "memoryBytes": 17702,
+            "pendingBytes": 0
+          },
+          "buildId": "5c1da506-4ef8-4fe8-835b-3d4ccb8cff7a"
+        },
+        {
+          "buildId": "5c1da506-4ef8-4fe8-835b-3d4ccb8cff7a",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 3032.9299998283386,
+          "end": 3033.444999933243,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5c1da506-4ef8-4fe8-835b-3d4ccb8cff7a",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 3033.494999885559,
+          "end": 3150.609999895096,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5c1da506-4ef8-4fe8-835b-3d4ccb8cff7a",
+          "clock": "worker",
+          "phase": "timestamp-patch",
+          "start": 3154.024999856949,
+          "end": 3154.189999818802,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5c1da506-4ef8-4fe8-835b-3d4ccb8cff7a",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 3154.2549998760223,
+          "end": 3154.3399999141693,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 3154.399999856949,
+          "end": 3154.9649999141693,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 0,
+            "cachedBytes": 0,
+            "memoryBytes": 19666,
+            "pendingBytes": 15738
+          },
+          "buildId": "5c1da506-4ef8-4fe8-835b-3d4ccb8cff7a"
+        },
+        {
+          "buildId": "5c1da506-4ef8-4fe8-835b-3d4ccb8cff7a",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 3155.1699998378754,
+          "end": 3221.0549998283386,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5c1da506-4ef8-4fe8-835b-3d4ccb8cff7a",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 3221.814999818802,
+          "end": 3221.909999847412,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5c1da506-4ef8-4fe8-835b-3d4ccb8cff7a",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 3031.6349999904633,
+          "end": 3221.954999923706,
+          "outcome": "success",
+          "counts": {
+            "sources": 1,
+            "objectsReused": 0,
+            "starterObjectsReused": 0,
+            "commands": 2,
+            "projectWrites": 1,
+            "projectDeletes": 0,
+            "returnedBytes": 1364384
+          }
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-persistence",
+          "start": 3154.824999809265,
+          "end": 3232.2400000095367,
+          "outcome": "success",
+          "counts": {
+            "cachedBytes": 1964,
+            "pendingBytes": 15738,
+            "memoryBytes": 19666
+          },
+          "buildId": "5c1da506-4ef8-4fe8-835b-3d4ccb8cff7a"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-persistence",
+          "start": 3232.284999847412,
+          "end": 3234.0449998378754,
+          "outcome": "success",
+          "counts": {
+            "cachedBytes": 15738,
+            "pendingBytes": 0,
+            "memoryBytes": 19666
+          },
+          "buildId": "5c1da506-4ef8-4fe8-835b-3d4ccb8cff7a"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-eviction",
+          "start": 3234.289999961853,
+          "end": 3234.944999933243,
+          "outcome": "success",
+          "counts": {
+            "evictedEntries": 0,
+            "evictedBytes": 0,
+            "persistentBytes": 19666
+          },
+          "buildId": "5c1da506-4ef8-4fe8-835b-3d4ccb8cff7a"
+        }
+      ]
+    },
+    {
+      "template": "pros",
+      "sample": 0,
+      "scenario": "header-setup",
+      "wallMs": 170.62261600000056,
+      "artifactBytes": 16560,
+      "spans": [
+        {
+          "buildId": "5b1bfa0a-1dc7-4b28-9f49-d0cfbba3ce7c",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 4009.7949998378754,
+          "end": 4009.7949998378754,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5b1bfa0a-1dc7-4b28-9f49-d0cfbba3ce7c",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 4011.1799998283386,
+          "end": 4011.194999933243,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5b1bfa0a-1dc7-4b28-9f49-d0cfbba3ce7c",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 4011.210000038147,
+          "end": 4011.335000038147,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 4011.9649999141693,
+          "end": 4011.9700000286102,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 1,
+            "cachedBytes": 15738,
+            "memoryBytes": 19666,
+            "pendingBytes": 0
+          },
+          "buildId": "5b1bfa0a-1dc7-4b28-9f49-d0cfbba3ce7c"
+        },
+        {
+          "buildId": "5b1bfa0a-1dc7-4b28-9f49-d0cfbba3ce7c",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 4012.189999818802,
+          "end": 4012.585000038147,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5b1bfa0a-1dc7-4b28-9f49-d0cfbba3ce7c",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 4012.5999999046326,
+          "end": 4075.1549999713898,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5b1bfa0a-1dc7-4b28-9f49-d0cfbba3ce7c",
+          "clock": "worker",
+          "phase": "timestamp-patch",
+          "start": 4077.3049998283386,
+          "end": 4077.3799998760223,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5b1bfa0a-1dc7-4b28-9f49-d0cfbba3ce7c",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 4077.409999847412,
+          "end": 4077.444999933243,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 4077.5199999809265,
+          "end": 4078.0599999427795,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 0,
+            "cachedBytes": 0,
+            "memoryBytes": 21630,
+            "pendingBytes": 15738
+          },
+          "buildId": "5b1bfa0a-1dc7-4b28-9f49-d0cfbba3ce7c"
+        },
+        {
+          "buildId": "5b1bfa0a-1dc7-4b28-9f49-d0cfbba3ce7c",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 4078.164999961853,
+          "end": 4116.964999914169,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5b1bfa0a-1dc7-4b28-9f49-d0cfbba3ce7c",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 4117.5199999809265,
+          "end": 4117.569999933243,
+          "outcome": "success"
+        },
+        {
+          "buildId": "5b1bfa0a-1dc7-4b28-9f49-d0cfbba3ce7c",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 4011.210000038147,
+          "end": 4117.59500002861,
+          "outcome": "success",
+          "counts": {
+            "sources": 1,
+            "objectsReused": 0,
+            "starterObjectsReused": 0,
+            "commands": 2,
+            "projectWrites": 2,
+            "projectDeletes": 0,
+            "returnedBytes": 1364384
+          }
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-persistence",
+          "start": 4077.875,
+          "end": 4118.674999952316,
+          "outcome": "success",
+          "counts": {
+            "cachedBytes": 1964,
+            "pendingBytes": 15738,
+            "memoryBytes": 21630
+          },
+          "buildId": "5b1bfa0a-1dc7-4b28-9f49-d0cfbba3ce7c"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-persistence",
+          "start": 4118.689999818802,
+          "end": 4120.179999828339,
+          "outcome": "success",
+          "counts": {
+            "cachedBytes": 15738,
+            "pendingBytes": 0,
+            "memoryBytes": 21630
+          },
+          "buildId": "5b1bfa0a-1dc7-4b28-9f49-d0cfbba3ce7c"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-eviction",
+          "start": 4120.349999904633,
+          "end": 4121.139999866486,
+          "outcome": "success",
+          "counts": {
+            "evictedEntries": 0,
+            "evictedBytes": 0,
+            "persistentBytes": 21630
+          },
+          "buildId": "5b1bfa0a-1dc7-4b28-9f49-d0cfbba3ce7c"
+        }
+      ]
+    },
+    {
+      "template": "pros",
+      "sample": 0,
+      "scenario": "header-edit",
+      "wallMs": 152.5159590000003,
+      "artifactBytes": 16560,
+      "spans": [
+        {
+          "buildId": "8a463dca-2f37-465c-bd8c-81d549d24c38",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 4310.0199999809265,
+          "end": 4310.0199999809265,
+          "outcome": "success"
+        },
+        {
+          "buildId": "8a463dca-2f37-465c-bd8c-81d549d24c38",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 4311.049999952316,
+          "end": 4311.0599999427795,
+          "outcome": "success"
+        },
+        {
+          "buildId": "8a463dca-2f37-465c-bd8c-81d549d24c38",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 4311.074999809265,
+          "end": 4311.125,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 4311.585000038147,
+          "end": 4311.599999904633,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 1,
+            "cachedBytes": 15738,
+            "memoryBytes": 21630,
+            "pendingBytes": 0
+          },
+          "buildId": "8a463dca-2f37-465c-bd8c-81d549d24c38"
+        },
+        {
+          "buildId": "8a463dca-2f37-465c-bd8c-81d549d24c38",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 4311.914999961853,
+          "end": 4312.204999923706,
+          "outcome": "success"
+        },
+        {
+          "buildId": "8a463dca-2f37-465c-bd8c-81d549d24c38",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 4312.22000002861,
+          "end": 4373.714999914169,
+          "outcome": "success"
+        },
+        {
+          "buildId": "8a463dca-2f37-465c-bd8c-81d549d24c38",
+          "clock": "worker",
+          "phase": "timestamp-patch",
+          "start": 4375.299999952316,
+          "end": 4375.349999904633,
+          "outcome": "success"
+        },
+        {
+          "buildId": "8a463dca-2f37-465c-bd8c-81d549d24c38",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 4375.375,
+          "end": 4375.40499997139,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 4375.439999818802,
+          "end": 4375.814999818802,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 0,
+            "cachedBytes": 0,
+            "memoryBytes": 23594,
+            "pendingBytes": 15738
+          },
+          "buildId": "8a463dca-2f37-465c-bd8c-81d549d24c38"
+        },
+        {
+          "buildId": "8a463dca-2f37-465c-bd8c-81d549d24c38",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 4375.90499997139,
+          "end": 4405.774999856949,
+          "outcome": "success"
+        },
+        {
+          "buildId": "8a463dca-2f37-465c-bd8c-81d549d24c38",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 4406.224999904633,
+          "end": 4406.264999866486,
+          "outcome": "success"
+        },
+        {
+          "buildId": "8a463dca-2f37-465c-bd8c-81d549d24c38",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 4311.074999809265,
+          "end": 4406.27999997139,
+          "outcome": "success",
+          "counts": {
+            "sources": 1,
+            "objectsReused": 0,
+            "starterObjectsReused": 0,
+            "commands": 2,
+            "projectWrites": 1,
+            "projectDeletes": 0,
+            "returnedBytes": 1364384
+          }
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-persistence",
+          "start": 4375.714999914169,
+          "end": 4407.134999990463,
+          "outcome": "success",
+          "counts": {
+            "cachedBytes": 1964,
+            "pendingBytes": 15738,
+            "memoryBytes": 23594
+          },
+          "buildId": "8a463dca-2f37-465c-bd8c-81d549d24c38"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-persistence",
+          "start": 4407.1449999809265,
+          "end": 4407.964999914169,
+          "outcome": "success",
+          "counts": {
+            "cachedBytes": 15738,
+            "pendingBytes": 0,
+            "memoryBytes": 23594
+          },
+          "buildId": "8a463dca-2f37-465c-bd8c-81d549d24c38"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-eviction",
+          "start": 4408.109999895096,
+          "end": 4408.740000009537,
+          "outcome": "success",
+          "counts": {
+            "evictedEntries": 0,
+            "evictedBytes": 0,
+            "persistentBytes": 23594
+          },
+          "buildId": "8a463dca-2f37-465c-bd8c-81d549d24c38"
+        }
+      ]
+    },
+    {
+      "template": "pros",
+      "sample": 0,
+      "scenario": "unchanged",
+      "wallMs": 102.96590400000059,
+      "artifactBytes": 16560,
+      "spans": [
+        {
+          "buildId": "3c492e8f-7e47-4874-8cf7-cb08a796c1e8",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 4526.240000009537,
+          "end": 4526.244999885559,
+          "outcome": "success"
+        },
+        {
+          "buildId": "3c492e8f-7e47-4874-8cf7-cb08a796c1e8",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 4527.7699999809265,
+          "end": 4527.784999847412,
+          "outcome": "success"
+        },
+        {
+          "buildId": "3c492e8f-7e47-4874-8cf7-cb08a796c1e8",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 4527.799999952316,
+          "end": 4527.865000009537,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 4528.294999837875,
+          "end": 4528.299999952316,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 1,
+            "cachedBytes": 15738,
+            "memoryBytes": 23594,
+            "pendingBytes": 0
+          },
+          "buildId": "3c492e8f-7e47-4874-8cf7-cb08a796c1e8"
+        },
+        {
+          "buildId": "3c492e8f-7e47-4874-8cf7-cb08a796c1e8",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 4528.509999990463,
+          "end": 4528.544999837875,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 4528.574999809265,
+          "end": 4528.579999923706,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 1,
+            "cachedBytes": 1964,
+            "memoryBytes": 23594,
+            "pendingBytes": 0
+          },
+          "buildId": "3c492e8f-7e47-4874-8cf7-cb08a796c1e8"
+        },
+        {
+          "buildId": "3c492e8f-7e47-4874-8cf7-cb08a796c1e8",
+          "clock": "worker",
+          "phase": "timestamp-patch",
+          "start": 4528.634999990463,
+          "end": 4528.679999828339,
+          "outcome": "success"
+        },
+        {
+          "buildId": "3c492e8f-7e47-4874-8cf7-cb08a796c1e8",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 4528.710000038147,
+          "end": 4528.734999895096,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 4528.759999990463,
+          "end": 4529.09500002861,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 0,
+            "cachedBytes": 0,
+            "memoryBytes": 23594,
+            "pendingBytes": 0
+          },
+          "buildId": "3c492e8f-7e47-4874-8cf7-cb08a796c1e8"
+        },
+        {
+          "buildId": "3c492e8f-7e47-4874-8cf7-cb08a796c1e8",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 4529.204999923706,
+          "end": 4559.079999923706,
+          "outcome": "success"
+        },
+        {
+          "buildId": "3c492e8f-7e47-4874-8cf7-cb08a796c1e8",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 4559.839999914169,
+          "end": 4559.889999866486,
+          "outcome": "success"
+        },
+        {
+          "buildId": "3c492e8f-7e47-4874-8cf7-cb08a796c1e8",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 4527.799999952316,
+          "end": 4559.929999828339,
+          "outcome": "success",
+          "counts": {
+            "sources": 1,
+            "objectsReused": 1,
+            "starterObjectsReused": 0,
+            "commands": 1,
+            "projectWrites": 0,
+            "projectDeletes": 0,
+            "returnedBytes": 1364384
+          }
+        }
+      ]
+    },
+    {
+      "template": "pros",
+      "sample": 1,
+      "scenario": "fresh",
+      "wallMs": 1522.5057230000002,
+      "artifactBytes": 16560,
+      "spans": [
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 45.00499987602234,
+          "end": 58.74499988555908,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 61.84500002861023,
+          "end": 62.294999837875366,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 61.919999837875366,
+          "end": 63.14999985694885,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 61.93999981880188,
+          "end": 63.32499980926514,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 61.96499991416931,
+          "end": 63.459999799728394,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 61.99000000953674,
+          "end": 178.7699999809265,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 62.02999997138977,
+          "end": 179.29999995231628,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 62.049999952316284,
+          "end": 179.41499996185303,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 62.07499980926514,
+          "end": 179.5349998474121,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 62.09999990463257,
+          "end": 179.98499989509583,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 62.12999987602234,
+          "end": 180.125,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 62.14999985694885,
+          "end": 180.52999997138977,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 62.169999837875366,
+          "end": 180.82499980926514,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 62.17999982833862,
+          "end": 181.2849998474121,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 62.22000002861023,
+          "end": 181.37999987602234,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 62.24499988555908,
+          "end": 181.66999983787537,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "asset-integrity",
+          "start": 182.50999999046326,
+          "end": 310.0699999332428,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "counts": {
+            "cachedBytes": 52010538
+          },
+          "phase": "wasm-stream-download",
+          "start": 62.43499994277954,
+          "end": 336.6199998855591,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "asset-integrity",
+          "start": 338.69999980926514,
+          "end": 338.80999994277954,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "counts": {
+            "cachedBytes": 37626
+          },
+          "phase": "wasm-stream-download",
+          "start": 63.174999952316284,
+          "end": 338.8949999809265,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "asset-integrity",
+          "start": 338.914999961853,
+          "end": 338.93499994277954,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "counts": {
+            "cachedBytes": 5458
+          },
+          "phase": "wasm-stream-download",
+          "start": 63.33999991416931,
+          "end": 338.97000002861023,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "asset-integrity",
+          "start": 338.99000000953674,
+          "end": 338.9949998855591,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "counts": {
+            "cachedBytes": 787
+          },
+          "phase": "wasm-stream-download",
+          "start": 63.47499990463257,
+          "end": 339.02999997138977,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 0,
+            "cachedBytes": 16770,
+            "hashedBytes": 16770
+          },
+          "phase": "asset-integrity",
+          "start": 347.0549998283386,
+          "end": 347.1599998474121,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 0,
+            "cachedBytes": 176116,
+            "hashedBytes": 176116
+          },
+          "phase": "asset-integrity",
+          "start": 347.20499992370605,
+          "end": 347.6449999809265,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 0,
+            "cachedBytes": 161014,
+            "hashedBytes": 161014
+          },
+          "phase": "asset-integrity",
+          "start": 348.88499999046326,
+          "end": 349.289999961853,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 0,
+            "cachedBytes": 1327080,
+            "hashedBytes": 1327080
+          },
+          "phase": "asset-integrity",
+          "start": 350.25999999046326,
+          "end": 353.54499983787537,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 0,
+            "cachedBytes": 832635,
+            "hashedBytes": 832635
+          },
+          "phase": "asset-integrity",
+          "start": 356.20499992370605,
+          "end": 357.93499994277954,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 0,
+            "cachedBytes": 1044,
+            "hashedBytes": 1044
+          },
+          "phase": "asset-integrity",
+          "start": 365.5699999332428,
+          "end": 365.5899999141693,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 0,
+            "cachedBytes": 976039,
+            "hashedBytes": 976039
+          },
+          "phase": "asset-integrity",
+          "start": 368.1899998188019,
+          "end": 370.5699999332428,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 0,
+            "cachedBytes": 2417939,
+            "hashedBytes": 2417939
+          },
+          "phase": "asset-integrity",
+          "start": 371.88499999046326,
+          "end": 378.00499987602234,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 0,
+            "cachedBytes": 666018,
+            "hashedBytes": 666018
+          },
+          "phase": "asset-integrity",
+          "start": 381.57499980926514,
+          "end": 383.47000002861023,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 0,
+            "cachedBytes": 5544576,
+            "hashedBytes": 5544576
+          },
+          "phase": "asset-integrity",
+          "start": 407.1099998950958,
+          "end": 420.8599998950958,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "bundle-decompression",
+          "start": 347.664999961853,
+          "end": 464.4949998855591,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "counts": {
+            "compressedBytes": 176116
+          },
+          "phase": "header-bundle-load",
+          "start": 61.454999923706055,
+          "end": 470.05999994277954,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "bundle-decompression",
+          "start": 349.3049998283386,
+          "end": 471.4800000190735,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "counts": {
+            "compressedBytes": 161014
+          },
+          "phase": "header-bundle-load",
+          "start": 61.56499981880188,
+          "end": 476.6199998855591,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "bundle-decompression",
+          "start": 353.5649998188019,
+          "end": 479.66999983787537,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "counts": {
+            "compressedBytes": 1327080
+          },
+          "phase": "library-bundle-load",
+          "start": 61.584999799728394,
+          "end": 479.9249999523163,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "bundle-decompression",
+          "start": 357.97000002861023,
+          "end": 481.414999961853,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "counts": {
+            "compressedBytes": 832635
+          },
+          "phase": "library-bundle-load",
+          "start": 61.59999990463257,
+          "end": 481.47499990463257,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "bundle-decompression",
+          "start": 378.04499983787537,
+          "end": 520.7249999046326,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "counts": {
+            "compressedBytes": 2417939
+          },
+          "phase": "header-bundle-load",
+          "start": 61.55499982833862,
+          "end": 561.5950000286102,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "cold-assets",
+          "start": 61.75499987602234,
+          "end": 562.329999923706,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "pch-decompression",
+          "start": 420.8949999809265,
+          "end": 567.5599999427795,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 0,
+            "cachedBytes": 15104000,
+            "hashedBytes": 15104000
+          },
+          "phase": "asset-integrity",
+          "start": 581.8499999046326,
+          "end": 619.0449998378754,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 60.514999866485596,
+          "end": 649.3499999046326,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "sdk-mount",
+          "start": 649.3699998855591,
+          "end": 757.3049998283386,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 758.0449998378754,
+          "end": 758.2849998474121,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 799.1299998760223,
+          "end": 799.75,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 0,
+            "cachedBytes": 0,
+            "memoryBytes": 0,
+            "pendingBytes": 0
+          },
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 799.829999923706,
+          "end": 1323.3049998283386,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "timestamp-patch",
+          "start": 1328.6349999904633,
+          "end": 1329.1749999523163,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 1329.3099999427795,
+          "end": 1329.7349998950958,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 1329.7749998569489,
+          "end": 1338.8799998760223,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 0,
+            "cachedBytes": 0,
+            "memoryBytes": 17702,
+            "pendingBytes": 15738
+          },
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 1339.079999923706,
+          "end": 1430.244999885559,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 1431.1949999332428,
+          "end": 1431.664999961853,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 758.0349998474121,
+          "end": 1431.7949998378754,
+          "outcome": "success",
+          "counts": {
+            "sources": 1,
+            "objectsReused": 0,
+            "starterObjectsReused": 0,
+            "commands": 2,
+            "projectWrites": 5,
+            "projectDeletes": 0,
+            "returnedBytes": 1364384
+          }
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-persistence",
+          "start": 1333.5649998188019,
+          "end": 1441.5,
+          "outcome": "success",
+          "counts": {
+            "cachedBytes": 1964,
+            "pendingBytes": 15738,
+            "memoryBytes": 17702
+          },
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-persistence",
+          "start": 1441.534999847412,
+          "end": 1442.6999998092651,
+          "outcome": "success",
+          "counts": {
+            "cachedBytes": 15738,
+            "pendingBytes": 0,
+            "memoryBytes": 17702
+          },
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-eviction",
+          "start": 1443.0449998378754,
+          "end": 1443.4399998188019,
+          "outcome": "success",
+          "counts": {
+            "evictedEntries": 0,
+            "evictedBytes": 0,
+            "persistentBytes": 17702
+          },
+          "buildId": "d2516c80-b213-4f67-9880-f1fb2587fd3a"
+        }
+      ]
+    },
+    {
+      "template": "pros",
+      "sample": 1,
+      "scenario": "source-edit",
+      "wallMs": 268.0630860000001,
+      "artifactBytes": 16560,
+      "spans": [
+        {
+          "buildId": "4e54a727-af0d-4598-a7d5-8d4f1bb867c4",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 1717.0249998569489,
+          "end": 1717.0299999713898,
+          "outcome": "success"
+        },
+        {
+          "buildId": "4e54a727-af0d-4598-a7d5-8d4f1bb867c4",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 1718.534999847412,
+          "end": 1718.5549998283386,
+          "outcome": "success"
+        },
+        {
+          "buildId": "4e54a727-af0d-4598-a7d5-8d4f1bb867c4",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 1718.5950000286102,
+          "end": 1718.7300000190735,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 1719.8849999904633,
+          "end": 1719.8949999809265,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 1,
+            "cachedBytes": 15738,
+            "memoryBytes": 17702,
+            "pendingBytes": 0
+          },
+          "buildId": "4e54a727-af0d-4598-a7d5-8d4f1bb867c4"
+        },
+        {
+          "buildId": "4e54a727-af0d-4598-a7d5-8d4f1bb867c4",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 1720.2200000286102,
+          "end": 1720.6799998283386,
+          "outcome": "success"
+        },
+        {
+          "buildId": "4e54a727-af0d-4598-a7d5-8d4f1bb867c4",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 1720.7300000190735,
+          "end": 1810.0149998664856,
+          "outcome": "success"
+        },
+        {
+          "buildId": "4e54a727-af0d-4598-a7d5-8d4f1bb867c4",
+          "clock": "worker",
+          "phase": "timestamp-patch",
+          "start": 1813.789999961853,
+          "end": 1813.9749999046326,
+          "outcome": "success"
+        },
+        {
+          "buildId": "4e54a727-af0d-4598-a7d5-8d4f1bb867c4",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 1814.034999847412,
+          "end": 1814.1150000095367,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 1814.1699998378754,
+          "end": 1816.3799998760223,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 0,
+            "cachedBytes": 0,
+            "memoryBytes": 19666,
+            "pendingBytes": 15738
+          },
+          "buildId": "4e54a727-af0d-4598-a7d5-8d4f1bb867c4"
+        },
+        {
+          "buildId": "4e54a727-af0d-4598-a7d5-8d4f1bb867c4",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 1816.5599999427795,
+          "end": 1875.8799998760223,
+          "outcome": "success"
+        },
+        {
+          "buildId": "4e54a727-af0d-4598-a7d5-8d4f1bb867c4",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 1876.8399999141693,
+          "end": 1876.9800000190735,
+          "outcome": "success"
+        },
+        {
+          "buildId": "4e54a727-af0d-4598-a7d5-8d4f1bb867c4",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 1718.5849997997284,
+          "end": 1878.8049998283386,
+          "outcome": "success",
+          "counts": {
+            "sources": 1,
+            "objectsReused": 0,
+            "starterObjectsReused": 0,
+            "commands": 2,
+            "projectWrites": 1,
+            "projectDeletes": 0,
+            "returnedBytes": 1364384
+          }
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-persistence",
+          "start": 1815.0199999809265,
+          "end": 1884.454999923706,
+          "outcome": "success",
+          "counts": {
+            "cachedBytes": 1964,
+            "pendingBytes": 15738,
+            "memoryBytes": 19666
+          },
+          "buildId": "4e54a727-af0d-4598-a7d5-8d4f1bb867c4"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-persistence",
+          "start": 1884.5,
+          "end": 1885.9449999332428,
+          "outcome": "success",
+          "counts": {
+            "cachedBytes": 15738,
+            "pendingBytes": 0,
+            "memoryBytes": 19666
+          },
+          "buildId": "4e54a727-af0d-4598-a7d5-8d4f1bb867c4"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-eviction",
+          "start": 1886.2400000095367,
+          "end": 1886.829999923706,
+          "outcome": "success",
+          "counts": {
+            "evictedEntries": 0,
+            "evictedBytes": 0,
+            "persistentBytes": 19666
+          },
+          "buildId": "4e54a727-af0d-4598-a7d5-8d4f1bb867c4"
+        }
+      ]
+    },
+    {
+      "template": "pros",
+      "sample": 1,
+      "scenario": "header-setup",
+      "wallMs": 189.86840800000027,
+      "artifactBytes": 16560,
+      "spans": [
+        {
+          "buildId": "fc7353c1-7ae3-4c07-8fc1-39b6c7522164",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 2245.2549998760223,
+          "end": 2245.2549998760223,
+          "outcome": "success"
+        },
+        {
+          "buildId": "fc7353c1-7ae3-4c07-8fc1-39b6c7522164",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 2246.6549999713898,
+          "end": 2246.6749999523163,
+          "outcome": "success"
+        },
+        {
+          "buildId": "fc7353c1-7ae3-4c07-8fc1-39b6c7522164",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 2246.7099997997284,
+          "end": 2246.819999933243,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 2247.664999961853,
+          "end": 2247.6749999523163,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 1,
+            "cachedBytes": 15738,
+            "memoryBytes": 19666,
+            "pendingBytes": 0
+          },
+          "buildId": "fc7353c1-7ae3-4c07-8fc1-39b6c7522164"
+        },
+        {
+          "buildId": "fc7353c1-7ae3-4c07-8fc1-39b6c7522164",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 2247.9049999713898,
+          "end": 2248.289999961853,
+          "outcome": "success"
+        },
+        {
+          "buildId": "fc7353c1-7ae3-4c07-8fc1-39b6c7522164",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 2248.3049998283386,
+          "end": 2319.7200000286102,
+          "outcome": "success"
+        },
+        {
+          "buildId": "fc7353c1-7ae3-4c07-8fc1-39b6c7522164",
+          "clock": "worker",
+          "phase": "timestamp-patch",
+          "start": 2321.9049999713898,
+          "end": 2321.9800000190735,
+          "outcome": "success"
+        },
+        {
+          "buildId": "fc7353c1-7ae3-4c07-8fc1-39b6c7522164",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 2322.0149998664856,
+          "end": 2322.0499999523163,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 2322.079999923706,
+          "end": 2325.0849997997284,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 0,
+            "cachedBytes": 0,
+            "memoryBytes": 21630,
+            "pendingBytes": 15738
+          },
+          "buildId": "fc7353c1-7ae3-4c07-8fc1-39b6c7522164"
+        },
+        {
+          "buildId": "fc7353c1-7ae3-4c07-8fc1-39b6c7522164",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 2325.2249999046326,
+          "end": 2358.6399998664856,
+          "outcome": "success"
+        },
+        {
+          "buildId": "fc7353c1-7ae3-4c07-8fc1-39b6c7522164",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 2359.1399998664856,
+          "end": 2359.1799998283386,
+          "outcome": "success"
+        },
+        {
+          "buildId": "fc7353c1-7ae3-4c07-8fc1-39b6c7522164",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 2246.699999809265,
+          "end": 2359.204999923706,
+          "outcome": "success",
+          "counts": {
+            "sources": 1,
+            "objectsReused": 0,
+            "starterObjectsReused": 0,
+            "commands": 2,
+            "projectWrites": 2,
+            "projectDeletes": 0,
+            "returnedBytes": 1364384
+          }
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-persistence",
+          "start": 2324.7099997997284,
+          "end": 2362.9900000095367,
+          "outcome": "success",
+          "counts": {
+            "cachedBytes": 1964,
+            "pendingBytes": 15738,
+            "memoryBytes": 21630
+          },
+          "buildId": "fc7353c1-7ae3-4c07-8fc1-39b6c7522164"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-persistence",
+          "start": 2363.0049998760223,
+          "end": 2363.954999923706,
+          "outcome": "success",
+          "counts": {
+            "cachedBytes": 15738,
+            "pendingBytes": 0,
+            "memoryBytes": 21630
+          },
+          "buildId": "fc7353c1-7ae3-4c07-8fc1-39b6c7522164"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-eviction",
+          "start": 2364.119999885559,
+          "end": 2364.7300000190735,
+          "outcome": "success",
+          "counts": {
+            "evictedEntries": 0,
+            "evictedBytes": 0,
+            "persistentBytes": 21630
+          },
+          "buildId": "fc7353c1-7ae3-4c07-8fc1-39b6c7522164"
+        }
+      ]
+    },
+    {
+      "template": "pros",
+      "sample": 1,
+      "scenario": "header-edit",
+      "wallMs": 186.49893000000156,
+      "artifactBytes": 16560,
+      "spans": [
+        {
+          "buildId": "771e1a1f-6c32-4314-a7ce-4c92a2244a8f",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 2578.5849997997284,
+          "end": 2578.5899999141693,
+          "outcome": "success"
+        },
+        {
+          "buildId": "771e1a1f-6c32-4314-a7ce-4c92a2244a8f",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 2579.6449999809265,
+          "end": 2579.6549999713898,
+          "outcome": "success"
+        },
+        {
+          "buildId": "771e1a1f-6c32-4314-a7ce-4c92a2244a8f",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 2579.6749999523163,
+          "end": 2579.734999895096,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 2580.375,
+          "end": 2580.3899998664856,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 1,
+            "cachedBytes": 15738,
+            "memoryBytes": 21630,
+            "pendingBytes": 0
+          },
+          "buildId": "771e1a1f-6c32-4314-a7ce-4c92a2244a8f"
+        },
+        {
+          "buildId": "771e1a1f-6c32-4314-a7ce-4c92a2244a8f",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 2580.5950000286102,
+          "end": 2580.8849999904633,
+          "outcome": "success"
+        },
+        {
+          "buildId": "771e1a1f-6c32-4314-a7ce-4c92a2244a8f",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 2580.899999856949,
+          "end": 2645.2699999809265,
+          "outcome": "success"
+        },
+        {
+          "buildId": "771e1a1f-6c32-4314-a7ce-4c92a2244a8f",
+          "clock": "worker",
+          "phase": "timestamp-patch",
+          "start": 2646.7400000095367,
+          "end": 2646.8099999427795,
+          "outcome": "success"
+        },
+        {
+          "buildId": "771e1a1f-6c32-4314-a7ce-4c92a2244a8f",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 2646.8349997997284,
+          "end": 2646.8650000095367,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 2646.8949999809265,
+          "end": 2652.774999856949,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 0,
+            "cachedBytes": 0,
+            "memoryBytes": 23594,
+            "pendingBytes": 15738
+          },
+          "buildId": "771e1a1f-6c32-4314-a7ce-4c92a2244a8f"
+        },
+        {
+          "buildId": "771e1a1f-6c32-4314-a7ce-4c92a2244a8f",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 2652.949999809265,
+          "end": 2689.704999923706,
+          "outcome": "success"
+        },
+        {
+          "buildId": "771e1a1f-6c32-4314-a7ce-4c92a2244a8f",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 2690.414999961853,
+          "end": 2690.449999809265,
+          "outcome": "success"
+        },
+        {
+          "buildId": "771e1a1f-6c32-4314-a7ce-4c92a2244a8f",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 2579.6699998378754,
+          "end": 2690.4700000286102,
+          "outcome": "success",
+          "counts": {
+            "sources": 1,
+            "objectsReused": 0,
+            "starterObjectsReused": 0,
+            "commands": 2,
+            "projectWrites": 1,
+            "projectDeletes": 0,
+            "returnedBytes": 1364384
+          }
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-persistence",
+          "start": 2652.609999895096,
+          "end": 2693.6399998664856,
+          "outcome": "success",
+          "counts": {
+            "cachedBytes": 1964,
+            "pendingBytes": 15738,
+            "memoryBytes": 23594
+          },
+          "buildId": "771e1a1f-6c32-4314-a7ce-4c92a2244a8f"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-persistence",
+          "start": 2693.659999847412,
+          "end": 2694.9199998378754,
+          "outcome": "success",
+          "counts": {
+            "cachedBytes": 15738,
+            "pendingBytes": 0,
+            "memoryBytes": 23594
+          },
+          "buildId": "771e1a1f-6c32-4314-a7ce-4c92a2244a8f"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-eviction",
+          "start": 2695.1349999904633,
+          "end": 2696.1549999713898,
+          "outcome": "success",
+          "counts": {
+            "evictedEntries": 0,
+            "evictedBytes": 0,
+            "persistentBytes": 23594
+          },
+          "buildId": "771e1a1f-6c32-4314-a7ce-4c92a2244a8f"
+        }
+      ]
+    },
+    {
+      "template": "pros",
+      "sample": 1,
+      "scenario": "unchanged",
+      "wallMs": 103.99643699999979,
+      "artifactBytes": 16560,
+      "spans": [
+        {
+          "buildId": "86ffc358-5142-4128-b344-bb8f5281fbad",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 2811.6150000095367,
+          "end": 2811.6150000095367,
+          "outcome": "success"
+        },
+        {
+          "buildId": "86ffc358-5142-4128-b344-bb8f5281fbad",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 2812.5899999141693,
+          "end": 2812.6050000190735,
+          "outcome": "success"
+        },
+        {
+          "buildId": "86ffc358-5142-4128-b344-bb8f5281fbad",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 2812.619999885559,
+          "end": 2812.6699998378754,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 2813.244999885559,
+          "end": 2813.2549998760223,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 1,
+            "cachedBytes": 15738,
+            "memoryBytes": 23594,
+            "pendingBytes": 0
+          },
+          "buildId": "86ffc358-5142-4128-b344-bb8f5281fbad"
+        },
+        {
+          "buildId": "86ffc358-5142-4128-b344-bb8f5281fbad",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 2813.4749999046326,
+          "end": 2813.5099999904633,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 2813.539999961853,
+          "end": 2813.5449998378754,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 1,
+            "cachedBytes": 1964,
+            "memoryBytes": 23594,
+            "pendingBytes": 0
+          },
+          "buildId": "86ffc358-5142-4128-b344-bb8f5281fbad"
+        },
+        {
+          "buildId": "86ffc358-5142-4128-b344-bb8f5281fbad",
+          "clock": "worker",
+          "phase": "timestamp-patch",
+          "start": 2813.6050000190735,
+          "end": 2813.6749999523163,
+          "outcome": "success"
+        },
+        {
+          "buildId": "86ffc358-5142-4128-b344-bb8f5281fbad",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 2813.734999895096,
+          "end": 2813.7949998378754,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 2813.8450000286102,
+          "end": 2814.1549999713898,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 0,
+            "cachedBytes": 0,
+            "memoryBytes": 23594,
+            "pendingBytes": 0
+          },
+          "buildId": "86ffc358-5142-4128-b344-bb8f5281fbad"
+        },
+        {
+          "buildId": "86ffc358-5142-4128-b344-bb8f5281fbad",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 2814.289999961853,
+          "end": 2845.024999856949,
+          "outcome": "success"
+        },
+        {
+          "buildId": "86ffc358-5142-4128-b344-bb8f5281fbad",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 2845.5299999713898,
+          "end": 2845.569999933243,
+          "outcome": "success"
+        },
+        {
+          "buildId": "86ffc358-5142-4128-b344-bb8f5281fbad",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 2812.6150000095367,
+          "end": 2845.5950000286102,
+          "outcome": "success",
+          "counts": {
+            "sources": 1,
+            "objectsReused": 1,
+            "starterObjectsReused": 0,
+            "commands": 1,
+            "projectWrites": 0,
+            "projectDeletes": 0,
+            "returnedBytes": 1364384
+          }
+        }
+      ]
+    },
+    {
+      "template": "pros",
+      "sample": 2,
+      "scenario": "fresh",
+      "wallMs": 1436.795041999998,
+      "artifactBytes": 16560,
+      "spans": [
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 45.609999895095825,
+          "end": 58.05999994277954,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 60.6949999332428,
+          "end": 61.28500008583069,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 60.77500009536743,
+          "end": 62.230000019073486,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 60.799999952316284,
+          "end": 62.44000005722046,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 60.829999923706055,
+          "end": 62.605000019073486,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 60.86500000953674,
+          "end": 62.77999997138977,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 60.93499994277954,
+          "end": 63.34999990463257,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 60.96499991416931,
+          "end": 63.47000002861023,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 60.99499988555908,
+          "end": 63.625,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 61.02500009536743,
+          "end": 64.23000001907349,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 61.06500005722046,
+          "end": 64.39499998092651,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 61.08999991416931,
+          "end": 64.8050000667572,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 61.125,
+          "end": 65.14499998092651,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 61.15000009536743,
+          "end": 65.75,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 61.18499994277954,
+          "end": 65.875,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "asset-cache-read",
+          "start": 61.22000002861023,
+          "end": 66.15000009536743,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "asset-integrity",
+          "start": 183.29500007629395,
+          "end": 310.87999987602234,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "counts": {
+            "cachedBytes": 52010538
+          },
+          "phase": "wasm-stream-download",
+          "start": 61.450000047683716,
+          "end": 336.90000009536743,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "asset-integrity",
+          "start": 336.9500000476837,
+          "end": 337.05999994277954,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "counts": {
+            "cachedBytes": 37626
+          },
+          "phase": "wasm-stream-download",
+          "start": 62.25999999046326,
+          "end": 337.125,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "asset-integrity",
+          "start": 337.1449999809265,
+          "end": 337.164999961853,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "counts": {
+            "cachedBytes": 5458
+          },
+          "phase": "wasm-stream-download",
+          "start": 62.454999923706055,
+          "end": 337.1949999332428,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "asset-integrity",
+          "start": 337.2149999141693,
+          "end": 337.22000002861023,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "counts": {
+            "cachedBytes": 787
+          },
+          "phase": "wasm-stream-download",
+          "start": 62.61999988555908,
+          "end": 337.25,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 0,
+            "cachedBytes": 16770,
+            "hashedBytes": 16770
+          },
+          "phase": "asset-integrity",
+          "start": 342.1449999809265,
+          "end": 342.2300000190735,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 0,
+            "cachedBytes": 176116,
+            "hashedBytes": 176116
+          },
+          "phase": "asset-integrity",
+          "start": 342.27999997138977,
+          "end": 342.7149999141693,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 0,
+            "cachedBytes": 161014,
+            "hashedBytes": 161014
+          },
+          "phase": "asset-integrity",
+          "start": 343.9449999332428,
+          "end": 344.34500002861023,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 0,
+            "cachedBytes": 1327080,
+            "hashedBytes": 1327080
+          },
+          "phase": "asset-integrity",
+          "start": 348.210000038147,
+          "end": 351.50499987602234,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 0,
+            "cachedBytes": 832635,
+            "hashedBytes": 832635
+          },
+          "phase": "asset-integrity",
+          "start": 359.70499992370605,
+          "end": 361.710000038147,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 0,
+            "cachedBytes": 1044,
+            "hashedBytes": 1044
+          },
+          "phase": "asset-integrity",
+          "start": 362.75999999046326,
+          "end": 362.7699999809265,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 0,
+            "cachedBytes": 2417939,
+            "hashedBytes": 2417939
+          },
+          "phase": "asset-integrity",
+          "start": 362.79500007629395,
+          "end": 368.72499990463257,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 0,
+            "cachedBytes": 976039,
+            "hashedBytes": 976039
+          },
+          "phase": "asset-integrity",
+          "start": 371.8250000476837,
+          "end": 374.27999997138977,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 0,
+            "cachedBytes": 666018,
+            "hashedBytes": 666018
+          },
+          "phase": "asset-integrity",
+          "start": 375.52500009536743,
+          "end": 377.15000009536743,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 0,
+            "cachedBytes": 5544576,
+            "hashedBytes": 5544576
+          },
+          "phase": "asset-integrity",
+          "start": 382.97000002861023,
+          "end": 395.835000038147,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "bundle-decompression",
+          "start": 342.7349998950958,
+          "end": 454.3949999809265,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "counts": {
+            "compressedBytes": 176116
+          },
+          "phase": "header-bundle-load",
+          "start": 60.299999952316284,
+          "end": 459.4649999141693,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "bundle-decompression",
+          "start": 344.3599998950958,
+          "end": 460.914999961853,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "counts": {
+            "compressedBytes": 161014
+          },
+          "phase": "header-bundle-load",
+          "start": 60.40499997138977,
+          "end": 465.43499994277954,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "bundle-decompression",
+          "start": 351.5350000858307,
+          "end": 468.5350000858307,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "counts": {
+            "compressedBytes": 1327080
+          },
+          "phase": "library-bundle-load",
+          "start": 60.424999952316284,
+          "end": 468.7999999523163,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "bundle-decompression",
+          "start": 361.74000000953674,
+          "end": 500.18499994277954,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "counts": {
+            "compressedBytes": 832635
+          },
+          "phase": "library-bundle-load",
+          "start": 60.44000005722046,
+          "end": 500.27500009536743,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "bundle-decompression",
+          "start": 368.7349998950958,
+          "end": 507.2699999809265,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "counts": {
+            "compressedBytes": 2417939
+          },
+          "phase": "header-bundle-load",
+          "start": 60.390000104904175,
+          "end": 545.3250000476837,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "cold-assets",
+          "start": 60.609999895095825,
+          "end": 547.4900000095367,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "pch-decompression",
+          "start": 395.86500000953674,
+          "end": 552.5950000286102,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "counts": {
+            "fetchedBytes": 0,
+            "cachedBytes": 15104000,
+            "hashedBytes": 15104000
+          },
+          "phase": "asset-integrity",
+          "start": 566.8199999332428,
+          "end": 604.0999999046326,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 59.41499996185303,
+          "end": 634.1600000858307,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "sdk-mount",
+          "start": 634.1849999427795,
+          "end": 727.0999999046326,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 727.7599999904633,
+          "end": 727.9849998950958,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 767.704999923706,
+          "end": 768.3650000095367,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 0,
+            "cachedBytes": 0,
+            "memoryBytes": 0,
+            "pendingBytes": 0
+          },
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 768.4449999332428,
+          "end": 1247.0550000667572,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "timestamp-patch",
+          "start": 1251.8150000572205,
+          "end": 1252.295000076294,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 1252.4349999427795,
+          "end": 1252.8050000667572,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 1252.8550000190735,
+          "end": 1260.5699999332428,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 0,
+            "cachedBytes": 0,
+            "memoryBytes": 17702,
+            "pendingBytes": 15738
+          },
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 1260.8099999427795,
+          "end": 1357.1800000667572,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 1357.6749999523163,
+          "end": 1357.9300000667572,
+          "outcome": "success"
+        },
+        {
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 727.75,
+          "end": 1358.039999961853,
+          "outcome": "success",
+          "counts": {
+            "sources": 1,
+            "objectsReused": 0,
+            "starterObjectsReused": 0,
+            "commands": 2,
+            "projectWrites": 5,
+            "projectDeletes": 0,
+            "returnedBytes": 1364384
+          }
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-persistence",
+          "start": 1256.170000076294,
+          "end": 1363.914999961853,
+          "outcome": "success",
+          "counts": {
+            "cachedBytes": 1964,
+            "pendingBytes": 15738,
+            "memoryBytes": 17702
+          },
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-persistence",
+          "start": 1363.9400000572205,
+          "end": 1365.2300000190735,
+          "outcome": "success",
+          "counts": {
+            "cachedBytes": 15738,
+            "pendingBytes": 0,
+            "memoryBytes": 17702
+          },
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-eviction",
+          "start": 1365.4249999523163,
+          "end": 1365.7999999523163,
+          "outcome": "success",
+          "counts": {
+            "evictedEntries": 0,
+            "evictedBytes": 0,
+            "persistentBytes": 17702
+          },
+          "buildId": "99583461-bef6-4b39-b8eb-e3951d9747ce"
+        }
+      ]
+    },
+    {
+      "template": "pros",
+      "sample": 2,
+      "scenario": "source-edit",
+      "wallMs": 276.18517999999676,
+      "artifactBytes": 16560,
+      "spans": [
+        {
+          "buildId": "d8000e7f-acd4-4e20-a39d-291140024118",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 1647.289999961853,
+          "end": 1647.295000076294,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d8000e7f-acd4-4e20-a39d-291140024118",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 1649.0550000667572,
+          "end": 1649.0750000476837,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d8000e7f-acd4-4e20-a39d-291140024118",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 1649.1150000095367,
+          "end": 1649.2400000095367,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 1650.585000038147,
+          "end": 1650.5950000286102,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 1,
+            "cachedBytes": 15738,
+            "memoryBytes": 17702,
+            "pendingBytes": 0
+          },
+          "buildId": "d8000e7f-acd4-4e20-a39d-291140024118"
+        },
+        {
+          "buildId": "d8000e7f-acd4-4e20-a39d-291140024118",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 1651.0599999427795,
+          "end": 1651.6749999523163,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d8000e7f-acd4-4e20-a39d-291140024118",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 1651.710000038147,
+          "end": 1763.079999923706,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d8000e7f-acd4-4e20-a39d-291140024118",
+          "clock": "worker",
+          "phase": "timestamp-patch",
+          "start": 1769.369999885559,
+          "end": 1769.5550000667572,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d8000e7f-acd4-4e20-a39d-291140024118",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 1769.6099998950958,
+          "end": 1769.6849999427795,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 1769.7300000190735,
+          "end": 1770.3499999046326,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 0,
+            "cachedBytes": 0,
+            "memoryBytes": 19666,
+            "pendingBytes": 15738
+          },
+          "buildId": "d8000e7f-acd4-4e20-a39d-291140024118"
+        },
+        {
+          "buildId": "d8000e7f-acd4-4e20-a39d-291140024118",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 1770.539999961853,
+          "end": 1824.835000038147,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d8000e7f-acd4-4e20-a39d-291140024118",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 1825.5699999332428,
+          "end": 1825.6849999427795,
+          "outcome": "success"
+        },
+        {
+          "buildId": "d8000e7f-acd4-4e20-a39d-291140024118",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 1649.1050000190735,
+          "end": 1825.744999885559,
+          "outcome": "success",
+          "counts": {
+            "sources": 1,
+            "objectsReused": 0,
+            "starterObjectsReused": 0,
+            "commands": 2,
+            "projectWrites": 1,
+            "projectDeletes": 0,
+            "returnedBytes": 1364384
+          }
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-persistence",
+          "start": 1770.2200000286102,
+          "end": 1826.9049999713898,
+          "outcome": "success",
+          "counts": {
+            "cachedBytes": 1964,
+            "pendingBytes": 15738,
+            "memoryBytes": 19666
+          },
+          "buildId": "d8000e7f-acd4-4e20-a39d-291140024118"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-persistence",
+          "start": 1826.9349999427795,
+          "end": 1828.295000076294,
+          "outcome": "success",
+          "counts": {
+            "cachedBytes": 15738,
+            "pendingBytes": 0,
+            "memoryBytes": 19666
+          },
+          "buildId": "d8000e7f-acd4-4e20-a39d-291140024118"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-eviction",
+          "start": 1828.545000076294,
+          "end": 1829.1849999427795,
+          "outcome": "success",
+          "counts": {
+            "evictedEntries": 0,
+            "evictedBytes": 0,
+            "persistentBytes": 19666
+          },
+          "buildId": "d8000e7f-acd4-4e20-a39d-291140024118"
+        }
+      ]
+    },
+    {
+      "template": "pros",
+      "sample": 2,
+      "scenario": "header-setup",
+      "wallMs": 178.33910900000046,
+      "artifactBytes": 16560,
+      "spans": [
+        {
+          "buildId": "6cf86081-d538-4b4c-beae-3aa4043491a9",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 2144.954999923706,
+          "end": 2144.954999923706,
+          "outcome": "success"
+        },
+        {
+          "buildId": "6cf86081-d538-4b4c-beae-3aa4043491a9",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 2146.2400000095367,
+          "end": 2146.2549998760223,
+          "outcome": "success"
+        },
+        {
+          "buildId": "6cf86081-d538-4b4c-beae-3aa4043491a9",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 2146.2699999809265,
+          "end": 2146.3399999141693,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 2147.0299999713898,
+          "end": 2147.039999961853,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 1,
+            "cachedBytes": 15738,
+            "memoryBytes": 19666,
+            "pendingBytes": 0
+          },
+          "buildId": "6cf86081-d538-4b4c-beae-3aa4043491a9"
+        },
+        {
+          "buildId": "6cf86081-d538-4b4c-beae-3aa4043491a9",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 2147.2999999523163,
+          "end": 2147.640000104904,
+          "outcome": "success"
+        },
+        {
+          "buildId": "6cf86081-d538-4b4c-beae-3aa4043491a9",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 2147.6600000858307,
+          "end": 2227.640000104904,
+          "outcome": "success"
+        },
+        {
+          "buildId": "6cf86081-d538-4b4c-beae-3aa4043491a9",
+          "clock": "worker",
+          "phase": "timestamp-patch",
+          "start": 2229.944999933243,
+          "end": 2230.0199999809265,
+          "outcome": "success"
+        },
+        {
+          "buildId": "6cf86081-d538-4b4c-beae-3aa4043491a9",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 2230.0599999427795,
+          "end": 2230.0950000286102,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 2230.125,
+          "end": 2230.5099999904633,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 0,
+            "cachedBytes": 0,
+            "memoryBytes": 21630,
+            "pendingBytes": 15738
+          },
+          "buildId": "6cf86081-d538-4b4c-beae-3aa4043491a9"
+        },
+        {
+          "buildId": "6cf86081-d538-4b4c-beae-3aa4043491a9",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 2230.6150000095367,
+          "end": 2268.2400000095367,
+          "outcome": "success"
+        },
+        {
+          "buildId": "6cf86081-d538-4b4c-beae-3aa4043491a9",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 2268.744999885559,
+          "end": 2268.789999961853,
+          "outcome": "success"
+        },
+        {
+          "buildId": "6cf86081-d538-4b4c-beae-3aa4043491a9",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 2146.2699999809265,
+          "end": 2268.8150000572205,
+          "outcome": "success",
+          "counts": {
+            "sources": 1,
+            "objectsReused": 0,
+            "starterObjectsReused": 0,
+            "commands": 2,
+            "projectWrites": 2,
+            "projectDeletes": 0,
+            "returnedBytes": 1364384
+          }
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-persistence",
+          "start": 2230.4249999523163,
+          "end": 2276.170000076294,
+          "outcome": "success",
+          "counts": {
+            "cachedBytes": 1964,
+            "pendingBytes": 15738,
+            "memoryBytes": 21630
+          },
+          "buildId": "6cf86081-d538-4b4c-beae-3aa4043491a9"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-persistence",
+          "start": 2276.1900000572205,
+          "end": 2277.375,
+          "outcome": "success",
+          "counts": {
+            "cachedBytes": 15738,
+            "pendingBytes": 0,
+            "memoryBytes": 21630
+          },
+          "buildId": "6cf86081-d538-4b4c-beae-3aa4043491a9"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-eviction",
+          "start": 2277.5650000572205,
+          "end": 2278.295000076294,
+          "outcome": "success",
+          "counts": {
+            "evictedEntries": 0,
+            "evictedBytes": 0,
+            "persistentBytes": 21630
+          },
+          "buildId": "6cf86081-d538-4b4c-beae-3aa4043491a9"
+        }
+      ]
+    },
+    {
+      "template": "pros",
+      "sample": 2,
+      "scenario": "header-edit",
+      "wallMs": 149.87918200000058,
+      "artifactBytes": 16560,
+      "spans": [
+        {
+          "buildId": "162d2397-22b5-4b4d-b7d2-2d587b19682b",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 2478.2000000476837,
+          "end": 2478.2000000476837,
+          "outcome": "success"
+        },
+        {
+          "buildId": "162d2397-22b5-4b4d-b7d2-2d587b19682b",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 2479.1849999427795,
+          "end": 2479.2000000476837,
+          "outcome": "success"
+        },
+        {
+          "buildId": "162d2397-22b5-4b4d-b7d2-2d587b19682b",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 2479.2149999141693,
+          "end": 2479.2699999809265,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 2480.0599999427795,
+          "end": 2480.0750000476837,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 1,
+            "cachedBytes": 15738,
+            "memoryBytes": 21630,
+            "pendingBytes": 0
+          },
+          "buildId": "162d2397-22b5-4b4d-b7d2-2d587b19682b"
+        },
+        {
+          "buildId": "162d2397-22b5-4b4d-b7d2-2d587b19682b",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 2480.2850000858307,
+          "end": 2480.569999933243,
+          "outcome": "success"
+        },
+        {
+          "buildId": "162d2397-22b5-4b4d-b7d2-2d587b19682b",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 2480.585000038147,
+          "end": 2540.359999895096,
+          "outcome": "success"
+        },
+        {
+          "buildId": "162d2397-22b5-4b4d-b7d2-2d587b19682b",
+          "clock": "worker",
+          "phase": "timestamp-patch",
+          "start": 2541.8799998760223,
+          "end": 2541.944999933243,
+          "outcome": "success"
+        },
+        {
+          "buildId": "162d2397-22b5-4b4d-b7d2-2d587b19682b",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 2541.9700000286102,
+          "end": 2542.0049998760223,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 2542.0299999713898,
+          "end": 2542.484999895096,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 0,
+            "cachedBytes": 0,
+            "memoryBytes": 23594,
+            "pendingBytes": 15738
+          },
+          "buildId": "162d2397-22b5-4b4d-b7d2-2d587b19682b"
+        },
+        {
+          "buildId": "162d2397-22b5-4b4d-b7d2-2d587b19682b",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 2542.579999923706,
+          "end": 2571.4049999713898,
+          "outcome": "success"
+        },
+        {
+          "buildId": "162d2397-22b5-4b4d-b7d2-2d587b19682b",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 2571.869999885559,
+          "end": 2571.914999961853,
+          "outcome": "success"
+        },
+        {
+          "buildId": "162d2397-22b5-4b4d-b7d2-2d587b19682b",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 2479.210000038147,
+          "end": 2571.930000066757,
+          "outcome": "success",
+          "counts": {
+            "sources": 1,
+            "objectsReused": 0,
+            "starterObjectsReused": 0,
+            "commands": 2,
+            "projectWrites": 1,
+            "projectDeletes": 0,
+            "returnedBytes": 1364384
+          }
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-persistence",
+          "start": 2542.3250000476837,
+          "end": 2572.869999885559,
+          "outcome": "success",
+          "counts": {
+            "cachedBytes": 1964,
+            "pendingBytes": 15738,
+            "memoryBytes": 23594
+          },
+          "buildId": "162d2397-22b5-4b4d-b7d2-2d587b19682b"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-persistence",
+          "start": 2572.8799998760223,
+          "end": 2574.015000104904,
+          "outcome": "success",
+          "counts": {
+            "cachedBytes": 15738,
+            "pendingBytes": 0,
+            "memoryBytes": 23594
+          },
+          "buildId": "162d2397-22b5-4b4d-b7d2-2d587b19682b"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-eviction",
+          "start": 2574.2400000095367,
+          "end": 2575.069999933243,
+          "outcome": "success",
+          "counts": {
+            "evictedEntries": 0,
+            "evictedBytes": 0,
+            "persistentBytes": 23594
+          },
+          "buildId": "162d2397-22b5-4b4d-b7d2-2d587b19682b"
+        }
+      ]
+    },
+    {
+      "template": "pros",
+      "sample": 2,
+      "scenario": "unchanged",
+      "wallMs": 84.61394199999995,
+      "artifactBytes": 16560,
+      "spans": [
+        {
+          "buildId": "57946e67-7335-4ea1-97f0-782765e7a422",
+          "clock": "worker",
+          "phase": "manifests",
+          "start": 2695.319999933243,
+          "end": 2695.319999933243,
+          "outcome": "success"
+        },
+        {
+          "buildId": "57946e67-7335-4ea1-97f0-782765e7a422",
+          "clock": "worker",
+          "phase": "wasm-initialization",
+          "start": 2696.765000104904,
+          "end": 2696.7750000953674,
+          "outcome": "success"
+        },
+        {
+          "buildId": "57946e67-7335-4ea1-97f0-782765e7a422",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 2696.795000076294,
+          "end": 2696.8650000095367,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 2697.369999885559,
+          "end": 2697.3799998760223,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 1,
+            "cachedBytes": 15738,
+            "memoryBytes": 23594,
+            "pendingBytes": 0
+          },
+          "buildId": "57946e67-7335-4ea1-97f0-782765e7a422"
+        },
+        {
+          "buildId": "57946e67-7335-4ea1-97f0-782765e7a422",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 2697.609999895096,
+          "end": 2697.6449999809265,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 2697.670000076294,
+          "end": 2697.6749999523163,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 1,
+            "cachedBytes": 1964,
+            "memoryBytes": 23594,
+            "pendingBytes": 0
+          },
+          "buildId": "57946e67-7335-4ea1-97f0-782765e7a422"
+        },
+        {
+          "buildId": "57946e67-7335-4ea1-97f0-782765e7a422",
+          "clock": "worker",
+          "phase": "timestamp-patch",
+          "start": 2697.734999895096,
+          "end": 2697.7799999713898,
+          "outcome": "success"
+        },
+        {
+          "buildId": "57946e67-7335-4ea1-97f0-782765e7a422",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 2697.8099999427795,
+          "end": 2697.829999923706,
+          "outcome": "success"
+        },
+        {
+          "clock": "worker",
+          "phase": "cache-read",
+          "start": 2697.859999895096,
+          "end": 2698.3250000476837,
+          "outcome": "success",
+          "counts": {
+            "cacheHits": 0,
+            "cachedBytes": 0,
+            "memoryBytes": 23594,
+            "pendingBytes": 0
+          },
+          "buildId": "57946e67-7335-4ea1-97f0-782765e7a422"
+        },
+        {
+          "buildId": "57946e67-7335-4ea1-97f0-782765e7a422",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 2698.420000076294,
+          "end": 2727.765000104904,
+          "outcome": "success"
+        },
+        {
+          "buildId": "57946e67-7335-4ea1-97f0-782765e7a422",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 2728.2699999809265,
+          "end": 2728.305000066757,
+          "outcome": "success"
+        },
+        {
+          "buildId": "57946e67-7335-4ea1-97f0-782765e7a422",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 2696.795000076294,
+          "end": 2728.3250000476837,
+          "outcome": "success",
+          "counts": {
+            "sources": 1,
+            "objectsReused": 1,
+            "starterObjectsReused": 0,
+            "commands": 1,
+            "projectWrites": 0,
+            "projectDeletes": 0,
+            "returnedBytes": 1364384
+          }
+        }
+      ]
+    }
+  ]
+}

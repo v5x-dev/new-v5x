@@ -1,6 +1,7 @@
 import { prepareCompressedAsset } from "./prepare-compressed-assets"
 import { createHash } from "node:crypto"
 import { copyFile, cp, mkdir, readFile, writeFile } from "node:fs/promises"
+import { gunzipSync } from "node:zlib"
 import { resolve } from "node:path"
 
 const root = resolve(import.meta.dir, "../apps/code")
@@ -9,7 +10,8 @@ const source = resolve(root, "node_modules/microbit-clang-wasm")
 const destination = resolve(root, `public/compiler/llvm-${version}`)
 await mkdir(destination, { recursive: true })
 
-const files: Record<string, { sha256: string; bytes: number }> = {}
+const files: Record<string, { sha256: string; bytes: number; file?: string }> =
+  {}
 // Drop Cortex-M4 libraries and libc++. V5 bundles provide the ARM runtime;
 // only Clang's builtin headers are needed from the package resource archive.
 function compilerResources(archive: Uint8Array) {
@@ -60,6 +62,43 @@ for (const name of [
   }
 }
 
+// Preserve the package asset for existing workers and reference verification.
+const optimization = JSON.parse(
+  await readFile(
+    resolve(root, "compiler/llvm-21.11.0-alpha.1-binaryen-133.json"),
+    "utf8"
+  )
+)
+const compressed = await readFile(
+  resolve(root, "compiler/llvm-21.11.0-alpha.1-binaryen-133.wasm.gz")
+)
+const optimized = gunzipSync(compressed)
+const digest = (bytes: Uint8Array) =>
+  createHash("sha256").update(bytes).digest("hex")
+if (
+  files["llvm.core.wasm"].sha256 !== optimization.sourceSha256 ||
+  compressed.length !== optimization.compressedBytes ||
+  digest(compressed) !== optimization.compressedSha256 ||
+  optimized.length !== optimization.bytes ||
+  digest(optimized) !== optimization.sha256
+)
+  throw new Error("Optimized compiler provenance does not match its inputs")
+const originalCore = { ...files["llvm.core.wasm"], file: "llvm.core.wasm" }
+const templateFiles = Object.fromEntries(
+  ["vexcode", "pros", "jar-template"].map((template) => [
+    template,
+    { "llvm.core.wasm": originalCore },
+  ])
+)
+const optimizedFile = `llvm.core-${optimization.sha256.slice(0, 16)}.wasm`
+await writeFile(resolve(destination, optimizedFile), optimized)
+await prepareCompressedAsset(resolve(destination, optimizedFile))
+files["llvm.core.wasm"] = {
+  sha256: optimization.sha256,
+  bytes: optimization.bytes,
+  file: optimizedFile,
+}
+
 await copyFile(
   resolve(source, "LICENSE.txt"),
   resolve(destination, "LICENSE.txt")
@@ -69,6 +108,6 @@ await cp(resolve(source, "LICENSES"), resolve(destination, "LICENSES"), {
 })
 await writeFile(
   resolve(destination, "manifest.json"),
-  JSON.stringify({ version, files }, null, 2) + "\n"
+  JSON.stringify({ version, files, templateFiles }, null, 2) + "\n"
 )
 console.log(`Prepared browser LLVM ${version}`)

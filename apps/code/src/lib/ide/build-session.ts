@@ -1,8 +1,15 @@
 import { buildCacheKey } from './build-cache'
 import { normalizeLinkerScript } from './cold-sdk'
 import { validPath } from './workspace'
+import { sdkPchHeader } from './sdk-pch'
 import type { BuildBundleFile } from './build-archive'
 import type { Session } from 'microbit-clang-wasm'
+
+type FileIdentity = {
+  digest: string
+  timeSensitive: boolean
+  linkerDigest?: string
+}
 
 /** Owns one mounted SDK and one immutable workspace snapshot at a time. */
 export class BrowserBuildSession {
@@ -16,13 +23,17 @@ export class BrowserBuildSession {
   private project = new Map<string, string>()
   private baseline = new Map<string, string | Uint8Array>()
   private unsafeIncludes = false
-  private digests = new Map<
+  private digests = new Map<string, Promise<FileIdentity | undefined>>()
+  private sdkPrefix?: string
+  private dependencyKeys = new Map<
     string,
-    Promise<
-      | { digest: string; timeSensitive: boolean; linkerDigest?: string }
-      | undefined
-    >
+    {
+      identities: Array<Promise<FileIdentity | undefined>>
+      digest: Promise<string | undefined>
+      size: number
+    }
   >()
+  private dependencyKeySize = 0
 
   constructor(readonly session: Session) {}
 
@@ -98,8 +109,61 @@ export class BrowserBuildSession {
 
   /** Compiler outputs and normalized scripts must invalidate the same digest map. */
   async writeFile(path: string, contents: string | Uint8Array) {
+    if (path === sdkPchHeader) this.sdkPrefix = undefined
     this.digests.delete(path)
     await this.session.writeFile(path, contents)
+  }
+
+  async synchronizeSdkPrefix(header: string) {
+    if (this.sdkPrefix === header) return
+    await this.writeFile(sdkPchHeader, header)
+    this.sdkPrefix = header
+  }
+
+  /** Reuse an aggregate only while every input retains its immutable identity. */
+  dependencyKey(paths: Array<string>) {
+    paths = [...paths]
+    const key = JSON.stringify(paths)
+    const identities = paths.map((path) => this.fileIdentity(path))
+    const retained = this.dependencyKeys.get(key)
+    if (
+      retained &&
+      identities.every(
+        (identity, index) => identity === retained.identities[index],
+      )
+    )
+      return retained.digest
+    const digest = Promise.all(identities).then((values) => {
+      if (values.some((value) => !value || value.timeSensitive))
+        return undefined
+      return buildCacheKey(
+        values.flatMap((value, index) => [paths[index], value!.digest]),
+      )
+    })
+    if (retained) {
+      this.dependencyKeySize -= retained.size
+      this.dependencyKeys.delete(key)
+    }
+    const size = key.length * 2 + identities.length * 8
+    if (size <= 2 * 1024 * 1024) {
+      this.dependencyKeys.set(key, { identities, digest, size })
+      this.dependencyKeySize += size
+    }
+    while (
+      this.dependencyKeys.size > 64 ||
+      this.dependencyKeySize > 2 * 1024 * 1024
+    ) {
+      const oldest = this.dependencyKeys.keys().next().value!
+      this.dependencyKeySize -= this.dependencyKeys.get(oldest)!.size
+      this.dependencyKeys.delete(oldest)
+    }
+    void digest.catch(() => {
+      if (this.dependencyKeys.get(key)?.digest === digest) {
+        this.dependencyKeySize -= this.dependencyKeys.get(key)!.size
+        this.dependencyKeys.delete(key)
+      }
+    })
+    return digest
   }
 
   private fileIdentity(path: string) {

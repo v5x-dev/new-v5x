@@ -1,0 +1,233 @@
+{
+  "baselineRevision": "efdb141c67128326882091bcd2632fd5a05d3119",
+  "rows": [
+    {
+      "template": "vexcode",
+      "name": "VEXcode",
+      "scenario": "fresh",
+      "label": "Fresh workspace",
+      "baseline": {
+        "median": 191.8348820000001,
+        "min": 181.02433799999926,
+        "max": 453.250568,
+        "samples": 7
+      },
+      "optimized": {
+        "median": 63.27592000000004,
+        "min": 55.76168900000016,
+        "max": 182.39026,
+        "samples": 7
+      },
+      "speedup": 3.031720155155389
+    },
+    {
+      "template": "vexcode",
+      "name": "VEXcode",
+      "scenario": "source-edit",
+      "label": "One-line source edit",
+      "baseline": {
+        "median": 198.83664499999986,
+        "min": 182.08088399999997,
+        "max": 250.78613899999993,
+        "samples": 7
+      },
+      "optimized": {
+        "median": 58.70809699999995,
+        "min": 54.48354599999993,
+        "max": 81.26362100000006,
+        "samples": 7
+      },
+      "speedup": 3.386869191144111
+    },
+    {
+      "template": "vexcode",
+      "name": "VEXcode",
+      "scenario": "header-edit",
+      "label": "Header-only edit",
+      "baseline": {
+        "median": 195.22320899999977,
+        "min": 187.09444799999983,
+        "max": 217.4398779999999,
+        "samples": 7
+      },
+      "optimized": {
+        "median": 60.16208699999993,
+        "min": 55.21063199999992,
+        "max": 73.47252900000001,
+        "samples": 7
+      },
+      "speedup": 3.244954068830757
+    },
+    {
+      "template": "pros",
+      "name": "PROS",
+      "scenario": "fresh",
+      "label": "Fresh workspace",
+      "baseline": {
+        "median": 930.8570260000015,
+        "min": 907.2553950000001,
+        "max": 976.5056889999996,
+        "samples": 7
+      },
+      "optimized": {
+        "median": 98.60940699999992,
+        "min": 96.00064199999997,
+        "max": 117.66031099999964,
+        "samples": 7
+      },
+      "speedup": 9.439840014452194
+    },
+    {
+      "template": "pros",
+      "name": "PROS",
+      "scenario": "source-edit",
+      "label": "One-line source edit",
+      "baseline": {
+        "median": 908.7154960000007,
+        "min": 887.6803040000013,
+        "max": 932.2538939999977,
+        "samples": 7
+      },
+      "optimized": {
+        "median": 89.47791300000063,
+        "min": 84.649993,
+        "max": 90.34913900000038,
+        "samples": 7
+      },
+      "speedup": 10.155752023407098
+    },
+    {
+      "template": "pros",
+      "name": "PROS",
+      "scenario": "header-edit",
+      "label": "Header-only edit",
+      "baseline": {
+        "median": 914.2083219999986,
+        "min": 894.4827370000003,
+        "max": 930.3350929999979,
+        "samples": 7
+      },
+      "optimized": {
+        "median": 89.13917500000025,
+        "min": 84.96021399999972,
+        "max": 93.12883600000032,
+        "samples": 7
+      },
+      "speedup": 10.255965707557827
+    },
+    {
+      "template": "ez-template",
+      "name": "EZ",
+      "scenario": "fresh",
+      "label": "Fresh workspace",
+      "baseline": {
+        "median": 1557.4323189999996,
+        "min": 1524.9034529999917,
+        "max": 1997.1418889999986,
+        "samples": 7
+      },
+      "optimized": {
+        "median": 776.5681650000006,
+        "min": 760.8726850000021,
+        "max": 1275.7407819999999,
+        "samples": 7
+      },
+      "speedup": 2.005532017913712
+    },
+    {
+      "template": "ez-template",
+      "name": "EZ",
+      "scenario": "source-edit",
+      "label": "One-line source edit",
+      "baseline": {
+        "median": 895.217233000003,
+        "min": 876.0972429999965,
+        "max": 1036.9308010000022,
+        "samples": 7
+      },
+      "optimized": {
+        "median": 501.1456539999999,
+        "min": 493.73759900000005,
+        "max": 617.8328170000004,
+        "samples": 7
+      },
+      "speedup": 1.786341407641945
+    },
+    {
+      "template": "ez-template",
+      "name": "EZ",
+      "scenario": "header-edit",
+      "label": "Header-only edit",
+      "baseline": {
+        "median": 5603.043785999995,
+        "min": 5514.260681999993,
+        "max": 5680.769914000004,
+        "samples": 7
+      },
+      "optimized": {
+        "median": 763.7362479999993,
+        "min": 746.9114169999993,
+        "max": 828.1482360000009,
+        "samples": 7
+      },
+      "speedup": 7.33635964074341
+    },
+    {
+      "template": "jar-template",
+      "name": "JAR",
+      "scenario": "fresh",
+      "label": "Fresh workspace",
+      "baseline": {
+        "median": 2767.527775000024,
+        "min": 2701.325693999999,
+        "max": 2891.247624999989,
+        "samples": 7
+      },
+      "optimized": {
+        "median": 487.2578859999994,
+        "min": 474.719810999999,
+        "max": 514.4204460000001,
+        "samples": 7
+      },
+      "speedup": 5.679800890898311
+    },
+    {
+      "template": "jar-template",
+      "name": "JAR",
+      "scenario": "source-edit",
+      "label": "One-line source edit",
+      "baseline": {
+        "median": 424.57789799998864,
+        "min": 410.1803160000127,
+        "max": 439.1873959999939,
+        "samples": 7
+      },
+      "optimized": {
+        "median": 79.6649589999979,
+        "min": 77.42255499999737,
+        "max": 87.39536399999997,
+        "samples": 7
+      },
+      "speedup": 5.329543921562801
+    },
+    {
+      "template": "jar-template",
+      "name": "JAR",
+      "scenario": "header-edit",
+      "label": "Header-only edit",
+      "baseline": {
+        "median": 2777.005555999989,
+        "min": 2714.846885999985,
+        "max": 2835.892151999986,
+        "samples": 7
+      },
+      "optimized": {
+        "median": 476.2839660000027,
+        "min": 469.11568500000067,
+        "max": 495.59811900000204,
+        "samples": 7
+      },
+      "speedup": 5.830566960551373
+    }
+  ]
+}

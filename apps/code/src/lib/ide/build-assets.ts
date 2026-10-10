@@ -1,15 +1,25 @@
 import { decodeBuildArchive, isIndexedBuildArchive } from './build-archive'
 import type { buildTimings } from './build-performance'
 import type { BuildBundleFile } from './build-archive'
+import type { CompilerPlan } from './compiler-plan'
 
 type AssetTiming = ReturnType<typeof buildTimings>
 
 export interface BuildAsset {
+  file?: string
+  transportCompression?: 'gzip'
   format?: 'indexed-v1'
   compression?: 'gzip'
   url: string
   sha256: string
   bytes: number
+}
+
+export interface BuildCompilerManifest {
+  files: Partial<Record<string, Omit<BuildAsset, 'url'>>>
+  templateFiles?: Partial<
+    Record<string, Partial<Record<string, Omit<BuildAsset, 'url'>>>>
+  >
 }
 
 export interface PrebuiltColdSdk {
@@ -34,6 +44,10 @@ export interface StarterObject {
 }
 
 export interface BuildSdkManifest {
+  compilerPlans?: {
+    compilerDigest: string
+    templates: Partial<Record<string, Array<CompilerPlan>>>
+  }
   headerDigest?: string
   compilerDigest?: string
   starterObjects?: Partial<Record<string, Array<StarterObject>>>
@@ -62,12 +76,29 @@ export async function cachedBuildAsset(
   const cached = await measure('asset-cache-read', async () =>
     cache?.match(asset.url).catch(() => undefined),
   )
+  let compressed = false
   const response =
-    cached ?? (await measure('asset-download', () => fetch(asset.url)))
+    cached ??
+    (await measure('asset-download', async () => {
+      if (asset.transportCompression === 'gzip') {
+        const encoded = await fetch(asset.url + '.gz').catch(() => undefined)
+        if (encoded?.ok) {
+          compressed = true
+          return encoded
+        }
+      }
+      return fetch(asset.url)
+    }))
   if (!response.ok)
     throw new Error(`Could not download ${asset.url} (${response.status})`)
-  const bytes = new Uint8Array(await response.arrayBuffer())
-  counts[cached ? 'cachedBytes' : 'fetchedBytes'] = bytes.length
+  const transferred = new Uint8Array(await response.arrayBuffer())
+  // HTTP may compress the .gz file again. Fetch removes that outer layer,
+  // so inspect the remaining payload rather than Content-Encoding.
+  const bytes =
+    compressed && transferred[0] === 0x1f && transferred[1] === 0x8b
+      ? new Uint8Array(await decompressBuildBytes(transferred, asset.bytes))
+      : transferred
+  counts[cached ? 'cachedBytes' : 'fetchedBytes'] = transferred.length
   counts.hashedBytes = bytes.length
   const digest = Array.from(
     new Uint8Array(
@@ -98,6 +129,87 @@ export async function cachedBuildAsset(
       .catch((error) => console.warn('Could not cache compiler asset:', error))
   }
   return bytes
+}
+
+/** Compile incoming WASM chunks while downloading; EOF is gated on integrity. */
+export async function streamingCompilerAsset(
+  asset: BuildAsset,
+  timing?: AssetTiming,
+): Promise<Response> {
+  if (
+    !Number.isSafeInteger(asset.bytes) ||
+    asset.bytes <= 0 ||
+    asset.bytes > 128 * 1024 * 1024
+  )
+    throw new Error('Invalid compiler asset size')
+  const cache = await caches
+    .open('v5x-browser-build-assets-v1')
+    .catch(() => undefined)
+  const measure =
+    timing?.measure ??
+    (async <T>(_phase: string, work: () => Promise<T>) => work())
+  const cached = await measure('asset-cache-read', async () =>
+    cache?.match(asset.url).catch(() => undefined),
+  )
+  const response =
+    cached ?? (await measure('asset-download', () => fetch(asset.url)))
+  if (!response.ok || !response.body)
+    throw new Error(`Could not download ${asset.url} (${response.status})`)
+  const reader = response.body.getReader()
+  const body = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      try {
+        await measure(
+          'wasm-stream-download',
+          async () => {
+            const bytes = new Uint8Array(asset.bytes)
+            let offset = 0
+            while (true) {
+              const { done, value } = await reader.read()
+              if (done) break
+              if (offset + value.length > bytes.length)
+                throw new Error(`Build asset checksum mismatch: ${asset.url}`)
+              bytes.set(value, offset)
+              offset += value.length
+              controller.enqueue(value)
+            }
+            const digest = Array.from(
+              new Uint8Array(
+                await measure('asset-integrity', () =>
+                  crypto.subtle.digest('SHA-256', bytes),
+                ),
+              ),
+              (byte) => byte.toString(16).padStart(2, '0'),
+            ).join('')
+            if (offset !== asset.bytes || digest !== asset.sha256)
+              throw new Error(`Build asset checksum mismatch: ${asset.url}`)
+            // Cache persistence must not delay compilation or the first build.
+            if (!cached)
+              void cache
+                ?.put(
+                  asset.url,
+                  new Response(bytes, {
+                    headers: { 'Content-Type': 'application/wasm' },
+                  }),
+                )
+                .catch((error) =>
+                  console.warn('Could not cache compiler asset:', error),
+                )
+            controller.close()
+          },
+          { [cached ? 'cachedBytes' : 'fetchedBytes']: asset.bytes },
+        )
+      } catch (error) {
+        await reader.cancel().catch(() => {})
+        await cache?.delete(asset.url).catch(() => false)
+        controller.error(error)
+      }
+    },
+    cancel(reason) {
+      return reader.cancel(reason)
+    },
+  })
+  return new Response(body, { headers: { 'Content-Type': 'application/wasm' } })
 }
 
 export async function cachedBuildManifest<T>(url: string): Promise<T> {

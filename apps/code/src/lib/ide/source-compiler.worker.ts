@@ -1,7 +1,7 @@
 import { createSession, setAssetLoader } from 'microbit-clang-wasm'
 import { cachedBuildAsset, unpackBuildBundle } from './build-assets'
 import { BrowserBuildSession } from './build-session'
-import type { BuildAsset, BuildSdkManifest } from './build-assets'
+import type { BuildCompilerManifest, BuildSdkManifest } from './build-assets'
 import type { BrowserBuildInput } from './browser-build'
 
 // Experimental independent compiler filesystem. The parent alone owns linking and caches.
@@ -13,7 +13,7 @@ self.onmessage = ({
 }: MessageEvent<{
   id: number
   input: BrowserBuildInput
-  compiler: { files: Partial<Record<string, Omit<BuildAsset, 'url'>>> }
+  compiler: BuildCompilerManifest
   headers: BuildSdkManifest
   argv: Array<string>
   object: string
@@ -24,14 +24,25 @@ self.onmessage = ({
       try {
         if (!state || owner !== data.input.buildId) {
           const { compiler, headers } = data
-          setAssetLoader((name) => {
-            const asset = compiler.files[name]
-            if (!asset) throw new Error('Unknown parallel compiler asset')
-            return cachedBuildAsset({
-              ...asset,
-              url: '/compiler/llvm-21.11.0-alpha.1/' + name,
-            })
-          })
+          setAssetLoader(
+            (name) => {
+              const asset =
+                compiler.templateFiles?.[data.input.template]?.[name] ??
+                compiler.files[name]
+              if (!asset) throw new Error('Unknown parallel compiler asset')
+              return cachedBuildAsset({
+                ...asset,
+                url: '/compiler/llvm-21.11.0-alpha.1/' + (asset.file ?? name),
+              })
+            },
+            JSON.stringify(compiler) +
+              ':' +
+              (
+                compiler.templateFiles?.[data.input.template]?.[
+                  'llvm.core.wasm'
+                ] ?? compiler.files['llvm.core.wasm']
+              )?.sha256,
+          )
           state = new BrowserBuildSession(createSession())
           const bundles = await Promise.all(
             (headers.templates[data.input.template] ?? []).map((name) =>

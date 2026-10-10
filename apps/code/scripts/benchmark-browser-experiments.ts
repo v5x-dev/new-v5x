@@ -1,3 +1,4 @@
+import { compilerAssetLoader } from './compiler-asset-loader'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { createSession, setAssetLoader } from 'microbit-clang-wasm'
@@ -19,9 +20,7 @@ const headers: BuildSdkManifest = JSON.parse(
 const libraries: BuildSdkManifest = JSON.parse(
   await readFile(resolve(publicDir, 'compiler/sdk-manifest.json'), 'utf8'),
 )
-setAssetLoader((name) =>
-  readFile(resolve(publicDir, 'compiler/llvm-21.11.0-alpha.1', name)),
-)
+setAssetLoader(await compilerAssetLoader())
 const records = []
 for (const template of Object.keys(templateFiles) as Array<
   keyof typeof templateFiles

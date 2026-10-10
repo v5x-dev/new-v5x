@@ -1,4 +1,5 @@
 diff --git a/gen/bundle.js b/gen/bundle.js
+index 7845c1335666c262e6d1ab2332f7a31ad6f9a722..7cc8ad7aacbc635cbfdb3ed8306a007d466f0087 100644
 --- a/gen/bundle.js
 +++ b/gen/bundle.js
 @@ -1,3 +1,4 @@
@@ -6,7 +7,7 @@ diff --git a/gen/bundle.js b/gen/bundle.js
  // node_modules/@yowasp/runtime/lib/fetch.js
  var fetch2;
  if (typeof process === "object" && process.release?.name === "node") {
-@@ -147,6 +148,10 @@
+@@ -147,6 +148,10 @@ var Directory = class _Directory {
    constructor(files = {}) {
      this.id = nextFilesystemId();
      this.files = files;
@@ -17,7 +18,7 @@ diff --git a/gen/bundle.js b/gen/bundle.js
    }
    get size() {
      return Object.keys(this.files).length;
-@@ -165,11 +170,14 @@
+@@ -165,11 +170,14 @@ var Directory = class _Directory {
        else if (segment === "" || segment === ".")
          ;
        else if (segment === "..")
@@ -35,26 +36,56 @@ diff --git a/gen/bundle.js b/gen/bundle.js
        else if (create === "file")
          entry = files[segment] = new File(new Uint8Array());
        else if (create instanceof File || create instanceof _Directory)
-@@ -698,13 +706,13 @@
+@@ -201,10 +209,25 @@ var WriteStream = class extends OutputStream {
+   }
+   write(contents) {
+     const offset = Number(this.offset);
+-    const newData = new Uint8Array(Math.max(this.file.data.length, offset + contents.length));
+-    newData.set(this.file.data);
+-    newData.subarray(offset).set(contents);
+-    this.file.data = newData;
++    const previous = this.file.data;
++    const end = offset + contents.length;
++    let storage = this.file.storage;
++    // writeFile/setSize may replace or truncate data between stream writes.
++    if (!storage || storage.buffer !== previous.buffer || previous.byteOffset !== 0) {
++      // Detach from bytes supplied by the host before the first mutation.
++      storage = new Uint8Array(Math.max(4096, previous.length, end));
++      storage.set(previous);
++    }
++    if (end > storage.length) {
++      const grown = new Uint8Array(Math.max(4096, end, storage.length * 2));
++      grown.set(previous);
++      storage = grown;
++    }
++    // A seek beyond EOF creates a zero-filled hole, including after truncation.
++    if (offset > previous.length) storage.fill(0, previous.length, offset);
++    storage.set(contents, offset);
++    this.file.storage = storage;
++    this.file.data = storage.subarray(0, Math.max(previous.length, end));
+     this.offset += BigInt(contents.length);
+   }
+ };
+@@ -697,14 +720,11 @@ function unpackTarFilesystem(buffer) {
+   }
    return root;
  }
- var modules = async (fetch3) => ({
+-var modules = async (fetch3) => ({
 -  "llvm.core.wasm": await fetch3(new URL("./llvm.core.wasm", import.meta.url)).then(compileWasmModule),
 -  "llvm.core2.wasm": await fetch3(new URL("./llvm.core2.wasm", import.meta.url)).then(compileWasmModule),
 -  "llvm.core3.wasm": await fetch3(new URL("./llvm.core3.wasm", import.meta.url)).then(compileWasmModule),
 -  "llvm.core4.wasm": await fetch3(new URL("./llvm.core4.wasm", import.meta.url)).then(compileWasmModule)
-+  "llvm.core.wasm": await fetch3(new URL("./llvm.core.wasm", assetBase)).then(compileWasmModule),
-+  "llvm.core2.wasm": await fetch3(new URL("./llvm.core2.wasm", assetBase)).then(compileWasmModule),
-+  "llvm.core3.wasm": await fetch3(new URL("./llvm.core3.wasm", assetBase)).then(compileWasmModule),
-+  "llvm.core4.wasm": await fetch3(new URL("./llvm.core4.wasm", assetBase)).then(compileWasmModule)
- });
+-});
++var modules = async (fetch3) => Object.fromEntries(await Promise.all([
++  "llvm.core.wasm", "llvm.core2.wasm", "llvm.core3.wasm", "llvm.core4.wasm"
++].map(async (name) => [name, await fetch3(new URL(name, assetBase)).then(compileWasmModule)])));
  var filesystem = async (fetch3) => ({
 -  "usr": await fetch3(new URL("./llvm-resources.tar", import.meta.url)).then((resp) => resp.arrayBuffer()).then(unpackTarFilesystem)
 +  "usr": await fetch3(new URL("./llvm-resources.tar", assetBase)).then((resp) => resp.arrayBuffer()).then(unpackTarFilesystem)
  });
  var totalSize = 98154369;
  
-@@ -1328,7 +1336,7 @@
+@@ -1328,7 +1348,7 @@ function instantiate(getCoreModule, imports, instantiateCore = WebAssembly.insta
      }
    }
    const hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -63,3 +94,74 @@ diff --git a/gen/bundle.js b/gen/bundle.js
    const module0 = getCoreModule("llvm.core.wasm");
    const module1 = getCoreModule("llvm.core2.wasm");
    const module2 = getCoreModule("llvm.core3.wasm");
+@@ -7888,8 +7908,9 @@ var ARGV0 = "yowasp-llvm";
+ var sysroot = "/usr";
+ var DRIVERS = /* @__PURE__ */ new Set(["clang", "clang++"]);
+ var assetLoader = null;
+-function setAssetLoader(loader) {
++function setAssetLoader(loader, identity = "default") {
+   assetLoader = loader;
++  moduleIdentity = identity;
+ }
+ function suppliedBy(loader, fallback) {
+   return async (url, init) => {
+@@ -7905,7 +7926,8 @@ function suppliedBy(loader, fallback) {
+     });
+   };
+ }
+-var modulesOnce = null;
++var moduleIdentity = "default";
++var moduleCache = new Map();
+ var filesystemOnce = null;
+ var withLoader = (fetch3) => assetLoader ? suppliedBy(assetLoader, fetch3) : fetch3;
+ var retryable = (promise, forget) => promise.catch((error) => {
+@@ -7914,9 +7936,22 @@ var retryable = (promise, forget) => promise.catch((error) => {
+ });
+ var resources = {
+   totalSize,
+-  modules: (fetch3) => modulesOnce ??= retryable(modules(withLoader(fetch3)), () => {
+-    modulesOnce = null;
+-  }),
++  modules: (fetch3) => {
++    const key = moduleIdentity;
++    if (moduleCache.has(key)) {
++      const existing = moduleCache.get(key);
++      moduleCache.delete(key);
++      moduleCache.set(key, existing);
++      return existing;
++    }
++    const pending = retryable(modules(withLoader(fetch3)), () => {
++      if (moduleCache.get(key) === pending) moduleCache.delete(key);
++    });
++    moduleCache.set(key, pending);
++    // Keep the two measured compiler variants without retaining old deployments.
++    while (moduleCache.size > 2) moduleCache.delete(moduleCache.keys().next().value);
++    return pending;
++  },
+   filesystem: (fetch3) => filesystemOnce ??= retryable(filesystem(withLoader(fetch3)), () => {
+     filesystemOnce = null;
+   })
+@@ -8069,8 +8104,8 @@ var Session = class {
+     });
+   }
+   async #build() {
+-    await runLLVM(null, {}, { fetchProgress: () => {
+-    } });
++    await Promise.all([runLLVM(null, {}, { fetchProgress: () => {
++    } }), resources.modules()]);
+     const environment = new Environment();
+     for (const [name, contents] of Object.entries(await resources.filesystem()))
+       environment.root.files[name] = directoryFromTree(contents);
+diff --git a/lib/api.d.ts b/lib/api.d.ts
+index 660625e31961f34e17d65d26be621586a38090a6..f4f17a66ef3d76ab331a2dd4ce921a2eb776d055 100644
+--- a/lib/api.d.ts
++++ b/lib/api.d.ts
+@@ -75,7 +75,7 @@
+ // Supplies the package's own `.wasm` and `-resources.tar` by name, for a host that cannot fetch a
+ // URL: `vscode.workspace.fs` in an extension, the filesystem in Node. Returning nothing falls back
+ // to the generated loader. Set it before the first command runs, which is when they are read.
+-export function setAssetLoader(loader: AssetLoader | null): void;
++export function setAssetLoader(loader: AssetLoader | null, identity?: string): void;
+
+ export const commands: {
+     'addr2line': Command,

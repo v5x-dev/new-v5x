@@ -1,0 +1,362 @@
+{
+  "host": "linux/x64, Bun 1.4.2; local WASM execution, no network",
+  "samples": 1,
+  "records": [
+    {
+      "template": "ez-template",
+      "scenario": "fresh",
+      "sample": 0,
+      "ms": 2134.202708,
+      "initializationMs": 298.895569,
+      "artifactBytes": 33264,
+      "spans": [
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 565.225795,
+          "end": 565.615819,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 637.154103,
+          "end": 1556.703086,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 1571.207945,
+          "end": 2620.053186,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "timestamp-patch",
+          "start": 2636.246319,
+          "end": 2636.839444,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 2636.981157,
+          "end": 2637.431472,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 2637.759989,
+          "end": 2696.232844,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 2696.861869,
+          "end": 2697.160949,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 565.153441,
+          "end": 2697.255201,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 0,
+            "starterObjectsReused": 0,
+            "commands": 3,
+            "projectWrites": 10,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ]
+    },
+    {
+      "template": "ez-template",
+      "scenario": "source-edit",
+      "sample": 0,
+      "ms": 994.2008089999999,
+      "initializationMs": 0,
+      "artifactBytes": 33264,
+      "spans": [
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 2697.435074,
+          "end": 2697.578227,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 2701.801037,
+          "end": 2704.745117,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 2705.122201,
+          "end": 2709.547103,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 2709.567466,
+          "end": 3638.299162,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "timestamp-patch",
+          "start": 3644.435682,
+          "end": 3644.582715,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 3644.615345,
+          "end": 3648.165163,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 3648.513747,
+          "end": 3690.838749,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 3691.493233,
+          "end": 3691.601346,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 2697.432442,
+          "end": 3691.612791,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 1,
+            "starterObjectsReused": 0,
+            "commands": 2,
+            "projectWrites": 1,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ]
+    },
+    {
+      "template": "ez-template",
+      "scenario": "header-edit",
+      "sample": 0,
+      "ms": 1499.828098,
+      "initializationMs": 0,
+      "artifactBytes": 33264,
+      "spans": [
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 3691.785607,
+          "end": 3691.907139,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 3705.717398,
+          "end": 3710.180783,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 3710.197593,
+          "end": 4255.686973,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 4261.994885,
+          "end": 4266.305217,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "compile",
+          "start": 4266.326605,
+          "end": 5140.278221,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "timestamp-patch",
+          "start": 5152.403868,
+          "end": 5152.513245,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 5152.536057,
+          "end": 5152.69838,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 5152.914526,
+          "end": 5190.864996,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 5191.497955,
+          "end": 5191.567869,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 3691.780502,
+          "end": 5191.584704,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 0,
+            "starterObjectsReused": 0,
+            "commands": 3,
+            "projectWrites": 2,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ]
+    },
+    {
+      "template": "ez-template",
+      "scenario": "unchanged",
+      "sample": 0,
+      "ms": 67.22772500000065,
+      "initializationMs": 0,
+      "artifactBytes": 33264,
+      "spans": [
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "project-synchronization",
+          "start": 5191.735241,
+          "end": 5191.826236,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 5203.852142,
+          "end": 5208.59134,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "dependency-validation",
+          "start": 5209.229918,
+          "end": 5213.70051,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "timestamp-patch",
+          "start": 5213.847306,
+          "end": 5213.938044,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "cold-input-validation",
+          "start": 5213.965554,
+          "end": 5214.189585,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "user-link",
+          "start": 5214.48967,
+          "end": 5257.944074,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "hot-binary-conversion",
+          "start": 5258.761342,
+          "end": 5258.914151,
+          "outcome": "success"
+        },
+        {
+          "buildId": "local",
+          "clock": "worker",
+          "phase": "compiler-total",
+          "start": 5191.728913,
+          "end": 5258.92968,
+          "outcome": "success",
+          "counts": {
+            "sources": 2,
+            "objectsReused": 2,
+            "starterObjectsReused": 0,
+            "commands": 1,
+            "projectWrites": 0,
+            "projectDeletes": 0,
+            "returnedBytes": 2414492
+          }
+        }
+      ]
+    }
+  ]
+}

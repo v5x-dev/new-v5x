@@ -29,6 +29,38 @@ function filesystem() {
 }
 
 describe('retained build session', () => {
+  it('retains aggregate identities and invalidates source edits, header edits, deletions, and time macros', async () => {
+    const fs = filesystem()
+    const state = new BrowserBuildSession(fs.session)
+    const files = { 'src/a.cpp': 'int a;', 'include/a.h': 'int b;' }
+    await state.synchronize(files)
+    const paths = ['/workspace/src/a.cpp', '/workspace/include/a.h']
+    const initial = state.dependencyKey(paths)
+    const digest = await initial
+    expect(state.dependencyKey([...paths])).toBe(initial)
+    await state.synchronize({ ...files, 'src/unrelated.cpp': 'int c;' })
+    expect(state.dependencyKey(paths)).toBe(initial)
+    await state.synchronize({ ...files, 'src/a.cpp': 'int a = 1;' })
+    expect(await state.dependencyKey(paths)).not.toBe(digest)
+    await state.synchronize({ ...files, 'include/a.h': 'int b = 2;' })
+    expect(await state.dependencyKey(paths)).not.toBe(digest)
+    await state.synchronize({ 'src/a.cpp': 'int a;' })
+    expect(await state.dependencyKey(paths)).toBeUndefined()
+    await state.synchronize({ ...files, 'include/a.h': '__TIME__' })
+    expect(await state.dependencyKey(paths)).toBeUndefined()
+    await state.synchronize(files)
+    expect(await state.dependencyKey(paths)).toBe(digest)
+    await state.synchronizeSdkPrefix('prefix')
+    const prefix = state.dependencyKey(['/sdk/pch/prefix.hpp'])
+    await prefix
+    await state.synchronizeSdkPrefix('prefix')
+    expect(state.dependencyKey(['/sdk/pch/prefix.hpp'])).toBe(prefix)
+    await state.synchronizeSdkPrefix('changed prefix')
+    expect(await state.dependencyKey(['/sdk/pch/prefix.hpp'])).not.toBe(
+      await prefix,
+    )
+  })
+
   it('writes changes only, restores overlays, removes obsolete outputs and memoizes dependencies', async () => {
     const fs = filesystem()
     const state = new BrowserBuildSession(fs.session)

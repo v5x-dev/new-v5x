@@ -12,7 +12,7 @@ P14 was removed at the user's request. See the hardware report for the exact sco
 | P0      | Optional build-ID spans for startup, assets, synchronization, dependency checks, compile/PCH/metadata, link/package, cache reads/persistence and artifact readiness. Real-route benchmark tooling alternates configurations on the same snapshot. Reports distinguish clock domains and overlapping phases.                                                                                                                          |
 | P1      | One retained worker/session per active workspace, ordered SDK overlays, changed-file writes, deleted override restoration, serialized immutable snapshots, cancellation/reset/error disposal. Unsafe custom commands use a fresh session.                                                                                                                                                                                            |
 | P2      | Memoized content identities, normalized bounded depfiles and validated cache records. Ordinary source/Markdown additions preserve reuse where includes allow it. Computed includes and uncertain custom commands remain conservative.                                                                                                                                                                                                |
-| P3      | Checked EZ PCH plus opt-in project PCH for shared umbrella headers in all templates. Configuration, include inventory and dependency identities gate reuse. Failure retries ordinary compilation. Project PCH stays experimental pending memory measurements.                                                                                                                                                                        |
+| P3      | Checked SDK-prefix PCH for all four templates plus opt-in project PCH for shared umbrella headers in all templates. Configuration, include inventory and dependency identities gate reuse. Failure retries ordinary compilation. Project PCH stays experimental pending memory measurements.                                                                                                                                                                        |
 | P4      | Pinned PROS/EZ cold binary and import-symbol assets with effective firmware/compiler validation. Overrides and unavailable/corrupt assets retain dynamic linking. Linker normalization writes scratch, preserving the mounted SDK.                                                                                                                                                                                                   |
 | P5      | A 1,044-byte validated ARM ELF timestamp object. Patch fresh UTC date/epoch in owned bytes, validate symbols/relocations/bounds, and fall back to Clang for incompatible objects or unrepresentable epochs.                                                                                                                                                                                                                          |
 | P6      | Validated VEX/JAR completed-output reuse; PROS/EZ regenerate metadata and hot link. Cold transfer references require a client ownership acknowledgement. IndexedDB separates digest-addressed blobs from result records, retains legacy reads, verifies restored bytes and bounds storage.                                                                                                                                           |
@@ -22,7 +22,7 @@ P14 was removed at the user's request. See the hardware report for the exact sco
 | P10     | Internal O0/O1/Os comparisons with effective explicit project flags preserved in configuration identity. No consistent local benefit justified a new setting or default. Keep Os. Safe task fixtures now run on VEXos 1.1.5; full robot behavior remains a hardware check.                                                                                                                                                           |
 | P11     | Opt-in two independent worker/filesystem sessions, cache misses only, stable object ordering, teardown and sequential fallback after failure. One remains default. No target-device memory evidence supports enabling two.                                                                                                                                                                                                           |
 | P12     | Verified starter objects for all four templates, compiled with the pinned compiler and full argument/dependency/include metadata. Fetch lazily only after eligibility checks. Edits and configuration changes use ordinary compilation.                                                                                                                                                                                              |
-| P13     | Toolchain/import/target audit and driver measurements. The pinned toolchain is already ARM-only. Do not fork merely to remove backends that are absent. Direct cc1 and utility stripping are rejected for this delivery without a supported compatibility case.                                                                                                                                                                      |
+| P13     | Toolchain/import/target audit and driver measurements. The pinned toolchain is already ARM-only. Do not fork merely to remove backends that are absent. Standard frontend plans now come from the pinned driver's own -### output. They require exact argument matching and pass original-compiler equivalence checks. Custom flags retain the full driver. Binaryen 133 produces a verified alternate core. EZ browser builds use it, while VEX/PROS/JAR retain the original after Chromium measurements. Bun tooling uses the alternate core.                                                                                                                                                                      |
 | P14     | Removed at the user's request. The project route builds locally; the earlier backend pipeline remains available to existing tooling.                                                                                                                                                                                                                                                                                                 |
 
 ## Local evidence
@@ -98,3 +98,24 @@ internal experiments until device evidence supports a product/default change.
 Persistent multi-tab eviction under quota pressure, partial-release
 upgrades, all-route paired comparisons and interaction tails remain broader
 acceptance runs; use the supplied matrix and benchmark tooling and record failures.
+
+## October 10 compilation pass
+
+See [measurements and graphs](browser-performance/2026-10-10/report.md) for fresh
+workspaces and actual source/header edits with starter reuse disabled. This pass
+adds geometric filesystem writes, SDK-prefix PCH across all templates,
+driver-generated frontend plans, integrity-gated WASM streaming, concurrent
+startup assets and compressed compiler resources. The main WASM module is
+optimized with verified Binaryen 133 and published under a content-addressed URL.
+
+Development serves prepared compiler compression and gzip SDK bundles directly
+to avoid Nitro recompressing them. Compiled WASM modules are keyed by immutable
+asset identity, with two cached variants. A real-route test switches VEX, EZ and
+VEX within one worker and checks that both cores load correctly.
+
+The follow-up [one-line edit pass](browser-performance/2026-10-10/one-line-edits/report.md)
+adds bounded string-hash reuse and aggregate dependency identities that invalidate
+on input changes. PROS, EZ and JAR now instantiate pending SDK templates during
+PCH preparation instead of repeating that work in every affected translation unit.
+VEX retains its previous PCH configuration. The report records real source and
+header edits, compiler-variant trials, and generated-code equivalence checks.

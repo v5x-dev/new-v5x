@@ -23,6 +23,10 @@
 - Separate top-level declarations and longer logical steps with blank lines. Keep related short statements together.
 - Run the relevant formatter after editing code. Preserve behavior during formatting and exclude generated files and build output.
 
+## Benchmarks
+
+- Never commit benchmark results or generated benchmark output to Git.
+
 ## Convex
 
 This project uses [Convex](https://convex.dev) as its backend.

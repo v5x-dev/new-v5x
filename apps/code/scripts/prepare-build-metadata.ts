@@ -1,3 +1,4 @@
+import { compilerAssetLoader } from './compiler-asset-loader'
 import { readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { createSession, setAssetLoader } from 'microbit-clang-wasm'
@@ -10,9 +11,7 @@ import { buildCacheKey } from '../src/lib/ide/build-cache'
 import type { BuildSdkManifest } from '../src/lib/ide/build-assets'
 
 const compilerDir = resolve(import.meta.dir, '../public/compiler')
-setAssetLoader((name) =>
-  readFile(resolve(compilerDir, 'llvm-21.11.0-alpha.1', name)),
-)
+setAssetLoader(await compilerAssetLoader())
 const session = createSession()
 const source = '/workspace/timestamp.c',
   object = '/workspace/timestamp.o'

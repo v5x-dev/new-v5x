@@ -1,3 +1,5 @@
+import { compilerAssetLoader } from './compiler-asset-loader'
+import { pathToFileURL } from 'node:url'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { gunzipSync } from 'node:zlib'
 import { resolve } from 'node:path'
@@ -5,16 +7,16 @@ import { createSession, setAssetLoader } from 'microbit-clang-wasm'
 import { templateFiles } from '../convex/template'
 import { BrowserBuildSession } from '../src/lib/ide/build-session'
 import { compileBrowserProject } from '../src/lib/ide/browser-build'
+import { browserCompileCommands } from '../src/lib/ide/browser-build'
 import { buildCacheKey } from '../src/lib/ide/build-cache'
 import { readSdkBundle } from './read-sdk-bundle'
+import { compilerObjectIdentity } from './compare-compiler-objects'
 import type { BuildBundleFile } from '../src/lib/ide/build-archive'
 import type { BuildCache } from '../src/lib/ide/build-cache'
 import type { ProgramTemplate } from '../convex/template'
 
 const publicDir = resolve(import.meta.dir, '../public')
-setAssetLoader((name) =>
-  readFile(resolve(publicDir, 'compiler/llvm-21.11.0-alpha.1', name)),
-)
+setAssetLoader(await compilerAssetLoader())
 const headers = JSON.parse(
   await readFile(resolve(publicDir, 'language/sdk-manifest.json'), 'utf8'),
 )
@@ -26,9 +28,29 @@ const outputDir = resolve(
   '../../../.build/browser-verification',
 )
 await mkdir(outputDir, { recursive: true })
+// A distinct module owns the original compiler's global WASM/module caches.
+const stockModulePath = resolve(outputDir, 'stock-runner.js')
+await writeFile(
+  stockModulePath,
+  await readFile(
+    resolve(
+      import.meta.dir,
+      '../node_modules/microbit-clang-wasm/gen/bundle.js',
+    ),
+  ),
+)
+const stockToolchain = (await import(
+  pathToFileURL(stockModulePath).href
+)) as typeof import('microbit-clang-wasm')
+stockToolchain.setAssetLoader(await compilerAssetLoader(true))
 
 for (const template of (process.env.BUILD_TEMPLATES?.split(',') ??
   Object.keys(templateFiles)) as Array<ProgramTemplate>) {
+  // Exercise the browser's measured compiler choice and switch both module caches.
+  setAssetLoader(
+    await compilerAssetLoader(template !== 'ez-template'),
+    template === 'ez-template' ? 'binaryen' : 'original',
+  )
   const sdkFiles: Array<BuildBundleFile> = []
   for (const binary of [false, true]) {
     const manifest = binary ? libraries : headers
@@ -100,7 +122,12 @@ for (const template of (process.env.BUILD_TEMPLATES?.split(',') ??
       (text) => {
         diagnosticOutput = (diagnosticOutput + text).slice(-400 * 1024)
       },
-      { cache, sdkKey, state },
+      {
+        cache,
+        sdkKey,
+        state,
+        compilerPlans: libraries.compilerPlans?.templates[template],
+      },
     ).catch((error) => {
       console.error(diagnosticOutput)
       throw error
@@ -202,6 +229,104 @@ for (const template of (process.env.BUILD_TEMPLATES?.split(',') ??
   }
   const original = templateFiles[template]
   const initial = await build('initial', original)
+  if (process.env.BUILD_VERIFY_COMPILER_PLANS === '1') {
+    const optimizedState = new BrowserBuildSession(createSession())
+    const stockState = new BrowserBuildSession(stockToolchain.createSession())
+    await optimizedState.mount(sdkFiles)
+    await stockState.mount(sdkFiles)
+    const main = original['src/main.cpp']
+    const umbrella =
+      template === 'pros' || template === 'ez-template' ? 'main.h' : 'vex.h'
+    const fixtures = {
+      original,
+      'live-source': {
+        ...original,
+        'src/main.cpp': main.replace(/(pros::delay\(|wait\()\d+/, '$147'),
+      },
+      'live-header': {
+        ...original,
+        [`include/${umbrella}`]:
+          original[`include/${umbrella}`] + '\n#define VERIFY_DELAY 47\n',
+        'src/main.cpp': main.replace(
+          /(pros::delay\(|wait\()\d+/,
+          '$1VERIFY_DELAY',
+        ),
+      },
+      'added-source': {
+        ...original,
+        'src/nested/new.cpp': `#include "${umbrella}"\nint nested_check() { return 47; }\n`,
+      },
+      'source-macro': {
+        ...original,
+        'src/main.cpp': '#define VERIFY_SOURCE_MACRO 1\n' + main,
+      },
+      'changed-prefix': {
+        ...original,
+        [`include/${umbrella}`]:
+          '// changed preprocessing prefix\n' + original[`include/${umbrella}`],
+      },
+    }
+    for (const [label, files] of Object.entries(fixtures)) {
+      const commands = browserCompileCommands(
+        { files, template, commitSha: label },
+        headers.gccVersion,
+      )
+      const objects: Array<Uint8Array | null> = []
+      for (const reference of [true, false]) {
+        const state = reference ? stockState : optimizedState
+        const checked = await compileBrowserProject(
+          state.session,
+          {
+            files,
+            template,
+            commitSha: label,
+            experiments: {
+              pch: reference ? 'off' : undefined,
+              driver: !reference,
+              starter: false,
+            },
+          },
+          headers.gccVersion,
+          () => {},
+          {
+            cache: { get: async () => undefined, put: async () => {} },
+            sdkKey,
+            state,
+            compilerPlans: libraries.compilerPlans?.templates[template],
+          },
+        )
+        if (checked.exitCode) throw new Error(checked.output)
+        const compiled = await Promise.all(
+          commands.map((command) => state.session.readFile(command.object)),
+        )
+        if (reference) objects.push(...compiled)
+        else
+          for (const [index, bytes] of compiled.entries()) {
+            if (
+              !bytes ||
+              !objects[index] ||
+              JSON.stringify(compilerObjectIdentity(bytes)) !==
+                JSON.stringify(compilerObjectIdentity(objects[index]!))
+            ) {
+              await writeFile(
+                resolve(outputDir, 'reference.o'),
+                objects[index] ?? new Uint8Array(),
+              )
+              await writeFile(
+                resolve(outputDir, 'optimized.o'),
+                bytes ?? new Uint8Array(),
+              )
+              throw new Error(
+                `Optimized object differs from driver/no-PCH reference: ${template}/${label}/${commands[index].file}`,
+              )
+            }
+          }
+      }
+      console.log(
+        `${template}/${label}: code, data, symbols and relocations match original WASM compiler with full driver/no-PCH compilation`,
+      )
+    }
+  }
   const cold = libraries.cold?.[template]
   if (cold) {
     const symbolsAsset = await readFile(

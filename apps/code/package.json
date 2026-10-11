@@ -11,12 +11,12 @@
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "lint": "bun run typecheck && oxlint --deny-warnings .",
-    "prepare:language": "bun ../../scripts/prepare-clangd.ts && bun ../../scripts/prepare-browser-compiler.ts && bun scripts/prepare-ez-pch.ts",
+    "prepare:language": "bun ../../scripts/prepare-clangd.ts && bun ../../scripts/prepare-browser-compiler.ts && bun scripts/prepare-sdk-pch.ts",
     "dev:ide": "bun run prepare:language && vite --config vite.ide.config.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report",
-    "prepare:build-assets": "bun scripts/prepare-indexed-sdk.ts && bun scripts/prepare-ez-pch.ts && bun scripts/prepare-build-metadata.ts && bun scripts/prepare-cold-sdk.ts && bun scripts/prepare-starter-objects.ts"
+    "prepare:build-assets": "bun scripts/prepare-indexed-sdk.ts && bun scripts/prepare-sdk-pch.ts && bun scripts/prepare-build-metadata.ts && bun scripts/prepare-cold-sdk.ts && bun scripts/prepare-starter-objects.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

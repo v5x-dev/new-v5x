@@ -1,3 +1,4 @@
+import { compilerAssetLoader } from './compiler-asset-loader'
 import { readFile, writeFile } from 'node:fs/promises'
 import { gzipSync } from 'node:zlib'
 import { resolve } from 'node:path'
@@ -29,9 +30,7 @@ const libraries: BuildSdkManifest = JSON.parse(
 )
 if (headers.gccVersion !== libraries.gccVersion)
   throw new Error('SDK version mismatch')
-setAssetLoader((name) =>
-  readFile(resolve(compilerDir, 'llvm-21.11.0-alpha.1', name)),
-)
+setAssetLoader(await compilerAssetLoader())
 const compilerDigest = await buildCacheKey([JSON.stringify(compiler)])
 libraries.compilerDigest = compilerDigest
 libraries.headerDigest = await buildCacheKey([JSON.stringify(headers)])

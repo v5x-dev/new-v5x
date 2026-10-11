@@ -8,6 +8,7 @@ import {
   decodeBuildAsset,
   decompressBuildBytes,
   unpackBuildBundle,
+  streamingCompilerAsset,
 } from './build-assets'
 import { browserBuildCache, buildCacheKey } from './build-cache'
 import { compileBrowserProject } from './browser-build'
@@ -15,7 +16,7 @@ import type { BuildTimingEvent } from './build-performance'
 import type { BuildBundleFile } from './build-archive'
 import type { BrowserBuildInput } from './browser-build'
 import type {
-  BuildAsset,
+  BuildCompilerManifest,
   BuildSdkManifest,
   PrebuiltColdSdk,
 } from './build-assets'
@@ -29,11 +30,7 @@ let loadedSdk: { key: string; files: Array<BuildBundleFile> } | undefined
 let active: { key: string; state: BrowserBuildSession } | undefined
 let manifests:
   | Promise<
-      readonly [
-        { files: Partial<Record<string, Omit<BuildAsset, 'url'>>> },
-        BuildSdkManifest,
-        BuildSdkManifest,
-      ]
+      readonly [BuildCompilerManifest, BuildSdkManifest, BuildSdkManifest]
     >
   | undefined
 let busy = false
@@ -43,9 +40,7 @@ let compilerIdentity: string | undefined
 setInterval(() => {
   if (busy || !manifests) return
   void Promise.all([
-    cachedBuildManifest<{
-      files: Partial<Record<string, Omit<BuildAsset, 'url'>>>
-    }>(compilerBase + 'manifest.json'),
+    cachedBuildManifest<BuildCompilerManifest>(compilerBase + 'manifest.json'),
     cachedBuildManifest<BuildSdkManifest>('/language/sdk-manifest.json'),
     cachedBuildManifest<BuildSdkManifest>('/compiler/sdk-manifest.json'),
   ])
@@ -106,9 +101,9 @@ self.onmessage = async ({ data }: MessageEvent<BrowserBuildInput>) => {
       pendingManifests = undefined
     }
     manifests ??= Promise.all([
-      cachedBuildManifest<{
-        files: Partial<Record<string, Omit<BuildAsset, 'url'>>>
-      }>(compilerBase + 'manifest.json'),
+      cachedBuildManifest<BuildCompilerManifest>(
+        compilerBase + 'manifest.json',
+      ),
       cachedBuildManifest<BuildSdkManifest>('/language/sdk-manifest.json'),
       cachedBuildManifest<BuildSdkManifest>('/compiler/sdk-manifest.json'),
     ])
@@ -127,20 +122,31 @@ self.onmessage = async ({ data }: MessageEvent<BrowserBuildInput>) => {
       throw new Error(
         'Compiler SDK deployment is incomplete. Retry after assets finish updating.',
       )
-    setAssetLoader(async (name) => {
-      const asset = compiler.files[name]
-      if (!asset) throw new Error(`Unknown compiler asset: ${name}`)
-      report(`Loading ${name}...\n`)
-      const bytes = await cachedBuildAsset(
-        {
-          ...asset,
-          url: compilerBase + name,
-        },
-        timing,
-      )
-      report(`Loaded ${name}.\n`)
-      return bytes
-    })
+    const core =
+      compiler.templateFiles?.[data.template]?.['llvm.core.wasm'] ??
+      compiler.files['llvm.core.wasm']
+    setAssetLoader(
+      async (name) => {
+        const asset =
+          compiler.templateFiles?.[data.template]?.[name] ??
+          compiler.files[name]
+        if (!asset) throw new Error(`Unknown compiler asset: ${name}`)
+        report(`Loading ${name}...\n`)
+        const bytes = await (
+          name.endsWith('.wasm') ? streamingCompilerAsset : cachedBuildAsset
+        )(
+          {
+            ...asset,
+            url: compilerBase + (asset.file ?? name),
+            transportCompression: name.endsWith('.tar') ? 'gzip' : undefined,
+          },
+          timing,
+        )
+        report(`Loaded ${name}.\n`)
+        return bytes
+      },
+      compilerIdentity + ':' + core?.sha256,
+    )
     if (headers.gccVersion !== libraries.gccVersion)
       throw new Error('ARM headers and libraries have different versions')
     const headerNames = headers.templates[data.template]
@@ -171,6 +177,55 @@ self.onmessage = async ({ data }: MessageEvent<BrowserBuildInput>) => {
     const { state } = active
     const session = state.session
     const mount = loadedSdk?.key !== sdkKey || state !== mountedState
+    const optionalAssets = mount
+      ? (async () => {
+          let nextMetadata: Uint8Array | undefined
+          let nextCold: typeof prebuiltCold
+          await Promise.all([
+            (async () => {
+              const metadata = libraries.metadataObject
+              if (
+                metadata?.version === 1 &&
+                metadata.compilerDigest ===
+                  (await buildCacheKey([JSON.stringify(compiler)]))
+              ) {
+                try {
+                  nextMetadata = await cachedBuildAsset(metadata.asset, timing)
+                } catch {
+                  report(
+                    'Optional build metadata unavailable; compiling timestamp normally.\n',
+                  )
+                }
+              }
+            })(),
+            (async () => {
+              const cold = libraries.cold?.[data.template]
+              if (
+                cold?.version === 1 &&
+                cold.compilerDigest ===
+                  (await buildCacheKey([JSON.stringify(compiler)]))
+              ) {
+                try {
+                  const [symbols, binary] = await timing.measure(
+                    'cold-assets',
+                    () =>
+                      Promise.all([
+                        decodeBuildAsset(cold.symbols, timing),
+                        decodeBuildAsset(cold.binary, timing),
+                      ]),
+                  )
+                  nextCold = { metadata: cold, symbols, binary }
+                } catch {
+                  report(
+                    'Optional cold SDK assets unavailable; linking locally.\n',
+                  )
+                }
+              }
+            })(),
+          ])
+          return { metadataObject: nextMetadata, prebuiltCold: nextCold }
+        })()
+      : undefined
     // Start WebAssembly compilation while independent SDK downloads decode.
     const ready = timing
       .measure('wasm-initialization', () =>
@@ -240,40 +295,11 @@ self.onmessage = async ({ data }: MessageEvent<BrowserBuildInput>) => {
     if (mount) {
       await timing.measure('sdk-mount', () => state.mount(loadedSdk!.files))
       mountedState = state
-      prebuiltCold = undefined
-      metadataObject = undefined
-      const metadata = libraries.metadataObject
-      if (
-        metadata?.version === 1 &&
-        metadata.compilerDigest ===
-          (await buildCacheKey([JSON.stringify(compiler)]))
-      ) {
-        try {
-          metadataObject = await cachedBuildAsset(metadata.asset, timing)
-        } catch {
-          report(
-            'Optional build metadata unavailable; compiling timestamp normally.\n',
-          )
-        }
-      }
-      const cold = libraries.cold?.[data.template]
-      if (
-        cold?.version === 1 &&
-        cold.compilerDigest ===
-          (await buildCacheKey([JSON.stringify(compiler)]))
-      ) {
-        try {
-          const [symbols, binary] = await timing.measure('cold-assets', () =>
-            Promise.all([
-              decodeBuildAsset(cold.symbols, timing),
-              decodeBuildAsset(cold.binary, timing),
-            ]),
-          )
-          prebuiltCold = { metadata: cold, symbols, binary }
-        } catch {
-          report('Optional cold SDK assets unavailable; linking locally.\n')
-        }
-      }
+    }
+    if (optionalAssets) {
+      const assets = await optionalAssets
+      metadataObject = assets.metadataObject
+      prebuiltCold = assets.prebuiltCold
     }
     if (data.kind === 'preload') {
       self.postMessage({
@@ -309,6 +335,10 @@ self.onmessage = async ({ data }: MessageEvent<BrowserBuildInput>) => {
         state,
         prebuiltCold,
         metadataObject,
+        compilerPlans:
+          libraries.compilerPlans?.compilerDigest === compilerIdentity
+            ? libraries.compilerPlans.templates[data.template]
+            : undefined,
         parallelCompiler: parallel,
         starterObjects: {
           entries: (libraries.starterObjects?.[data.template] ?? []).filter(

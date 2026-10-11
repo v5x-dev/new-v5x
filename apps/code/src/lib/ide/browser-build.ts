@@ -16,6 +16,9 @@ import {
   normalizeLinkerScript,
 } from './cold-sdk'
 import { elfToBinary } from './elf-binary'
+import { matchesSdkPchPrefix } from './sdk-pch'
+import { plannedCompilerCommand } from './compiler-plan'
+import type { CompilerPlan } from './compiler-plan'
 import type { PrebuiltColdSdk, StarterObject } from './build-assets'
 import type { BuildTimingEvent } from './build-performance'
 import type { BuildCache } from './build-cache'
@@ -37,6 +40,7 @@ export interface BrowserBuildInput {
     cache?: boolean
     prebuiltCold?: boolean
     starter?: boolean
+    driver?: boolean
   }
   files: Record<string, string>
   template: ProjectTemplate
@@ -299,6 +303,7 @@ export async function compileBrowserProject(
       load: (asset: StarterObject['asset']) => Promise<Uint8Array>
     }
     metadataObject?: Uint8Array
+    compilerPlans?: Array<CompilerPlan>
     prebuiltCold?: {
       metadata: PrebuiltColdSdk
       symbols: Uint8Array
@@ -342,7 +347,26 @@ export async function compileBrowserProject(
         : argv.includes('--no-gc-sections')
           ? 'cold-link'
           : 'user-link',
-      () => session.run(argv, { stdout: stream, stderr: stream }),
+      () => {
+        const source =
+          argv[0] === 'clang'
+            ? commands.find((command) => argv.includes(command.file))
+            : undefined
+        const planned =
+          caching?.compilerPlans &&
+          input.experiments?.driver !== false &&
+          source
+            ? plannedCompilerCommand(
+                caching.compilerPlans,
+                argv,
+                source.file,
+                source.object,
+              )
+            : undefined
+        return planned
+          ? session.exec(planned, { stdout: stream, stderr: stream })
+          : session.run(argv, { stdout: stream, stderr: stream })
+      },
     )
   }
   const result = (
@@ -396,15 +420,7 @@ export async function compileBrowserProject(
         JSON.stringify(state.inventory(input.files)),
       ])
     : ''
-  const dependencyKey = async (paths: Array<string>) => {
-    const parts: Array<string | Uint8Array> = []
-    for (const path of paths) {
-      const digest = await state.dependencyDigest(path)
-      if (!digest) return undefined
-      parts.push(path, digest)
-    }
-    return buildCacheKey(parts)
-  }
+  const dependencyKey = (paths: Array<string>) => state.dependencyKey(paths)
   const finalDependencies = new Set<string>()
   const finalEligibility = { value: true }
   const vex = input.template === 'vexcode' || input.template === 'jar-template'
@@ -597,8 +613,6 @@ export async function compileBrowserProject(
     cacheSafeConfiguration &&
     input.experiments?.pch !== 'off' &&
     input.experiments?.parallel !== 2 &&
-    (input.template === 'ez-template' ||
-      input.experiments?.pch === 'project') &&
     input.files[`include/${umbrella}`]
       ? commands.filter(
           (command) =>
@@ -626,6 +640,7 @@ export async function compileBrowserProject(
         paths: Array<string>
         digest: string
         workspacePaths: Array<string>
+        prefix?: unknown
       }
       for (const [args, group] of groups) {
         if (
@@ -641,6 +656,15 @@ export async function compileBrowserProject(
         )
           continue
         if (!validDependencyRecord(metadata)) continue
+        if (metadata.version === 4) {
+          if (!matchesSdkPchPrefix(input.files, metadata.prefix)) continue
+          await state.synchronizeSdkPrefix(metadata.prefix.header)
+          if ((await dependencyKey(metadata.paths)) !== metadata.digest)
+            continue
+          for (const command of group)
+            pchBySource.set(command.file, '/sdk/ez/main.pch')
+          continue
+        }
         if (metadata.version === 3) {
           if ((await dependencyKey(metadata.paths)) !== metadata.digest)
             continue
@@ -667,7 +691,7 @@ export async function compileBrowserProject(
         for (const command of group)
           pchBySource.set(command.file, '/sdk/ez/main.pch')
       }
-      if (pchBySource.size) emit('Using checked EZ precompiled headers.\n')
+      if (pchBySource.size) emit('Using checked SDK precompiled headers.\n')
     } catch {
       pchBySource.clear()
     }

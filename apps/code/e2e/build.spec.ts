@@ -11,12 +11,14 @@ test('build a program, show output, enable upload and restore artifacts on reloa
   programPage: page,
 }) => {
   test.setTimeout(300_000)
+  // Wait for the mounted IDE before clicking a server-rendered button.
+  await expect(
+    page.getByRole('status', { name: 'C++ ready', exact: true }),
+  ).toBeVisible({ timeout: 120_000 })
   const build = page.getByRole('button', { name: 'Build program', exact: true })
   await expect(build).toBeEnabled()
   await build.click()
-  await expect(
-    page.getByRole('button', { name: /^Building program,/ }),
-  ).toBeDisabled()
+  // A preloaded starter build can finish before polling sees the busy state.
   await expect(
     page.getByRole('button', { name: 'Build succeeded', exact: true }),
   ).toBeVisible({

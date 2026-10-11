@@ -1,5 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/triple-slash-reference -- Include the Bun adapter package ambient declaration without a runtime import.
 /// <reference path="../../../packages/serial/src/adapters/bun-serialport.d.ts" />
+import { compilerAssetLoader } from './compiler-asset-loader'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { gunzipSync } from 'node:zlib'
@@ -117,9 +118,7 @@ async function prepare() {
   const libraries = await readJson<BuildSdkManifest>(
     resolve(publicDir, 'compiler/sdk-manifest.json'),
   )
-  setAssetLoader((name) =>
-    readFile(resolve(publicDir, 'compiler/llvm-21.11.0-alpha.1', name)),
-  )
+  setAssetLoader(await compilerAssetLoader())
   const fixtures: Array<Fixture> = []
   for (const template of Object.keys(templateFiles) as Array<ProgramTemplate>) {
     const state = new BrowserBuildSession(createSession())

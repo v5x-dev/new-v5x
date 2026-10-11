@@ -13,8 +13,6 @@ const samples = Number(process.env.BUILD_BENCH_SAMPLES ?? 3)
 const wasmVariant = process.env.BUILD_BROWSER_WASM ?? 'preferred'
 const alternateCompiler = wasmVariant !== 'preferred'
 const pinned = wasmVariant === 'pinned'
-const syncInstance = process.env.BUILD_SYNC_INSTANCE === '1'
-const snapshotDebug = process.env.BUILD_SNAPSHOT_DEBUG === '1'
 const pchDirectory = process.env.BUILD_PCH_DIR
 const label =
   process.env.BUILD_BENCH_LABEL ?? (pinned ? 'browser-pinned' : 'browser')
@@ -25,27 +23,6 @@ for (const template of Object.keys(templateFiles) as Array<
     `${template} live compiler edits`,
     async ({ page }, testInfo) => {
       test.setTimeout(600_000)
-      let modifiedRuntimeResponses = 0
-      if (syncInstance || snapshotDebug)
-        await page
-          .context()
-          .route('**/*microbit-clang-wasm*.js*', async (route) => {
-            const response = await route.fetch()
-            const source = await response.text()
-            let replacement = source
-            if (syncInstance)
-              replacement = replacement.replace(
-                'instantiateCore = WebAssembly.instantiate',
-                'instantiateCore = (module, imports) => new WebAssembly.Instance(module, imports)',
-              )
-            if (snapshotDebug)
-              replacement = replacement.replace(
-                /const _debugLog = \(\.\.\.args\) => \{\s*if \(!globalThis\?\.process\?\.env\?\.JCO_DEBUG\)\s*\{?\s*return;\s*\}?\s*console\.debug\(\.\.\.args\);\s*\};/,
-                'const _debugLog = globalThis?.process?.env?.JCO_DEBUG ? (...args) => console.debug(...args) : () => {};',
-              )
-            if (replacement !== source) modifiedRuntimeResponses++
-            await route.fulfill({ response, body: replacement })
-          })
       await page.addInitScript(() => {
         const state = window as any
         state.compilerSpans = []
@@ -279,8 +256,6 @@ for (const template of Object.keys(templateFiles) as Array<
         process.cwd(),
         `../../.build/compiler-edits/${label}`,
       )
-      if (syncInstance || snapshotDebug)
-        expect(modifiedRuntimeResponses).toBeGreaterThan(0)
       await mkdir(directory, { recursive: true })
       const path = resolve(directory, `${template}.json`)
       await writeFile(
@@ -289,8 +264,6 @@ for (const template of Object.keys(templateFiles) as Array<
           {
             route: '/build-demo',
             wasmVariant,
-            syncInstance,
-            snapshotDebug,
             pchDirectory,
             userAgent: await page.evaluate(() => navigator.userAgent),
             network:

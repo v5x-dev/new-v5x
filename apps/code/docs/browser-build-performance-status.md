@@ -101,7 +101,7 @@ acceptance runs; use the supplied matrix and benchmark tooling and record failur
 
 ## October 10 compilation pass
 
-See [measurements and graphs](browser-performance/2026-10-10/report.md) for fresh
+See [measurements](browser-performance/2026-10-10/report.md) for fresh
 workspaces and actual source/header edits with starter reuse disabled. This pass
 adds geometric filesystem writes, SDK-prefix PCH across all templates,
 driver-generated frontend plans, integrity-gated WASM streaming, concurrent
@@ -113,8 +113,7 @@ to avoid Nitro recompressing them. Compiled WASM modules are keyed by immutable
 asset identity, with two cached variants. A real-route test switches VEX, EZ and
 VEX within one worker and checks that both cores load correctly.
 
-The follow-up [one-line edit pass](browser-performance/2026-10-10/one-line-edits/report.md)
-adds bounded string-hash reuse and aggregate dependency identities that invalidate
+This pass also adds bounded string-hash reuse and aggregate dependency identities that invalidate
 on input changes. PROS, EZ and JAR now instantiate pending SDK templates during
 PCH preparation instead of repeating that work in every affected translation unit.
 VEX retains its previous PCH configuration. The report records real source and

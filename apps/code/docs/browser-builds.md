@@ -110,7 +110,7 @@ PROS, EZ and JAR instantiate pending SDK templates during PCH preparation with
 Clang's `-fpch-instantiate-templates`. This avoids repeating those instantiations
 after each source or header edit. VEX keeps its previous configuration. Dependency
 digests reuse unchanged input identities; writes and deletions invalidate them.
-See the [one-line edit measurements](browser-performance/2026-10-10/one-line-edits/report.md).
+See the [one-line edit measurements](browser-performance/2026-10-10/report.md).
 
 The header and library manifests list the ordered bundles for each template.
 Clang 8 builtin headers are shared separately. VEX/JAR load their GCC 4.9 headers

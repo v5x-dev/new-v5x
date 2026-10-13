@@ -3,14 +3,14 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { createSession, setAssetLoader } from 'microbit-clang-wasm'
 import { templateFiles } from '../convex/template'
-import { BrowserBuildSession } from '../src/lib/ide/build-session'
-import { browserCompileCommands } from '../src/lib/ide/browser-build'
-import { buildCacheKey, dependencyPaths } from '../src/lib/ide/build-cache'
+import { BrowserBuildSession } from '@v5x/compiler/build-session'
+import { browserCompileCommands } from '@v5x/compiler/browser-build'
+import { buildCacheKey, dependencyPaths } from '@v5x/compiler/build-cache'
 import { readSdkBundle } from './read-sdk-bundle'
 import type {
   BuildSdkManifest,
   StarterObject,
-} from '../src/lib/ide/build-assets'
+} from '@v5x/compiler/build-assets'
 
 const publicDir = resolve(import.meta.dir, '../public')
 const manifestPath = resolve(publicDir, 'compiler/sdk-manifest.json')

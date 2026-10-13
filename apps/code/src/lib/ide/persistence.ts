@@ -1,5 +1,5 @@
 import { workspaceIO } from './workspace-io'
-import type { ProjectTemplate } from './compile-commands'
+import type { ProjectTemplate } from '@v5x/compiler'
 import type { Documents } from './workspace'
 
 const revisions = new Map<string, string | undefined>()

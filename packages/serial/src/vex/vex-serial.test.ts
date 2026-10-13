@@ -188,7 +188,14 @@ test.each([null, "1.0.4", "1.0.5"])(
               cmd: [
                 "python3",
                 "-c",
-                "import sys,gzip;sys.stdout.buffer.write(gzip.compress(sys.stdin.buffer.read(),mtime=0))",
+                [
+                  "import sys, gzip, io",
+                  "raw = sys.stdin.buffer.read()",
+                  "buf = io.BytesIO()",
+                  "with gzip.GzipFile(fileobj=buf, mode='wb', mtime=0) as f:",
+                  "    f.write(raw)",
+                  "sys.stdout.buffer.write(buf.getvalue())",
+                ].join("\n"),
               ],
               stdin: cold,
             }).stdout

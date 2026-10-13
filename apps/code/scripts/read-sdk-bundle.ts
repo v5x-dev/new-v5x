@@ -3,8 +3,8 @@ import { gunzipSync } from 'node:zlib'
 import {
   decodeBuildArchive,
   isIndexedBuildArchive,
-} from '../src/lib/ide/build-archive'
-import type { BuildBundleFile } from '../src/lib/ide/build-archive'
+} from '@v5x/compiler/build-archive'
+import type { BuildBundleFile } from '@v5x/compiler/build-archive'
 
 export async function readSdkBundle(
   filename: string,

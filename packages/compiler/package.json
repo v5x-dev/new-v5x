@@ -1,0 +1,39 @@
+{
+  "name": "@v5x/compiler",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./browser-build": "./src/browser-build.ts",
+    "./build-activity": "./src/build-activity.ts",
+    "./build-archive": "./src/build-archive.ts",
+    "./build-assets": "./src/build-assets.ts",
+    "./build-cache": "./src/build-cache.ts",
+    "./build-client": "./src/build-client.ts",
+    "./build-metadata": "./src/build-metadata.ts",
+    "./build-performance": "./src/build-performance.ts",
+    "./build-session": "./src/build-session.ts",
+    "./build-storage": "./src/build-storage.ts",
+    "./cold-sdk": "./src/cold-sdk.ts",
+    "./compile-commands": "./src/compile-commands.ts",
+    "./compiler-plan": "./src/compiler-plan.ts",
+    "./elf-binary": "./src/elf-binary.ts",
+    "./parallel-compiler": "./src/parallel-compiler.ts",
+    "./sdk-pch": "./src/sdk-pch.ts",
+    "./workspace-path": "./src/workspace-path.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "optimize": "bun scripts/optimize-browser-compiler.ts"
+  },
+  "dependencies": {
+    "microbit-clang-wasm": "21.11.0-alpha.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
+  }
+}

@@ -1,3 +1,7 @@
+import { validPath } from '@v5x/compiler/workspace-path'
+
+export { validPath } from '@v5x/compiler/workspace-path'
+
 import type {
   Position,
   TextEdit,
@@ -23,16 +27,6 @@ export function workspaceDocuments(
 }
 
 export const workspaceRoot = '/workspace'
-
-export function validPath(path: string) {
-  return (
-    !!path &&
-    !path.startsWith('/') &&
-    !path.includes('\\') &&
-    !path.includes('\0') &&
-    !path.split('/').some((part) => !part || part === '.' || part === '..')
-  )
-}
 
 export function fileUri(path: string) {
   if (!validPath(path)) throw new Error('Invalid workspace path')

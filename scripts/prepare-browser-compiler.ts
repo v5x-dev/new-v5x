@@ -6,7 +6,10 @@ import { resolve } from "node:path"
 
 const root = resolve(import.meta.dir, "../apps/code")
 const version = "21.11.0-alpha.1"
-const source = resolve(root, "node_modules/microbit-clang-wasm")
+const source = resolve(
+  import.meta.dir,
+  "../packages/compiler/node_modules/microbit-clang-wasm"
+)
 const destination = resolve(root, `public/compiler/llvm-${version}`)
 await mkdir(destination, { recursive: true })
 
@@ -65,12 +68,18 @@ for (const name of [
 // Preserve the package asset for existing workers and reference verification.
 const optimization = JSON.parse(
   await readFile(
-    resolve(root, "compiler/llvm-21.11.0-alpha.1-binaryen-133.json"),
+    resolve(
+      import.meta.dir,
+      "../packages/compiler/assets/llvm-21.11.0-alpha.1-binaryen-133.json"
+    ),
     "utf8"
   )
 )
 const compressed = await readFile(
-  resolve(root, "compiler/llvm-21.11.0-alpha.1-binaryen-133.wasm.gz")
+  resolve(
+    import.meta.dir,
+    "../packages/compiler/assets/llvm-21.11.0-alpha.1-binaryen-133.wasm.gz"
+  )
 )
 const optimized = gunzipSync(compressed)
 const digest = (bytes: Uint8Array) =>

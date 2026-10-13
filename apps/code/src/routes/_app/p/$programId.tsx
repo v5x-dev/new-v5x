@@ -30,7 +30,7 @@ import {
   releaseBrowserCompiler,
   scheduleBrowserCompilerPreload,
   writeBrowserBuild,
-} from '~/lib/ide/build-client'
+} from '@v5x/compiler'
 import { simulatorTemplate } from '@v5x/simulator'
 import {
   simulatorBinary,

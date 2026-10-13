@@ -1,9 +1,9 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { gunzipSync, gzipSync } from 'node:zlib'
-import { buildCacheKey } from '../src/lib/ide/build-cache'
-import { encodeBuildArchive } from '../src/lib/ide/build-archive'
-import type { BuildSdkManifest } from '../src/lib/ide/build-assets'
+import { buildCacheKey } from '@v5x/compiler/build-cache'
+import { encodeBuildArchive } from '@v5x/compiler/build-archive'
+import type { BuildSdkManifest } from '@v5x/compiler/build-assets'
 
 const publicDir = resolve(import.meta.dir, '../public')
 const filename = resolve(publicDir, 'compiler/sdk-manifest.json')

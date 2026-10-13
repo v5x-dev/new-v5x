@@ -10,12 +10,12 @@ import { templateFiles } from '../convex/template'
 import {
   compileBrowserProject as currentCompiler,
   browserCompileCommands,
-} from '../src/lib/ide/browser-build'
+} from '@v5x/compiler/browser-build'
 import { compilerBenchmarkBaseline } from './compiler-benchmark-baseline'
-import { BrowserBuildSession } from '../src/lib/ide/build-session'
+import { BrowserBuildSession } from '@v5x/compiler/build-session'
 import { readSdkBundle } from './read-sdk-bundle'
-import type { BuildSdkManifest } from '../src/lib/ide/build-assets'
-import type { BuildTimingEvent } from '../src/lib/ide/build-performance'
+import type { BuildSdkManifest } from '@v5x/compiler/build-assets'
+import type { BuildTimingEvent } from '@v5x/compiler/build-performance'
 import type { ProgramTemplate } from '../convex/template'
 
 const publicDir = resolve(import.meta.dir, '../public')

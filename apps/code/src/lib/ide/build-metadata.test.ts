@@ -1,7 +1,10 @@
 import { readFileSync } from 'node:fs'
 import { expect, it } from 'bun:test'
 import manifest from '../../../public/compiler/sdk-manifest.json'
-import { formatBuildTimestamp, patchBuildMetadata } from './build-metadata'
+import {
+  formatBuildTimestamp,
+  patchBuildMetadata,
+} from '@v5x/compiler/build-metadata'
 
 it('patches validated ARM metadata without mutating its template and rejects foreign or corrupt objects', () => {
   const bytes = new Uint8Array(

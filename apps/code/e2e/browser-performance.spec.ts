@@ -10,7 +10,7 @@ import {
   gotoReady,
   test,
 } from './fixtures'
-import type { BuildTimingEvent } from '../src/lib/ide/build-performance'
+import type { BuildTimingEvent } from '@v5x/compiler/build-performance'
 
 // Explicitly opt in: these are real authenticated repositories and repeated WASM builds.
 const enabled = process.env.BUILD_BROWSER_BENCH === '1'

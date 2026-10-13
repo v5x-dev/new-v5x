@@ -6,8 +6,8 @@ import { resolve } from 'node:path'
 import { gunzipSync } from 'node:zlib'
 import { createSession, setAssetLoader } from 'microbit-clang-wasm'
 import { templateFiles } from '../convex/template'
-import { compileBrowserProject } from '../src/lib/ide/browser-build'
-import { BrowserBuildSession } from '../src/lib/ide/build-session'
+import { compileBrowserProject } from '@v5x/compiler/browser-build'
+import { BrowserBuildSession } from '@v5x/compiler/build-session'
 import {
   GetDirectoryEntryH2DPacket,
   GetDirectoryEntryReplyD2HPacket,
@@ -25,10 +25,10 @@ import { V5SerialConnection } from '../../../packages/serial/src/vex/vex-connect
 import { createBunAdapter } from '../../../packages/serial/src/adapters/bun'
 import { readSdkBundle } from './read-sdk-bundle'
 import type { AdapterSerialPort } from '../../../packages/serial/src/adapters/serial-adapter'
-import type { BuildSdkManifest } from '../src/lib/ide/build-assets'
-import type { BrowserBuildInput } from '../src/lib/ide/browser-build'
+import type { BuildSdkManifest } from '@v5x/compiler/build-assets'
+import type { BrowserBuildInput } from '@v5x/compiler/browser-build'
 import type { ProgramTemplate } from '../convex/template'
-import type { BuildTimingEvent } from '../src/lib/ide/build-performance'
+import type { BuildTimingEvent } from '@v5x/compiler/build-performance'
 
 // Explicit hardware runner. Fixtures have no motor commands. Reserve a free slot,
 // use private library names, and remove only files created by this invocation.

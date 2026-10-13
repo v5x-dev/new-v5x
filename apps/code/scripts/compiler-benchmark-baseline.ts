@@ -27,6 +27,7 @@ export async function compilerBenchmarkBaseline(revision: string) {
     '--name-only',
     commit,
     'apps/code/src/lib/ide',
+    'packages/compiler/src',
   ])
     .trim()
     .split('\n')) {
@@ -40,15 +41,13 @@ export async function compilerBenchmarkBaseline(revision: string) {
   await writeFile(
     resolve(runtime, 'lib/api.d.ts'),
     await readFile(
-      resolve(root, 'node_modules/microbit-clang-wasm/lib/api.d.ts'),
+      new URL('../lib/api.d.ts', import.meta.resolve('microbit-clang-wasm')),
     ),
   )
   const bundle = resolve(runtime, 'gen/bundle.js')
   await writeFile(
     bundle,
-    await readFile(
-      resolve(root, 'node_modules/microbit-clang-wasm/gen/bundle.js'),
-    ),
+    await readFile(new URL(import.meta.resolve('microbit-clang-wasm'))),
   )
   const patch = 'patches/microbit-clang-wasm@21.11.0-alpha.1.patch'
   const destination = `--directory=${relative(root, runtime)}`
@@ -64,7 +63,7 @@ export async function compilerBenchmarkBaseline(revision: string) {
     )) as typeof import('microbit-clang-wasm'),
     compiler: (await import(
       pathToFileURL(resolve(ide, 'browser-build.ts')).href
-    )) as typeof import('../src/lib/ide/browser-build'),
+    )) as typeof import('@v5x/compiler/browser-build'),
     libraries: JSON.parse(
       git(['show', `${commit}:apps/code/public/compiler/sdk-manifest.json`]),
     ),

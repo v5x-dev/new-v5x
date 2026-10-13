@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { setBrowserBuildActive } from './build-activity'
+import { setBrowserBuildActive } from '@v5x/compiler/build-activity'
 import { ClangdClient } from './clangd-client'
 
 // Exercise the client protocol without loading the clangd WASM runtime.

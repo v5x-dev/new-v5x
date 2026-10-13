@@ -4,6 +4,8 @@
 // its shared UART memory, including while the guest is busy or paused.
 // The guest kernel and display renderer are from vexide/vex-v5-qemu.
 // Maintainer credits are at /credits.html.
+import { decodeSimulatorProgram } from "@v5x/simulator"
+
 const scope = self as unknown as DedicatedWorkerGlobalScope
 const INPUT_SIZE = 65536
 const OUTPUT_SIZE = 4 * 1024 * 1024
@@ -131,6 +133,7 @@ async function start(id: number, program: ArrayBuffer, base: string) {
   if (!program.byteLength || program.byteLength > 32 * 1024 * 1024) {
     throw new Error("Program must contain between 1 byte and 32 MiB")
   }
+  const { cold, hot } = decodeSimulatorProgram(new Uint8Array(program))
   const asset = (name: string) => new URL(`wasm/${name}`, base).href
   const load = async (name: string) => {
     const response = await fetch(asset(name))
@@ -164,11 +167,14 @@ async function start(id: number, program: ArrayBuffer, base: string) {
       "-icount",
       "shift=3,align=off,sleep=on",
       "-device",
-      "loader,addr=0x200,data=0,data-len=4,cpu-num=0",
+      `loader,addr=0x200,data=${hot ? "0x03800000" : "0"},data-len=4,cpu-num=0`,
       "-device",
       "loader,file=/kernel.elf,addr=0x100000,cpu-num=0",
       "-device",
       "loader,file=/program.bin,force-raw=on,addr=0x03800000",
+      ...(hot
+        ? ["-device", "loader,file=/hot.bin,force-raw=on,addr=0x07800000"]
+        : []),
       "-display",
       "none",
       "-monitor",
@@ -187,7 +193,8 @@ async function start(id: number, program: ArrayBuffer, base: string) {
     preRun: [
       (module: QemuModule) => {
         module.FS.writeFile("/kernel.elf", kernel)
-        module.FS.writeFile("/program.bin", new Uint8Array(program))
+        module.FS.writeFile("/program.bin", cold)
+        if (hot) module.FS.writeFile("/hot.bin", hot)
       },
     ],
     print: (line: string) =>

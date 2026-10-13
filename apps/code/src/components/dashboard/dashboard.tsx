@@ -1,4 +1,5 @@
 import {
+  ArchiveIcon,
   MagnifyingGlassIcon,
   SortAscendingIcon,
   StarIcon,
@@ -240,24 +241,14 @@ export function Dashboard() {
         />
 
         <main className="mx-auto max-w-4xl px-6 py-6">
-          <div className="mb-4">
-            <ImportProject />
-          </div>
           <Toolbar
             sort={sort}
             onSortChange={setSort}
             starredOnly={starredOnly}
             onStarredOnlyChange={setStarredOnly}
+            archived={archived}
+            onArchivedChange={setArchived}
           />
-
-          <Button
-            variant={archived ? 'secondary' : 'outline'}
-            aria-pressed={archived}
-            onClick={() => setArchived(!archived)}
-            className="mb-4"
-          >
-            {archived ? 'Viewing archived programs' : 'View archive'}
-          </Button>
           {error && (
             <p role="alert" className="mb-4 text-sm text-destructive">
               {error}
@@ -325,7 +316,7 @@ function TemplateStrip({
     <section className="border-b bg-card/75 py-6">
       <div className="mx-auto max-w-5xl px-6">
         <h1 className="mb-4 text-base font-medium">Create a new program</h1>
-        <ul className="grid grid-cols-2 gap-5 md:grid-cols-4">
+        <ul className="grid grid-cols-2 gap-5 md:grid-cols-5">
           {templates.map((template) => (
             <li key={template}>
               <Tooltip>
@@ -366,6 +357,9 @@ function TemplateStrip({
               </Tooltip>
             </li>
           ))}
+          <li>
+            <ImportProject disabled={creating !== null} />
+          </li>
         </ul>
       </div>
     </section>
@@ -377,15 +371,30 @@ function Toolbar({
   onSortChange,
   starredOnly,
   onStarredOnlyChange,
+  archived,
+  onArchivedChange,
 }: {
   sort: Sort
   onSortChange: (sort: Sort) => void
   starredOnly: boolean
   onStarredOnlyChange: (value: boolean) => void
+  archived: boolean
+  onArchivedChange: (value: boolean) => void
 }) {
   return (
-    <div className="mb-5 flex items-center gap-2">
-      <h2 className="mr-auto text-base font-medium">Your programs</h2>
+    <div className="mb-5 flex flex-wrap items-center gap-2">
+      <h2 className="mr-auto text-base font-medium max-sm:w-full">
+        Your programs
+      </h2>
+
+      <Button
+        variant={archived ? 'secondary' : 'outline'}
+        aria-pressed={archived}
+        onClick={() => onArchivedChange(!archived)}
+      >
+        <ArchiveIcon aria-hidden="true" data-icon="inline-start" />
+        Archived
+      </Button>
 
       <Button
         variant={starredOnly ? 'secondary' : 'outline'}

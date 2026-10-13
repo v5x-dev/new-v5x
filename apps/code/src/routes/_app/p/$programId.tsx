@@ -31,7 +31,11 @@ import {
   scheduleBrowserCompilerPreload,
   writeBrowserBuild,
 } from '~/lib/ide/build-client'
-import { createSimulatorHandoffManifest } from '~/lib/ide/simulator-handoff'
+import { simulatorTemplate } from '@v5x/simulator'
+import {
+  simulatorBinary,
+  createSimulatorHandoffManifest,
+} from '~/lib/ide/simulator-handoff'
 import { WorkspaceEditor } from '~/components/ide/workspace-editor'
 import { ProgramFileTree } from '~/components/ide/program-file-tree'
 import { Button } from '~/components/ui/button'
@@ -490,7 +494,7 @@ function RouteComponent() {
   const runInSimulator = async () => {
     if (
       !program ||
-      (program.template ?? 'vexcode') !== 'vexcode' ||
+      !simulatorTemplate(program.template ?? 'vexcode') ||
       !program.currentCommitSha ||
       buildArtifactsCommitSha !== program.currentCommitSha ||
       hasUnsavedChanges ||
@@ -502,13 +506,21 @@ function RouteComponent() {
       return
 
     const snapshot = buildSnapshotRef.current?.()
-    const binary = buildArtifacts.get('build/workspace.bin')
+    const template = program.template ?? 'vexcode'
+    if (!simulatorTemplate(template)) return
+    let binary: Uint8Array
+    try {
+      binary = simulatorBinary(template, buildArtifacts)
+    } catch (reason) {
+      setUploadMessage(String(reason))
+      return
+    }
     if (
       !snapshot ||
       snapshot.commitSha !== program.currentCommitSha ||
       !binary
     ) {
-      setUploadMessage('Build the current committed VEXcode source first.')
+      setUploadMessage('Build the current committed source first.')
       return
     }
 
@@ -521,7 +533,11 @@ function RouteComponent() {
     setIsHandingOff(true)
     setUploadMessage('Preparing a verified simulator handoff')
     try {
-      const manifest = await createSimulatorHandoffManifest(snapshot, binary)
+      const manifest = await createSimulatorHandoffManifest(
+        snapshot,
+        binary,
+        template,
+      )
       const transfer = await createSimulatorHandoff({
         programId,
         expectedCommitSha: manifest.commitSha,
@@ -988,10 +1004,17 @@ function RouteComponent() {
                               onClick={() => void runInSimulator()}
                               disabled={
                                 !program ||
-                                (program.template ?? 'vexcode') !== 'vexcode' ||
+                                !simulatorTemplate(
+                                  program.template ?? 'vexcode',
+                                ) ||
                                 buildArtifactsCommitSha !==
                                   program.currentCommitSha ||
-                                !buildArtifacts.has('build/workspace.bin') ||
+                                !((program?.template ?? 'vexcode') === 'vexcode'
+                                  ? buildArtifacts.has('build/workspace.bin')
+                                  : buildArtifacts.has('bin/hot.package.bin') &&
+                                    buildArtifacts.has(
+                                      'bin/cold.package.bin',
+                                    )) ||
                                 isBuilding ||
                                 isSaving ||
                                 isUploading ||
@@ -1006,10 +1029,11 @@ function RouteComponent() {
                               )}
                               Run in simulator
                             </Button>
-                            {(program?.template ?? 'vexcode') !== 'vexcode' ? (
+                            {!simulatorTemplate(
+                              program?.template ?? 'vexcode',
+                            ) ? (
                               <p className="text-xs text-muted-foreground">
-                                The simulator currently accepts VEXcode
-                                binaries.
+                                This template cannot run in the simulator.
                               </p>
                             ) : null}
                             {uploadMessage ? (

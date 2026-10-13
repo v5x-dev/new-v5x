@@ -64,6 +64,13 @@ export default defineSchema({
     timings: v.array(v.object({ stage: v.string(), ms: v.number() })),
   }).index('by_program', ['programId']),
   simulatorHandoffs: defineTable({
+    template: v.optional(
+      v.union(
+        v.literal('vexcode'),
+        v.literal('pros'),
+        v.literal('ez-template'),
+      ),
+    ),
     tokenHash: v.string(),
     ownerId: v.string(),
     programId: v.id('program'),

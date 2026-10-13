@@ -42,3 +42,36 @@ describe('simulator handoff manifest', () => {
     ).rejects.toThrow('missing or too large')
   })
 })
+
+test.each(['pros', 'ez-template'] as const)(
+  'packages both %s artifacts and binds their manifest to the committed source',
+  async (template) => {
+    const { simulatorBinary } = await import('./simulator-handoff')
+    const { decodeSimulatorProgram } = await import('@v5x/simulator')
+    const artifacts = new Map([
+      ['bin/cold.package.bin', new Uint8Array([1, 2])],
+      ['bin/hot.package.bin', new Uint8Array([3, 4])],
+    ])
+    const binary = simulatorBinary(template, artifacts)
+    expect(decodeSimulatorProgram(binary)).toEqual({
+      cold: artifacts.get('bin/cold.package.bin'),
+      hot: artifacts.get('bin/hot.package.bin'),
+    })
+    expect(
+      await createSimulatorHandoffManifest(
+        { commitSha: 'commit', files: {} },
+        binary,
+        template,
+      ),
+    ).toMatchObject({
+      template,
+      format: 'pros-v5-package',
+      artifact: { path: 'build/simulator.v5x' },
+    })
+    artifacts.delete('bin/cold.package.bin')
+    expect(() => simulatorBinary(template, artifacts)).toThrow('both')
+    expect(() => simulatorBinary('jar-template', artifacts)).toThrow(
+      'cannot run',
+    )
+  },
+)

@@ -137,12 +137,16 @@
         throw new Error("Brain is missing its trusted Code handoff endpoint.")
       const handoff = await receiveSimulatorHandoff(fragment, trustedEndpoint)
       if (!handoff) return
-      const file = new File([handoff.bytes.slice().buffer], "workspace.bin", {
-        type: "application/octet-stream",
-      })
+      const file = new File(
+        [handoff.bytes.slice().buffer],
+        handoff.manifest.artifact.path.split("/").at(-1)!,
+        {
+          type: "application/octet-stream",
+        },
+      )
       const next = new Session(file.name, file)
       await next.start()
-      handoffStatus = `Running VEXcode build ${handoff.manifest.commitSha.slice(0, 8)}`
+      handoffStatus = `Running ${handoff.manifest.template} build ${handoff.manifest.commitSha.slice(0, 8)}`
     } catch (reason) {
       handoffStatus = `Simulator handoff failed: ${String(reason)}`
     }

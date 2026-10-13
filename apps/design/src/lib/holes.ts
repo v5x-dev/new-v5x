@@ -1,5 +1,6 @@
 import { Euler, Quaternion, Vector3 } from "three"
 import type { AssemblyPart, Coordinates } from "./assembly"
+import modelHoles from "./model-holes.json"
 
 export interface Hole {
   center: Coordinates
@@ -8,20 +9,18 @@ export interface Hole {
 }
 
 export const MODEL_SCALE = 1 / 0.0254
-export const HOLES: Record<string, Hole[]> = {
-  "/models/vex-v5rc-parts/angles/aluminum/1x1x35-aluminum-angle.glb": [
-    ...Array.from({ length: 35 }, (_, index): Hole => ({
-      center: [index / 2 - 8.5, 0.045, -0.218],
-      axis: [0, 0, 1],
-      type: "square",
+// Coordinates are extracted from square boundary loops on the GLB face meshes.
+// Both sides of each sheet are retained so mates meet at actual surfaces.
+export const HOLES: Record<string, Hole[]> = Object.fromEntries(
+  Object.entries(modelHoles).map(([path, rows]) => [
+    path,
+    rows.map((row) => ({
+      center: row.slice(0, 3) as Coordinates,
+      axis: row.slice(3, 6) as Coordinates,
+      type: "square" as const,
     })),
-    ...Array.from({ length: 35 }, (_, index): Hole => ({
-      center: [index / 2 - 8.5, -0.218, 0.045],
-      axis: [0, 1, 0],
-      type: "square",
-    })),
-  ],
-}
+  ]),
+)
 
 // Align the moving hole center and opposing face normal with the fixed hole.
 export function alignHoles(

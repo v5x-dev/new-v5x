@@ -1,3 +1,4 @@
+import { simulatorTemplate, decodeSimulatorProgram } from '@v5x/simulator'
 import { v } from 'convex/values'
 import { httpRouter } from 'convex/server'
 import { internal } from './_generated/api'
@@ -75,10 +76,8 @@ export const create = action({
       throw new Error(
         'The project changed. Build the current committed source first.',
       )
-    if ((program.template ?? 'vexcode') !== 'vexcode')
-      throw new Error(
-        'The Brain simulator currently accepts VEXcode binaries only.',
-      )
+    if (!simulatorTemplate(program.template ?? 'vexcode'))
+      throw new Error('This template cannot run in the Brain simulator.')
 
     const token = bytesToHex(crypto.getRandomValues(new Uint8Array(32)))
     const hash = await tokenHash(token)
@@ -138,7 +137,7 @@ export const register = action({
     if (
       !program ||
       program.currentCommitSha !== args.expectedCommitSha ||
-      (program.template ?? 'vexcode') !== 'vexcode'
+      !simulatorTemplate(program.template ?? 'vexcode')
     )
       throw new Error(
         'The project changed. Build the current committed source first.',
@@ -158,6 +157,20 @@ export const register = action({
     ) {
       await ctx.storage.delete(args.storageId)
       throw new Error('Simulator artifact integrity check failed.')
+    }
+
+    try {
+      const packageBytes = decodeSimulatorProgram(new Uint8Array(bytes))
+      if (
+        ((program.template ?? 'vexcode') !== 'vexcode') !==
+        !!packageBytes.hot
+      )
+        throw new Error(
+          'Simulator package does not match the project template.',
+        )
+    } catch (reason) {
+      await ctx.storage.delete(args.storageId)
+      throw reason
     }
 
     await ctx.runMutation(internal.simulatorHandoff.attachArtifact, {
@@ -186,13 +199,18 @@ export const insertTransfer = internalMutation({
       !program ||
       program.ownerId !== args.ownerId ||
       program.deleting ||
-      (program.template ?? 'vexcode') !== 'vexcode' ||
+      !simulatorTemplate(program.template ?? 'vexcode') ||
       program.currentCommitSha !== args.expectedCommitSha
     )
       throw new Error(
         'The project changed. Build the current committed source first.',
       )
     await ctx.db.insert('simulatorHandoffs', {
+      template: program.template as
+        | 'vexcode'
+        | 'pros'
+        | 'ez-template'
+        | undefined,
       tokenHash: args.tokenHash,
       ownerId: args.ownerId,
       programId: args.programId,
@@ -274,12 +292,18 @@ export const consume = internalMutation({
       storageId: transfer.storageId,
       manifest: {
         version: 1,
-        format: 'vexcode-v5-raw',
-        template: 'vexcode',
+        format:
+          !transfer.template || transfer.template === 'vexcode'
+            ? 'vexcode-v5-raw'
+            : 'pros-v5-package',
+        template: transfer.template ?? 'vexcode',
         commitSha: transfer.commitSha,
         sourceSha256: transfer.sourceSha256,
         artifact: {
-          path: 'build/workspace.bin',
+          path:
+            !transfer.template || transfer.template === 'vexcode'
+              ? 'build/workspace.bin'
+              : 'build/simulator.v5x',
           size: transfer.artifactSize,
           sha256: transfer.artifactSha256,
         },

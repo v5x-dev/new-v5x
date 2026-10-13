@@ -1,4 +1,5 @@
 import { useAction } from 'convex/react'
+import { UploadSimpleIcon } from '@phosphor-icons/react'
 import { useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { Button } from '~/components/ui/button'
@@ -24,7 +25,7 @@ import { importSourceZip } from '~/lib/source-zip'
 import type { SourceFile } from '~/lib/source-files'
 import { templateInfo, templates, type Template } from './templates'
 
-export function ImportProject() {
+export function ImportProject({ disabled = false }: { disabled?: boolean }) {
   const importSources = useAction(api.program.importSources)
   const input = useRef<HTMLInputElement>(null)
   const [open, setOpen] = useState(false)
@@ -106,8 +107,24 @@ export function ImportProject() {
         if (!busy) setOpen(value)
       }}
     >
-      <DialogTrigger render={<Button variant="outline" />}>
-        Import sources
+      <DialogTrigger
+        render={
+          <button
+            type="button"
+            disabled={disabled}
+            className="group flex w-full flex-col gap-2 text-left active:scale-[0.98]"
+          />
+        }
+      >
+        <span className="grid h-32 place-items-center rounded-lg border bg-muted/50 transition-colors group-hover:bg-muted">
+          <UploadSimpleIcon
+            aria-hidden="true"
+            className="size-12 text-muted-foreground"
+          />
+        </span>
+        <span className="text-sm font-medium text-muted-foreground transition-colors group-hover:text-foreground">
+          Import
+        </span>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

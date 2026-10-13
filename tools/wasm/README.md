@@ -73,7 +73,7 @@ not promise real-time robot timing. The initial Wasm memory is 512 MiB and may
 grow to 2 GiB. Browser memory limits can prevent it from running on small devices.
 
 The browser supports the same single `.bin` upload as the earlier web bridge.
-PROS hot/cold project loading and TCP GDB still use the native CLI. Scrolling is
+Browser Brain also accepts PROS/EZ hot/cold `.v5x` packages from Code. TCP GDB still uses the native CLI. Scrolling is
 not implemented by the existing Rust renderer. Desktop Tauri and the native CLI
 continue to use native QEMU.
 

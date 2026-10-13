@@ -4,8 +4,10 @@ import { alignHoles, HOLES, MODEL_SCALE } from "./holes"
 import type { AssemblyPart } from "./assembly"
 
 test("the 35-hole angle uses inch units, half-inch pitch, and unit face normals", () => {
-  const holes = Object.values(HOLES)[0]
+  const holes =
+    HOLES["/models/vex-v5rc-parts/angles/aluminum/1x1x35-aluminum-angle.glb"]
   expect(0.0254 * MODEL_SCALE).toBeCloseTo(1)
+  expect(holes).toHaveLength(140)
   expect(holes[34].center[0] - holes[0].center[0]).toBe(17)
   expect(holes[1].center[0] - holes[0].center[0]).toBe(0.5)
   for (const hole of holes) expect(new Vector3(...hole.axis).length()).toBe(1)

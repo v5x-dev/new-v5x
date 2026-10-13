@@ -67,7 +67,7 @@
 
 <input
   type="file"
-  accept=".bin"
+  accept=".bin,.v5x"
   aria-label="Upload program binary"
   class="hidden"
   bind:this={fileInput}

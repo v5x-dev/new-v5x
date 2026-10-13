@@ -1,3 +1,6 @@
+import { Euler, Quaternion, Vector3 } from "three"
+import { HOLES, alignHoles } from "./holes"
+
 export type Coordinates = [number, number, number]
 
 export interface AssemblyPart {
@@ -7,11 +10,19 @@ export interface AssemblyPart {
   rotation: Coordinates
 }
 
+export interface HoleMate {
+  movingId: string
+  movingHole: number
+  fixedId: string
+  fixedHole: number
+}
+
 export interface AssemblyDocument {
   version: 1
   units: "inches"
   name: string
   parts: AssemblyPart[]
+  mates?: HoleMate[]
 }
 
 export interface AssemblyHistory {
@@ -30,6 +41,8 @@ export type AssemblyCommand =
       position: Coordinates
       rotation: Coordinates
     }
+  | { type: "mate"; mate: HoleMate }
+  | { type: "detach"; movingId: string; fixedId?: string }
   | { type: "rename"; name: string }
   | { type: "replace"; document: AssemblyDocument }
   | { type: "undo" }
@@ -89,6 +102,9 @@ export function editAssembly(
       document = {
         ...current,
         parts: current.parts.filter((part) => part.id !== command.id),
+        mates: current.mates?.filter(
+          (mate) => mate.movingId !== command.id && mate.fixedId !== command.id,
+        ),
       }
       break
     case "duplicate": {
@@ -111,16 +127,49 @@ export function editAssembly(
     case "transform":
       if (!coordinates(command.position) || !coordinates(command.rotation))
         throw new Error("Transforms must contain finite coordinates")
+      document = transformGroup(
+        current,
+        command.id,
+        command.position,
+        command.rotation,
+      )
+      break
+    case "mate": {
+      const mate = { ...command.mate }
+      const moving = current.parts.find((part) => part.id === mate.movingId)
+      const fixed = current.parts.find((part) => part.id === mate.fixedId)
+      const movingHole = moving && HOLES[moving.path]?.[mate.movingHole]
+      const fixedHole = fixed && HOLES[fixed.path]?.[mate.fixedHole]
+      if (
+        !moving ||
+        !fixed ||
+        !movingHole ||
+        !fixedHole ||
+        !Number.isInteger(mate.movingHole) ||
+        !Number.isInteger(mate.fixedHole)
+      )
+        throw new Error("Select valid holes on two parts")
+      if (connectedParts(current, moving.id).has(fixed.id))
+        throw new Error(
+          "These parts are already connected. Detach a mate first.",
+        )
+      const transform = alignHoles(moving, movingHole, fixed, fixedHole)
+      document = transformGroup(
+        current,
+        moving.id,
+        transform.position,
+        transform.rotation,
+      )
+      document = { ...document, mates: [...(current.mates ?? []), mate] }
+      break
+    }
+    case "detach":
       document = {
         ...current,
-        parts: current.parts.map((part) =>
-          part.id === command.id
-            ? {
-                ...part,
-                position: [...command.position],
-                rotation: [...command.rotation],
-              }
-            : part,
+        mates: current.mates?.filter(
+          (mate) =>
+            mate.movingId !== command.movingId ||
+            (command.fixedId !== undefined && mate.fixedId !== command.fixedId),
         ),
       }
       break
@@ -140,6 +189,121 @@ export function editAssembly(
     present: document,
     future: [],
   }
+}
+
+function connectedParts(document: AssemblyDocument, id: string) {
+  const adjacency = new Map<string, string[]>()
+  for (const mate of document.mates ?? []) {
+    for (const [from, to] of [
+      [mate.movingId, mate.fixedId],
+      [mate.fixedId, mate.movingId],
+    ]) {
+      const neighbors = adjacency.get(from) ?? []
+      neighbors.push(to)
+      adjacency.set(from, neighbors)
+    }
+  }
+  const connected = new Set<string>()
+  const pending = [id]
+  while (pending.length) {
+    const next = pending.pop()!
+    if (connected.has(next)) continue
+    connected.add(next)
+    pending.push(...(adjacency.get(next) ?? []))
+  }
+  return connected
+}
+
+function transformGroup(
+  document: AssemblyDocument,
+  id: string,
+  position: Coordinates,
+  rotation: Coordinates,
+): AssemblyDocument {
+  const selected = document.parts.find((part) => part.id === id)
+  if (!selected) return document
+  const connected = connectedParts(document, id)
+  const before = new Quaternion().setFromEuler(new Euler(...selected.rotation))
+  const after = new Quaternion().setFromEuler(new Euler(...rotation))
+  const delta = after.multiply(before.invert())
+  const origin = new Vector3(...selected.position)
+  const target = new Vector3(...position)
+  return {
+    ...document,
+    parts: document.parts.map((part) => {
+      if (!connected.has(part.id)) return part
+      if (part.id === id)
+        return { ...part, position: [...position], rotation: [...rotation] }
+      const nextPosition = new Vector3(...part.position)
+        .sub(origin)
+        .applyQuaternion(delta)
+        .add(target)
+      const nextRotation = new Euler().setFromQuaternion(
+        delta
+          .clone()
+          .multiply(new Quaternion().setFromEuler(new Euler(...part.rotation))),
+      )
+      return {
+        ...part,
+        position: nextPosition.toArray() as Coordinates,
+        rotation: [
+          nextRotation.x,
+          nextRotation.y,
+          nextRotation.z,
+        ] as Coordinates,
+      }
+    }),
+  }
+}
+
+function validateMates(value: unknown, parts: AssemblyPart[]): HoleMate[] {
+  if (!Array.isArray(value) || value.length > Math.max(0, parts.length - 1))
+    throw new Error("Invalid assembly mates")
+  const mates: HoleMate[] = []
+  for (const entry of value) {
+    if (!entry || typeof entry !== "object")
+      throw new Error("Invalid assembly mate")
+    const mate = entry as HoleMate
+    const moving = parts.find((part) => part.id === mate.movingId)
+    const fixed = parts.find((part) => part.id === mate.fixedId)
+    const movingHole = moving && HOLES[moving.path]?.[mate.movingHole]
+    const fixedHole = fixed && HOLES[fixed.path]?.[mate.fixedHole]
+    if (
+      !moving ||
+      !fixed ||
+      !movingHole ||
+      !fixedHole ||
+      !Number.isInteger(mate.movingHole) ||
+      !Number.isInteger(mate.fixedHole) ||
+      connectedParts(
+        { version: 1, units: "inches", name: "", parts, mates },
+        mate.movingId,
+      ).has(mate.fixedId)
+    )
+      throw new Error("Invalid or cyclic assembly mate")
+    const movingQ = new Quaternion().setFromEuler(new Euler(...moving.rotation))
+    const fixedQ = new Quaternion().setFromEuler(new Euler(...fixed.rotation))
+    const center = new Vector3(...movingHole.center)
+      .applyQuaternion(movingQ)
+      .add(new Vector3(...moving.position))
+    const fixedCenter = new Vector3(...fixedHole.center)
+      .applyQuaternion(fixedQ)
+      .add(new Vector3(...fixed.position))
+    const axis = new Vector3(...movingHole.axis).applyQuaternion(movingQ)
+    const fixedAxis = new Vector3(...fixedHole.axis).applyQuaternion(fixedQ)
+    if (
+      center.distanceTo(fixedCenter) > 0.0001 ||
+      axis.dot(fixedAxis) > -0.9999
+    )
+      throw new Error("Saved mate does not align its holes")
+    mates.push({
+      movingId: mate.movingId,
+      movingHole: mate.movingHole,
+      fixedId: mate.fixedId,
+      fixedHole: mate.fixedHole,
+    })
+  }
+  return mates
 }
 
 function coordinates(value: unknown): value is Coordinates {
@@ -188,7 +352,15 @@ function copyDocument(document: AssemblyDocument): AssemblyDocument {
   const parts = document.parts.map(copyPart)
   if (new Set(parts.map((part) => part.id)).size !== parts.length)
     throw new Error("Duplicate part ID")
-  return { version: 1, units: "inches", name: document.name, parts }
+  return {
+    version: 1,
+    units: "inches",
+    name: document.name,
+    parts,
+    ...(document.mates !== undefined
+      ? { mates: validateMates(document.mates, parts) }
+      : {}),
+  }
 }
 
 export function parseAssembly(
@@ -230,7 +402,15 @@ export function parseAssembly(
       rotation: [...part.rotation] as Coordinates,
     }
   })
-  return { version: 1, units: "inches", name: document.name, parts }
+  return {
+    version: 1,
+    units: "inches",
+    name: document.name,
+    parts,
+    ...(document.mates !== undefined
+      ? { mates: validateMates(document.mates, parts) }
+      : {}),
+  }
 }
 
 export function partsList(document: AssemblyDocument) {

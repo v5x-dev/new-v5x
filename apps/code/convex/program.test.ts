@@ -690,3 +690,110 @@ test('reactive pagination accepts expanded pages beyond the initial size', async
   expect(result.isDone).toBe(true)
   expect(result.page).toEqual([])
 })
+
+test.each(['pros', 'ez-template'] as const)(
+  'simulator handoff validates and consumes %s hot/cold packages',
+  async (template) => {
+    const { encodeProsPackage } = await import('@v5x/simulator')
+    const t = backend()
+    const owner = t.withIdentity({ subject: 'owner' })
+    const programId = await owner.mutation(internal.program.create, {
+      name: 'Package fixture',
+      repoId: 'package-repository',
+      commitSha: 'commit-1',
+      template,
+    })
+    const bytes = encodeProsPackage(
+      new Uint8Array([1, 2, 3]),
+      new Uint8Array([4, 5]),
+    )
+    const digest = Array.from(
+      new Uint8Array(
+        await crypto.subtle.digest('SHA-256', bytes.slice().buffer),
+      ),
+      (byte) => byte.toString(16).padStart(2, '0'),
+    ).join('')
+    const token = 'a'.repeat(64)
+    const tokenHash = Array.from(
+      new Uint8Array(
+        await crypto.subtle.digest(
+          'SHA-256',
+          new TextEncoder().encode(token).buffer,
+        ),
+      ),
+      (byte) => byte.toString(16).padStart(2, '0'),
+    ).join('')
+    const storageId = await t.run((ctx) => ctx.storage.store(new Blob([bytes])))
+    await t.mutation(internal.simulatorHandoff.insertTransfer, {
+      tokenHash,
+      ownerId: 'owner',
+      programId,
+      expectedCommitSha: 'commit-1',
+      sourceSha256: 'b'.repeat(64),
+      artifactSha256: digest,
+      artifactSize: bytes.length,
+      expiresAt: Date.now() + 5000,
+    })
+    await expect(
+      t
+        .withIdentity({ subject: 'other' })
+        .action(api.simulatorHandoff.register, {
+          programId,
+          expectedCommitSha: 'commit-1',
+          token,
+          storageId,
+        }),
+    ).rejects.toThrow('expired')
+    await owner.action(api.simulatorHandoff.register, {
+      programId,
+      expectedCommitSha: 'commit-1',
+      token,
+      storageId,
+    })
+    expect(
+      await t.mutation(internal.simulatorHandoff.consume, {
+        tokenHash,
+        now: Date.now(),
+      }),
+    ).toMatchObject({
+      manifest: {
+        template,
+        format: 'pros-v5-package',
+        artifact: {
+          path: 'build/simulator.v5x',
+          size: bytes.length,
+          sha256: digest,
+        },
+      },
+    })
+    expect(
+      await t.mutation(internal.simulatorHandoff.consume, {
+        tokenHash,
+        now: Date.now(),
+      }),
+    ).toBeNull()
+  },
+)
+
+test('simulator handoff rejects JAR projects', async () => {
+  const t = backend()
+  const owner = t.withIdentity({ subject: 'owner' })
+  const programId = await owner.mutation(internal.program.create, {
+    name: 'JAR fixture',
+    repoId: 'jar-repository',
+    commitSha: 'commit-1',
+    template: 'jar-template',
+  })
+  await expect(
+    t.mutation(internal.simulatorHandoff.insertTransfer, {
+      tokenHash: 'a'.repeat(64),
+      ownerId: 'owner',
+      programId,
+      expectedCommitSha: 'commit-1',
+      sourceSha256: 'b'.repeat(64),
+      artifactSha256: 'c'.repeat(64),
+      artifactSize: 100,
+      expiresAt: Date.now() + 5000,
+    }),
+  ).rejects.toThrow('project changed')
+})

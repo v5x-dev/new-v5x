@@ -42,7 +42,7 @@ import {
   type AssemblyPart,
   type Coordinates,
 } from "#/lib/assembly"
-import { HOLES, MODEL_SCALE, alignHoles } from "#/lib/holes"
+import { HOLES, MODEL_SCALE } from "#/lib/holes"
 import { AssemblyPanel } from "#/components/assembly-panel"
 
 export const Route = createFileRoute("/_app/")({
@@ -133,6 +133,9 @@ function Part({
                   side={DoubleSide}
                   transparent
                   opacity={0.5}
+                  polygonOffset
+                  polygonOffsetFactor={-1}
+                  polygonOffsetUnits={-1}
                 />
               </mesh>
             )
@@ -332,9 +335,9 @@ function RouteComponent() {
         aria-live="polite"
       >
         {anchor
-          ? "Click a hole on another part to align it · Esc to cancel"
+          ? "Click a hole on another part to attach it · Esc to cancel"
           : renderHoles
-            ? "Click two holes to align parts. Metadata is available for the 1x1x35 aluminum angle."
+            ? "Click two holes to attach parts. Angles and C-channels have model-derived holes."
             : selectedId
               ? "Drag an axis to transform · Esc to deselect"
               : "Click a part to select"}
@@ -367,13 +370,21 @@ function RouteComponent() {
                 const fixedHole = fixed && HOLES[fixed.path]?.[anchor.hole]
                 const movingHole = HOLES[part.path]?.[hole]
                 if (fixed && fixedHole && movingHole) {
-                  const transform = alignHoles(
-                    part,
-                    movingHole,
-                    fixed,
-                    fixedHole,
-                  )
-                  dispatch({ type: "transform", id: part.id, ...transform })
+                  try {
+                    const command = {
+                      type: "mate" as const,
+                      mate: {
+                        movingId: part.id,
+                        movingHole: hole,
+                        fixedId: fixed.id,
+                        fixedHole: anchor.hole,
+                      },
+                    }
+                    editAssembly(history, command)
+                    dispatch(command)
+                  } catch (reason) {
+                    setSaveError(String(reason))
+                  }
                   setSelectedId(part.id)
                 }
                 setAnchor(null)

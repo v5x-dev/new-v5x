@@ -1,7 +1,9 @@
-import { useId, useRef, type Dispatch } from "react"
+import { useId, useRef, useState, type Dispatch } from "react"
 import { Button } from "#/components/ui/button"
 import { Input } from "#/components/ui/input"
 import { Separator } from "#/components/ui/separator"
+import { HOLES } from "#/lib/holes"
+import { editAssembly } from "#/lib/assembly"
 import { modelPathSet } from "#/lib/parts"
 import {
   parseAssembly,
@@ -38,6 +40,10 @@ export function AssemblyPanel({
   error: string
   loaded: boolean
 }) {
+  const [fixedId, setFixedId] = useState("")
+  const [movingHole, setMovingHole] = useState(1)
+  const [fixedHole, setFixedHole] = useState(1)
+  const [mateError, setMateError] = useState("")
   const formId = useId()
   const input = useRef<HTMLInputElement>(null)
   const message = useRef<HTMLOutputElement>(null)
@@ -222,6 +228,132 @@ export function AssemblyPanel({
                 />
               </label>
             ))}
+          </fieldset>
+          <fieldset className="flex flex-col gap-2">
+            <legend>Hole attachments</legend>
+            <p className="text-xs text-muted-foreground">
+              Attached parts move as a rigid group. Detach to move them
+              independently. Hole positions come from model geometry.
+            </p>
+            {(history.present.mates ?? [])
+              .filter(
+                (mate) =>
+                  mate.movingId === selected.id || mate.fixedId === selected.id,
+              )
+              .map((mate) => (
+                <Button
+                  key={`${mate.movingId}-${mate.fixedId}`}
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    dispatch({
+                      type: "detach",
+                      movingId: mate.movingId,
+                      fixedId: mate.fixedId,
+                    })
+                  }
+                >
+                  Detach{" "}
+                  {history.present.parts
+                    .find(
+                      (part) =>
+                        part.id ===
+                        (mate.movingId === selected.id
+                          ? mate.fixedId
+                          : mate.movingId),
+                    )
+                    ?.path.split("/")
+                    .at(-1)
+                    ?.replace(".glb", "")}
+                </Button>
+              ))}
+            {HOLES[selected.path] && (
+              <>
+                <label className="flex flex-col gap-1">
+                  Attach to part
+                  <select
+                    aria-label="Attach to part"
+                    className="rounded-md border bg-background p-2"
+                    value={fixedId}
+                    onChange={(event) => {
+                      setFixedId(event.target.value)
+                      setFixedHole(1)
+                    }}
+                  >
+                    <option value="">Choose a part</option>
+                    {history.present.parts
+                      .filter(
+                        (part) => part.id !== selected.id && HOLES[part.path],
+                      )
+                      .map((part, index) => (
+                        <option key={part.id} value={part.id}>
+                          {index + 1}.{" "}
+                          {part.path.split("/").at(-1)?.replace(".glb", "")}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <label
+                  htmlFor={`${formId}-moving-hole`}
+                  className="flex flex-col gap-1"
+                >
+                  Selected part hole
+                  <Input
+                    id={`${formId}-moving-hole`}
+                    aria-label="Selected part hole"
+                    type="number"
+                    min={1}
+                    max={HOLES[selected.path].length}
+                    value={movingHole}
+                    onChange={(event) =>
+                      setMovingHole(Number(event.target.value))
+                    }
+                  />
+                </label>
+                <label
+                  htmlFor={`${formId}-fixed-hole`}
+                  className="flex flex-col gap-1"
+                >
+                  Fixed part hole
+                  <Input
+                    id={`${formId}-fixed-hole`}
+                    aria-label="Fixed part hole"
+                    type="number"
+                    min={1}
+                    value={fixedHole}
+                    onChange={(event) =>
+                      setFixedHole(Number(event.target.value))
+                    }
+                  />
+                </label>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!fixedId}
+                  onClick={() => {
+                    const command: AssemblyCommand = {
+                      type: "mate",
+                      mate: {
+                        movingId: selected.id,
+                        movingHole: movingHole - 1,
+                        fixedId,
+                        fixedHole: fixedHole - 1,
+                      },
+                    }
+                    try {
+                      editAssembly(history, command)
+                      dispatch(command)
+                      setMateError("")
+                    } catch (reason) {
+                      setMateError(String(reason))
+                    }
+                  }}
+                >
+                  Attach holes
+                </Button>
+              </>
+            )}
+            {mateError && <p role="alert">{mateError}</p>}
           </fieldset>
           <div className="flex gap-2">
             <Button

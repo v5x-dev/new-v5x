@@ -11,11 +11,21 @@ model paths and transforms. Local autosave keeps the assembly in this browser.
 Export a JSON copy for backup or transfer to another device. A failed restore
 preserves the stored document until a valid import replaces it.
 
-Hole alignment currently supports the 1x1x35 aluminum angle. Enable holes,
-select a fixed hole, then a hole on another part to align their centers and
-opposing face normals. This applies a transform once; it does not maintain a
-constraint after later edits. The inherited hole metadata still needs physical
-part verification before precision CAD claims.
+Hole attachments support all 13 included angle and channel models. Enable
+holes, select a fixed face hole, then a hole on another part to attach them.
+The assembly panel also offers numeric hole selection. Attached parts form a
+rigid group: moving or rotating any member moves the group. Detach an attachment
+to move its parts independently. Attachments survive local autosave, JSON
+import/export, and undo/redo. Duplicate makes a detached copy; deletion removes
+attachments to that part. Cycles are rejected.
+
+Hole centers and outward normals are extracted from closed square face
+boundaries in the included GLBs, after applying each model's transform and
+converting meters to inches. Both sheet faces are selectable. Regenerate with
+`python3 scripts/extract-model-holes.py`. This verifies the digital model geometry;
+physical part dimensions still need measurement before precision CAD claims.
+These attachments are rigid; they do not model bearings, sliding joints,
+collision detection, or bolt clearance.
 
 ## Development
 

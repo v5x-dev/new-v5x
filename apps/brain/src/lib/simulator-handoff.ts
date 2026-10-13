@@ -1,23 +1,13 @@
-export interface SimulatorHandoffManifest {
-  version: 1
-  format: "vexcode-v5-raw"
-  template: "vexcode"
-  commitSha: string
-  sourceSha256: string
-  artifact: {
-    path: "build/workspace.bin"
-    size: number
-    sha256: string
-  }
-}
+import {
+  validSimulatorManifest,
+  decodeSimulatorProgram,
+  type SimulatorHandoffManifest,
+} from "@v5x/simulator"
+export type { SimulatorHandoffManifest } from "@v5x/simulator"
 
 export interface SimulatorHandoff {
   manifest: SimulatorHandoffManifest
   bytes: Uint8Array
-}
-
-function validHash(value: unknown): value is string {
-  return typeof value === "string" && /^[a-f0-9]{64}$/.test(value)
 }
 
 function parseEndpoint(value: string, trustedValue: string) {
@@ -45,29 +35,6 @@ function parseEndpoint(value: string, trustedValue: string) {
   )
     throw new Error("Simulator handoff endpoint does not match Code")
   return endpoint
-}
-
-function parseManifest(value: unknown): SimulatorHandoffManifest {
-  if (!value || typeof value !== "object")
-    throw new Error("Simulator handoff manifest is missing")
-  const manifest = value as Partial<SimulatorHandoffManifest>
-  if (
-    manifest.version !== 1 ||
-    manifest.format !== "vexcode-v5-raw" ||
-    manifest.template !== "vexcode" ||
-    typeof manifest.commitSha !== "string" ||
-    !manifest.commitSha ||
-    manifest.commitSha.length > 128 ||
-    !validHash(manifest.sourceSha256) ||
-    !manifest.artifact ||
-    manifest.artifact.path !== "build/workspace.bin" ||
-    !Number.isSafeInteger(manifest.artifact.size) ||
-    manifest.artifact.size < 1 ||
-    manifest.artifact.size > 32 * 1024 * 1024 ||
-    !validHash(manifest.artifact.sha256)
-  )
-    throw new Error("Unsupported or invalid simulator handoff manifest")
-  return manifest as SimulatorHandoffManifest
 }
 
 async function digest(bytes: Uint8Array) {
@@ -128,12 +95,17 @@ export async function receiveSimulatorHandoff(
   } catch {
     throw new Error("Simulator handoff manifest is invalid")
   }
-  const manifest = parseManifest(parsed)
+  if (!validSimulatorManifest(parsed))
+    throw new Error("Unsupported or invalid simulator handoff manifest")
+  const manifest = parsed
   const bytes = new Uint8Array(await response.arrayBuffer())
   if (
     bytes.byteLength !== manifest.artifact.size ||
     (await digest(bytes)) !== manifest.artifact.sha256
   )
     throw new Error("Simulator binary failed its integrity check")
+  const program = decodeSimulatorProgram(bytes)
+  if ((manifest.format === "pros-v5-package") !== !!program.hot)
+    throw new Error("Simulator package format does not match manifest")
   return { manifest, bytes }
 }

@@ -109,3 +109,71 @@ test("command inputs cannot mutate saved history after the command returns", () 
     }),
   ).toThrow("Invalid part")
 })
+
+test("hole mates move either part as a rigid group and survive history and reload", () => {
+  const path =
+    "/models/vex-v5rc-parts/angles/aluminum/1x1x35-aluminum-angle.glb"
+  let history = assemblyHistory()
+  for (const id of ["fixed", "moving", "third"])
+    history = editAssembly(history, {
+      type: "add",
+      part: { ...part, id, path },
+    })
+  history = editAssembly(history, {
+    type: "mate",
+    mate: { movingId: "moving", movingHole: 0, fixedId: "fixed", fixedHole: 0 },
+  })
+  history = editAssembly(history, {
+    type: "mate",
+    mate: { movingId: "third", movingHole: 1, fixedId: "moving", fixedHole: 1 },
+  })
+  const attached = history
+  history = editAssembly(history, {
+    type: "transform",
+    id: "third",
+    position: [5, 6, 7],
+    rotation: [0.3, 0.8, 0.2],
+  })
+  const restored = parseAssembly(
+    JSON.stringify(history.present),
+    new Set([path]),
+  )
+  expect(restored).toEqual(history.present)
+  expect(restored.parts[0].position).not.toEqual(
+    attached.present.parts[0].position,
+  )
+  expect(editAssembly(history, { type: "undo" }).present).toEqual(
+    attached.present,
+  )
+  expect(() =>
+    editAssembly(history, {
+      type: "mate",
+      mate: {
+        movingId: "fixed",
+        movingHole: 2,
+        fixedId: "third",
+        fixedHole: 2,
+      },
+    }),
+  ).toThrow("already connected")
+  const detached = editAssembly(history, { type: "detach", movingId: "third" })
+  const moved = editAssembly(detached, {
+    type: "transform",
+    id: "third",
+    position: [10, 0, 0],
+    rotation: [0, 0, 0],
+  })
+  expect(moved.present.parts[0]).toEqual(detached.present.parts[0])
+  expect(
+    editAssembly(history, { type: "remove", id: "moving" }).present.mates,
+  ).toEqual([])
+  const invalid = {
+    ...history.present,
+    mates: [
+      { movingId: "third", movingHole: 10000, fixedId: "moving", fixedHole: 0 },
+    ],
+  }
+  expect(() => parseAssembly(JSON.stringify(invalid), new Set([path]))).toThrow(
+    "Invalid",
+  )
+})

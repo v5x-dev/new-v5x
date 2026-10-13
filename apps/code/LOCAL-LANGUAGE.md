@@ -12,18 +12,18 @@ Vite and Nitro set `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-E
 
 From the repository root, regenerate headers with `python3 scripts/package-language-sdk.py --sdk /path/to/sdk --rootfs /path/to/build-image-rootfs`. PROS 3.8.3 and EZ Template 3.2.2 use the verified archive URLs from `scripts/install-vex-build-assets.py`. The manifest records provenance. GCC 16's normal_iterator hidden friend return type uses an equivalent declval expression for compatibility with clang 15. Preserve upstream licenses and check vendor redistribution terms when publishing SDK assets.
 
-Template flags target ARM. Custom projects may supply an argument-array `compile_commands.json` mapped to `/workspace`, `/sdk` and `/toolchain`, . Arbitrary Makefiles are not interpreted in the browser.
+Template flags target ARM. Custom projects may supply an argument-array `compile_commands.json` mapped to `/workspace`, `/sdk` and `/toolchain`. Arbitrary Makefiles are not interpreted in the browser.
 
 ## Workspace behavior
 
 The workspace loads project sources into the local clangd filesystem and preserves unsaved documents when navigating between files. Existing save controls commit changes against the expected repository head. Draft recovery uses IndexedDB.
 
-The editor adds IntelliSense completion, Ctrl+click definition navigation and diagnostic underlines with Pierre's native hover tooltip. It retains the existing Pierre tree and floating sidebar. There are no added toolbars, tabs, problems panels or fix-action UI.
+The editor adds IntelliSense completion, Ctrl+click definition navigation and diagnostic underlines with Pierre's native hover tooltip. It retains the existing Pierre tree and floating sidebar. Open files appear in tabs. The workspace toolbar exposes save and build actions, and the problems panel lists diagnostics. Supported LSP code actions apply through Pierre. Local draft status is separate from repository commit status, and failed draft writes offer a recovery download.
 
 The service worker caches language and compiler assets without caching authenticated SSR or API responses. An already-open project can build without connectivity after the compiler and SDK assets have been cached. Opening or reloading a project and committing changes require connectivity. Browser eviction can remove drafts, so commit work regularly.
 
 ## Verification
 
-Run `bun test src/lib/ide src/lib/program-files.test.ts` and `bun run typecheck`. `bun run dev:ide` serves `/ide.html`, a development-only harness using the production workspace and real clangd with VEX, PROS, EZ and JAR fixtures. Fixture commits stay in memory. The harness is not emitted by the production app build and does not bypass authentication.
+Run `bun test src/lib/ide src/lib/program-files.test.ts` and `bun run typecheck`. Use the authenticated application routes for browser acceptance. Run `bun run test:e2e` against a dedicated Convex test deployment, with the required environment variables from `playwright.config.ts`. An isolated editor harness does not verify project loading, authentication, commits, or navigation.
 
 Tests cover UTF-16 and CRLF positions, overlapping edits, atomic stale-edit rejection, rename baselines, URI confinement, project search, ARM flags, semantic deltas and snippet remapping. Full authenticated commits, offline installation and native editing workflows require browser acceptance testing before claiming desktop IDE parity.

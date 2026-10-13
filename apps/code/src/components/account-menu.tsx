@@ -1,4 +1,8 @@
-import { ChatCircleIcon, SignOutIcon } from '@phosphor-icons/react'
+import {
+  ChatCircleIcon,
+  GoogleLogoIcon,
+  SignOutIcon,
+} from '@phosphor-icons/react'
 import * as React from 'react'
 import { FeedbackDialog } from '~/components/feedback-dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
@@ -26,6 +30,8 @@ export function AccountMenu({
   const triggerRef = React.useRef<HTMLButtonElement>(null)
   const [feedbackOpen, setFeedbackOpen] = React.useState(false)
   const [isSigningOut, setIsSigningOut] = React.useState(false)
+  const [isLinking, setIsLinking] = React.useState(false)
+  const [accountError, setAccountError] = React.useState<string | null>(null)
   const { data: session } = authClient.useSession()
   const user = session?.user
   const userName = user?.name || user?.email || 'Guest'
@@ -52,6 +58,27 @@ export function AccountMenu({
     }
   }
 
+  async function keepProjects() {
+    setIsLinking(true)
+    setAccountError(null)
+    onError?.(null)
+    try {
+      const { error } = await authClient.signIn.social({
+        provider: 'google',
+        callbackURL: window.location.href,
+      })
+      if (error) throw new Error(error.message)
+    } catch (reason) {
+      const message =
+        reason instanceof Error
+          ? reason.message
+          : 'Unable to connect your account. Try again.'
+      setAccountError(message)
+      onError?.(message)
+      setIsLinking(false)
+    }
+  }
+
   return (
     <>
       <DropdownMenu>
@@ -75,6 +102,15 @@ export function AccountMenu({
         </DropdownMenuTrigger>
         <DropdownMenuContent side={side} align={align} className="min-w-40">
           <DropdownMenuGroup>
+            {user?.isAnonymous && (
+              <DropdownMenuItem
+                disabled={isLinking}
+                onClick={() => void keepProjects()}
+              >
+                <GoogleLogoIcon />
+                {isLinking ? 'Connecting...' : 'Keep my projects with Google'}
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={() => setFeedbackOpen(true)}>
               <ChatCircleIcon />
               Feedback
@@ -89,6 +125,11 @@ export function AccountMenu({
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
+      {accountError && (
+        <p role="alert" className="text-destructive text-sm">
+          {accountError}
+        </p>
+      )}
       <FeedbackDialog
         open={feedbackOpen}
         onOpenChange={setFeedbackOpen}

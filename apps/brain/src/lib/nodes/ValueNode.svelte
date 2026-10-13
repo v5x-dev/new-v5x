@@ -13,7 +13,9 @@
   import { Hash } from "svelte-feathers"
 
   type NodeData = {
-    value: number
+    value?: number
+    currentTab?: string
+    constant?: string
   }
 
   type $$Props = NodeProps<Node<NodeData>>
@@ -21,19 +23,19 @@
   export let data: NodeData
   export let id: $$Props["id"]
 
-  let value = 0
+  let value = data.value ?? 0
 
   const { updateNodeData } = useSvelteFlow()
-  $: updateNodeData(id, { value })
+  $: updateNodeData(id, { value, currentTab, constant })
 
-  let currentTab = "value"
+  let currentTab = data.currentTab ?? "value"
 
   let constants = [
     { value: "pi", label: "π" },
     { value: "tao", label: "τ" },
     { value: "e", label: "e" },
   ]
-  let constant = constants[0].value
+  let constant = data.constant ?? constants[0].value
 
   $: {
     if (currentTab === "constant") {

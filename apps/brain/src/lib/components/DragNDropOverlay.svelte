@@ -34,11 +34,35 @@
       const headerOffset = -18
       position.y += headerOffset
 
+      const controllerIds = new Set(
+        $nodes
+          .filter((node) => node.type === "controller")
+          .map((node) => node.data.controllerId),
+      )
+      const controllerId = [0, 1].find((id) => !controllerIds.has(id))
+
+      if (dragNode.nodeType === "controller" && controllerId === undefined) {
+        dragNode = null
+        return
+      }
+
       const newNode = {
         id: `${crypto.randomUUID?.() ?? Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, "0")).join("")}`,
         type: dragNode.nodeType,
         position,
-        data: { label: `${dragNode.nodeType} node` },
+        data:
+          dragNode.nodeType === "controller"
+            ? {
+                controllerId,
+                axis1: 0,
+                axis2: 0,
+                axis3: 0,
+                axis4: 0,
+                buttons: 0,
+                capacity: 100,
+                connected: false,
+              }
+            : { label: `${dragNode.nodeType} node` },
         origin: [0.5, 0.0],
       } satisfies Node
 

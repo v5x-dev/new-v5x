@@ -7,16 +7,7 @@ build_root="$emulator/target/wasm-build"
 output="$repo_root/apps/brain/public/wasm"
 mkdir -p "$build_root" "$output"
 
-# Both the Rust crate and CLI must use the same wasm-bindgen release.
-rustup target add wasm32-unknown-unknown
-if ! command -v wasm-bindgen >/dev/null || [[ $(wasm-bindgen --version) != 'wasm-bindgen 0.2.100' ]]; then
-    cargo +stable install wasm-bindgen-cli --version 0.2.100 --locked
-fi
-cargo build --locked -p vex-v5-wasm-host --release --target wasm32-unknown-unknown
-wasm-bindgen --target web --out-dir "$output" \
-    target/wasm32-unknown-unknown/release/vex_v5_wasm_host.wasm
-(cd kernel; cargo build --locked)
-cp kernel/target/armv7a-none-eabi/debug/kernel "$output/kernel.elf"
+bash "$repo_root/tools/wasm/build-rust.sh"
 
 if [[ ! -f "$build_root/qemu.tar.xz" ]]; then
     curl -Lf https://download.qemu.org/qemu-10.1.0.tar.xz -o "$build_root/qemu.tar.xz"

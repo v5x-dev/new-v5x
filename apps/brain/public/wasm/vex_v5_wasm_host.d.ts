@@ -1,14 +1,19 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * The browser host uses exactly the same bincode packets and renderer as the native host.
+ * The browser host uses exactly the same bincode packets and renderer as the
+ * native host.
  */
 export class BrowserHost {
   free(): void;
   constructor();
   push(bytes: Uint8Array): any;
   take_frame(): Uint8Array | undefined;
-  battery(capacity: number): Uint8Array;
+  distance(port: number, distance: number, size: number, visible: boolean, timestamp: number): Uint8Array;
+  disconnect(port: number, timestamp: number): Uint8Array;
+  motor(port: number): Uint8Array;
+  controller(id: number, axis1: number, axis2: number, axis3: number, axis4: number, buttons: number, capacity: number, connected: boolean): Uint8Array;
+  battery(capacity: number, voltage: number, current: number, temperature: number): Uint8Array;
 }
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
@@ -19,7 +24,11 @@ export interface InitOutput {
   readonly browserhost_new: () => number;
   readonly browserhost_push: (a: number, b: number, c: number) => [number, number, number];
   readonly browserhost_take_frame: (a: number) => [number, number];
-  readonly browserhost_battery: (a: number, b: number) => [number, number, number, number];
+  readonly browserhost_distance: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
+  readonly browserhost_disconnect: (a: number, b: number, c: number) => [number, number, number, number];
+  readonly browserhost_motor: (a: number, b: number) => [number, number, number, number];
+  readonly browserhost_controller: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => [number, number, number, number];
+  readonly browserhost_battery: (a: number, b: number, c: number, d: number, e: number) => [number, number, number, number];
   readonly __wbindgen_export_0: WebAssembly.Table;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __externref_table_dealloc: (a: number) => void;

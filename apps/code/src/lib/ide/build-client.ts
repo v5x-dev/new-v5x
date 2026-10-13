@@ -178,7 +178,11 @@ export function buildInBrowser(
   return result
 }
 
-export { readBrowserBuild, writeBrowserBuild } from './build-storage'
+export {
+  deleteBrowserBuild,
+  readBrowserBuild,
+  writeBrowserBuild,
+} from './build-storage'
 
 /** Preload only the selected SDK after editor readiness; unknown/low memory stays demand-loaded. */
 export function scheduleBrowserCompilerPreload(input: BrowserBuildInput) {

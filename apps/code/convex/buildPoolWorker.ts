@@ -18,7 +18,11 @@ import type { Machine } from 'smolmachines'
 export const replenish = internalAction({
   args: {},
   handler: async (ctx) => {
-    if (!env.SMOL_CLOUD_TOKEN) return
+    if (
+      process.env.V5X_CLOUD_BUILD_POOL_ENABLED !== 'true' ||
+      !env.SMOL_CLOUD_TOKEN
+    )
+      return
     const token = env.SMOL_CLOUD_TOKEN
     const cloudUrl = (env.SMOL_CLOUD_URL ?? DEFAULT_SMOL_CLOUD_URL).replace(
       /\/+$/,

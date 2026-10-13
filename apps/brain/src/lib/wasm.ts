@@ -117,12 +117,77 @@ export async function wasmRequest(command: string, body?: Blob) {
     }
     return
   }
+  if (command === "controller") {
+    const state = JSON.parse(await body!.text())
+    if (
+      ![0, 1].includes(state.controllerId) ||
+      !Array.isArray(state.axes) ||
+      state.axes.length !== 4 ||
+      state.axes.some(
+        (axis: unknown) =>
+          typeof axis !== "number" ||
+          !Number.isInteger(axis) ||
+          axis < -127 ||
+          axis > 127,
+      ) ||
+      !Number.isInteger(state.buttons) ||
+      state.buttons < 0 ||
+      state.buttons > 4095 ||
+      !Number.isInteger(state.capacity) ||
+      state.capacity < 0 ||
+      state.capacity > 100 ||
+      typeof state.connected !== "boolean"
+    )
+      throw new Error("Invalid controller state")
+    if (worker) await rpc(command, state)
+    return
+  }
   if (command === "battery") {
-    const { capacity } = JSON.parse(await body!.text())
+    const {
+      capacity,
+      voltage = 12000,
+      current = 0,
+      temperature = 25,
+    } = JSON.parse(await body!.text())
     if (!Number.isFinite(capacity) || capacity < 0 || capacity > 100) {
       throw new Error("Capacity must be between 0 and 100")
     }
-    if (worker) await rpc(command, { capacity })
+    if (
+      !Number.isInteger(voltage) ||
+      voltage < 0 ||
+      voltage > 16000 ||
+      !Number.isInteger(current) ||
+      current < 0 ||
+      current > 100000 ||
+      !Number.isFinite(temperature) ||
+      temperature < -40 ||
+      temperature > 100
+    )
+      throw new Error("Invalid battery voltage, current, or temperature")
+    if (worker) await rpc(command, { capacity, voltage, current, temperature })
+    return
+  }
+  if (
+    command === "distance" ||
+    command === "disconnect" ||
+    command === "motor"
+  ) {
+    const state = JSON.parse(await body!.text())
+    if (!Number.isInteger(state.port) || state.port < 1 || state.port > 21)
+      throw new Error("Smart port must be between 1 and 21")
+    if (
+      command === "distance" &&
+      (!Number.isInteger(state.distance) ||
+        state.distance < 20 ||
+        state.distance > 2000 ||
+        !Number.isInteger(state.size) ||
+        state.size < 0 ||
+        state.size > 400 ||
+        typeof state.visible !== "boolean")
+    )
+      throw new Error("Invalid distance sensor state")
+    if (!worker) throw new Error("No program loaded")
+    await rpc(command, state)
     return
   }
   if (!worker) throw new Error("No program loaded")

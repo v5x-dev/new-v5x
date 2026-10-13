@@ -20,7 +20,7 @@ const { title, description, preload } = Astro.props;
     <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml" />
     {preload && <link rel="preload" as="image" href={preload} fetchpriority="high" />}
     <title>{title}</title>
     <script is:inline>

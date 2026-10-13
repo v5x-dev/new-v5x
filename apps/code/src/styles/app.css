@@ -1,8 +1,8 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import "@fontsource-variable/jetbrains-mono";
-@import "@fontsource-variable/roboto-slab";
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fontsource-variable/jetbrains-mono';
+@import '@fontsource-variable/roboto-slab';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -92,8 +92,8 @@ file-tree-container {
 }
 
 @theme inline {
-  --font-mono: "JetBrains Mono Variable", monospace;
-  --font-serif: "Roboto Slab Variable", serif;
+  --font-mono: 'JetBrains Mono Variable', monospace;
+  --font-serif: 'Roboto Slab Variable', serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -146,5 +146,95 @@ file-tree-container {
   }
   button {
     @apply cursor-pointer;
+  }
+}
+
+@media (max-height: 32rem) {
+  .project-history-header {
+    padding: 0.5rem 3rem 0.5rem 1rem;
+  }
+
+  .project-history-description {
+    display: none;
+  }
+
+  .project-history-layout {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .project-history-selected-header {
+    padding: 0.625rem 1rem;
+  }
+
+  .project-history-selected-header p {
+    margin-top: 0.25rem;
+  }
+
+  .project-history-selected-footer {
+    padding: 0.5rem 1rem;
+  }
+
+  .project-history-commit {
+    padding-block: 0.5rem;
+  }
+
+  .project-history-commit-content {
+    gap: 0.375rem;
+  }
+
+  .project-history-diffs {
+    padding: 0.5rem;
+  }
+}
+
+@media (max-width: 47.999rem) {
+  .project-history-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .project-history-layout aside {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .project-history-commit-count {
+    display: none;
+  }
+
+  .project-history-commits {
+    flex-direction: row;
+    width: max-content;
+  }
+
+  .project-history-commit {
+    width: min(17rem, calc(100vw - 3rem));
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-height: 32rem) and (max-width: 47.999rem) {
+  .project-history-layout {
+    grid-template-rows: minmax(0, 3.5rem) minmax(0, 1fr);
+  }
+
+  .project-history-commit-content {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .project-history-commit-message {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .project-history-commit-meta {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .project-history-commit-meta > span:last-child {
+    display: none;
   }
 }

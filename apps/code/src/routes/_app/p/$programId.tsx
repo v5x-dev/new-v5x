@@ -8,6 +8,7 @@ import {
   GearIcon,
   GitCommitIcon,
   HammerIcon,
+  PlayIcon,
   PlugsIcon,
   UploadSimpleIcon,
 } from '@phosphor-icons/react'
@@ -30,6 +31,7 @@ import {
   scheduleBrowserCompilerPreload,
   writeBrowserBuild,
 } from '~/lib/ide/build-client'
+import { createSimulatorHandoffManifest } from '~/lib/ide/simulator-handoff'
 import { WorkspaceEditor } from '~/components/ide/workspace-editor'
 import { ProgramFileTree } from '~/components/ide/program-file-tree'
 import { Button } from '~/components/ui/button'
@@ -95,6 +97,8 @@ function RouteComponent() {
   const getProgramFiles = useAction(api.program.getProgramFiles)
   const loadWorkspace = useAction(api.program.getWorkspaceSnapshot)
   const commitWorkspace = useAction(api.program.commitWorkspace)
+  const createSimulatorHandoff = useAction(api.simulatorHandoff.create)
+  const registerSimulatorHandoff = useAction(api.simulatorHandoff.register)
   const [paths, setPaths] = React.useState<Array<string> | null>(null)
   const [loadError, setLoadError] = React.useState<string | null>(null)
   const [selectedFile, setSelectedFile] = React.useState<string | null>(null)
@@ -120,6 +124,7 @@ function RouteComponent() {
 
   const [buildElapsedSeconds, setBuildElapsedSeconds] = React.useState(0)
   const [isUploading, setIsUploading] = React.useState(false)
+  const [isHandingOff, setIsHandingOff] = React.useState(false)
   const [brainSlot, setBrainSlot] = React.useState(1)
   const [buildMessage, setBuildMessage] = React.useState('')
   const [buildOutput, setBuildOutput] = React.useState('')
@@ -479,6 +484,104 @@ function RouteComponent() {
       console.error('VEX V5 upload failed:', error)
     } finally {
       setIsUploading(false)
+    }
+  }
+
+  const runInSimulator = async () => {
+    if (
+      !program ||
+      (program.template ?? 'vexcode') !== 'vexcode' ||
+      !program.currentCommitSha ||
+      buildArtifactsCommitSha !== program.currentCommitSha ||
+      hasUnsavedChanges ||
+      isSaving ||
+      isBuilding ||
+      isUploading ||
+      isHandingOff
+    )
+      return
+
+    const snapshot = buildSnapshotRef.current?.()
+    const binary = buildArtifacts.get('build/workspace.bin')
+    if (
+      !snapshot ||
+      snapshot.commitSha !== program.currentCommitSha ||
+      !binary
+    ) {
+      setUploadMessage('Build the current committed VEXcode source first.')
+      return
+    }
+
+    const popup = window.open('about:blank', '_blank')
+    if (!popup) {
+      setUploadMessage('Allow pop-ups to open the Brain simulator.')
+      return
+    }
+
+    setIsHandingOff(true)
+    setUploadMessage('Preparing a verified simulator handoff')
+    try {
+      const manifest = await createSimulatorHandoffManifest(snapshot, binary)
+      const transfer = await createSimulatorHandoff({
+        programId,
+        expectedCommitSha: manifest.commitSha,
+        sourceSha256: manifest.sourceSha256,
+        artifactSha256: manifest.artifact.sha256,
+        artifactSize: manifest.artifact.size,
+      })
+      const upload = await fetch(transfer.uploadUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/octet-stream' },
+        body: new Blob([binary.slice().buffer as ArrayBuffer]),
+      })
+      if (!upload.ok) throw new Error('Could not upload the simulator binary.')
+      const uploaded: unknown = await upload.json()
+      if (
+        !uploaded ||
+        typeof uploaded !== 'object' ||
+        !('storageId' in uploaded) ||
+        typeof uploaded.storageId !== 'string'
+      )
+        throw new Error('The artifact service returned an invalid storage ID.')
+
+      await registerSimulatorHandoff({
+        programId,
+        expectedCommitSha: manifest.commitSha,
+        token: transfer.token,
+        storageId: uploaded.storageId as Id<'_storage'>,
+      })
+
+      const defaultBrainUrl =
+        location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+          ? 'http://localhost:5173'
+          : 'https://brain.v5x.dev'
+      const brainUrl = new URL(
+        import.meta.env.VITE_BRAIN_APP_URL || defaultBrainUrl,
+      )
+      const allowedBrainOrigins = new Set([
+        'https://brain.v5x.dev',
+        'http://localhost:5173',
+        'http://localhost:3103',
+        'http://127.0.0.1:5173',
+        'http://127.0.0.1:3103',
+      ])
+      if (!allowedBrainOrigins.has(brainUrl.origin))
+        throw new Error('The configured Brain simulator origin is not trusted.')
+      brainUrl.hash = new URLSearchParams({
+        'v5x-handoff': transfer.token,
+        site: transfer.endpoint,
+      }).toString()
+      popup.location.replace(brainUrl.href)
+      setUploadMessage('Verified build sent to the Brain simulator.')
+    } catch (reason) {
+      popup.close()
+      setUploadMessage(
+        reason instanceof Error
+          ? `Simulator handoff failed: ${reason.message}`
+          : 'Simulator handoff failed.',
+      )
+    } finally {
+      setIsHandingOff(false)
     }
   }
 
@@ -879,6 +982,36 @@ function RouteComponent() {
                                 </Button>
                               ) : null}
                             </div>
+                            <Button
+                              variant="outline"
+                              className="w-full"
+                              onClick={() => void runInSimulator()}
+                              disabled={
+                                !program ||
+                                (program.template ?? 'vexcode') !== 'vexcode' ||
+                                buildArtifactsCommitSha !==
+                                  program.currentCommitSha ||
+                                !buildArtifacts.has('build/workspace.bin') ||
+                                isBuilding ||
+                                isSaving ||
+                                isUploading ||
+                                isHandingOff ||
+                                hasUnsavedChanges
+                              }
+                            >
+                              {isHandingOff ? (
+                                <Spinner data-icon="inline-start" />
+                              ) : (
+                                <PlayIcon data-icon="inline-start" />
+                              )}
+                              Run in simulator
+                            </Button>
+                            {(program?.template ?? 'vexcode') !== 'vexcode' ? (
+                              <p className="text-xs text-muted-foreground">
+                                The simulator currently accepts VEXcode
+                                binaries.
+                              </p>
+                            ) : null}
                             {uploadMessage ? (
                               <p className="text-xs text-muted-foreground">
                                 {uploadMessage}

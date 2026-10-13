@@ -9,6 +9,7 @@
 
   import { drag } from "~/lib/actions"
   import { terminal } from "~/lib/stores"
+  import { getTerminalTheme } from "~/lib/terminal-theme"
 
   import "@xterm/xterm/css/xterm.css"
 
@@ -51,12 +52,7 @@
     fitAddon = new FitAddon()
     $terminal = new Terminal({
       convertEol: true,
-      theme: {
-        background:
-          localStorage.getItem("theme") === "light" ? "#ffffff" : "#252525",
-        foreground:
-          localStorage.getItem("theme") === "light" ? "#252525" : "#fafafa",
-      },
+      theme: getTerminalTheme(),
       fontFamily: "ui-monospace, Consolas, monospace",
     })
 
@@ -145,7 +141,7 @@
     {/if}
   </button>
   <div
-    class="terminal-container h-[attr(data-height_px)] overflow-hidden bg-card [&.terminal-container_.terminal]:p-2! [&.terminal-container_::-webkit-scrollbar]:bg-[#141415]! [&.terminal-container_::-webkit-scrollbar-thumb]:border-[#141415]!"
+    class="terminal-container h-[attr(data-height_px)] overflow-hidden bg-card [&.terminal-container_.terminal]:p-2!"
     class:hidden={height === "0px"}
     data-height={Math.min(
       availableHeight,
@@ -156,3 +152,24 @@
     bind:this={terminalContainer}
   ></div>
 </section>
+
+<style>
+  .terminal-container :global(.xterm-viewport) {
+    scrollbar-color: var(--border) var(--card);
+    scrollbar-width: thin;
+  }
+
+  .terminal-container :global(.xterm-viewport::-webkit-scrollbar) {
+    width: 10px;
+  }
+
+  .terminal-container :global(.xterm-viewport::-webkit-scrollbar-track) {
+    background: var(--card);
+  }
+
+  .terminal-container :global(.xterm-viewport::-webkit-scrollbar-thumb) {
+    border: 2px solid var(--card);
+    border-radius: 9999px;
+    background-color: var(--border);
+  }
+</style>

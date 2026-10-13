@@ -1,5 +1,6 @@
 import { ConvexError, v } from 'convex/values'
 import { mutation } from './_generated/server'
+import { consumeQuota } from './quotas'
 import { authComponent } from './betterAuth/auth'
 
 export const submit = mutation({
@@ -25,6 +26,8 @@ export const submit = mutation({
     }
 
     const user = await authComponent.getAuthUser(ctx)
+
+    await consumeQuota(ctx, 'feedback')
 
     return await ctx.db.insert('feedback', {
       kind: args.kind,

@@ -6,8 +6,15 @@
 >
   <style>
     path {
-      fill: #ad46ff;
-      stroke: #ad46ff;
+      fill: oklch(0.496 0.265 301.924);
+      stroke: oklch(0.496 0.265 301.924);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      path {
+        fill: oklch(0.827 0.119 306.383);
+        stroke: oklch(0.827 0.119 306.383);
+      }
     }
   </style>
   <path

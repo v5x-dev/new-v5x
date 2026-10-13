@@ -12,6 +12,8 @@ import {
   SidebarRail,
 } from "#/components/ui/sidebar"
 import { createFileRoute, Outlet } from "@tanstack/react-router"
+import { useState } from "react"
+import { Input } from "#/components/ui/input"
 import { BoxIcon } from "lucide-react"
 import { modelPaths, PART_DRAG_TYPE } from "#/lib/parts"
 
@@ -70,6 +72,19 @@ export const Route = createFileRoute("/_app")({
 })
 
 function RouteComponent() {
+  const [query, setQuery] = useState("")
+  const visibleGroups = Array.from(
+    partGroups,
+    ([category, parts]) =>
+      [
+        category,
+        parts.filter((part) =>
+          `${PART_LABELS[part.path] || part.name} ${category}`
+            .toLowerCase()
+            .includes(query.trim().toLowerCase()),
+        ),
+      ] as const,
+  ).filter(([, parts]) => parts.length > 0)
   return (
     <SidebarProvider>
       <SidebarInset className="h-screen overflow-hidden">
@@ -77,7 +92,15 @@ function RouteComponent() {
       </SidebarInset>
       <Sidebar side="right" collapsible="icon">
         <SidebarContent>
-          {Array.from(partGroups, ([category, parts]) => (
+          <div className="p-2">
+            <Input
+              aria-label="Search parts"
+              placeholder="Search parts"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </div>
+          {visibleGroups.map(([category, parts]) => (
             <SidebarGroup key={category}>
               <SidebarGroupLabel title={categoryLabel(category)}>
                 {categoryLabel(category)}

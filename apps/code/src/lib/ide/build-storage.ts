@@ -229,3 +229,59 @@ export async function writeBrowserBuild(
     db.close()
   }
 }
+
+export async function deleteBrowserBuild(workspaceId: string): Promise<void> {
+  const db = await database()
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const transaction = db.transaction(['builds', 'blobs'], 'readwrite')
+      const builds = transaction.objectStore('builds')
+      const blobs = transaction.objectStore('blobs')
+      const referenced = new Set<string>()
+      builds.delete(workspaceId)
+
+      const buildCursor = builds.openCursor()
+      buildCursor.onsuccess = () => {
+        const cursor = buildCursor.result
+        if (cursor) {
+          const value: unknown = cursor.value
+          if (
+            value &&
+            typeof value === 'object' &&
+            'version' in value &&
+            value.version === 1 &&
+            'artifacts' in value &&
+            Array.isArray(value.artifacts)
+          ) {
+            for (const artifact of value.artifacts) {
+              if (
+                artifact &&
+                typeof artifact === 'object' &&
+                'digest' in artifact &&
+                typeof artifact.digest === 'string' &&
+                /^[a-f0-9]{64}$/.test(artifact.digest)
+              )
+                referenced.add(artifact.digest)
+            }
+          }
+          cursor.continue()
+          return
+        }
+
+        const blobCursor = blobs.openCursor()
+        blobCursor.onsuccess = () => {
+          const blob = blobCursor.result
+          if (!blob) return
+          if (!referenced.has(String(blob.key))) blob.delete()
+          blob.continue()
+        }
+      }
+
+      transaction.oncomplete = () => resolve()
+      transaction.onerror = () => reject(transaction.error)
+      transaction.onabort = () => reject(transaction.error)
+    })
+  } finally {
+    db.close()
+  }
+}

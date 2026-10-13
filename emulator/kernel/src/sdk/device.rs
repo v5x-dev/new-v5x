@@ -38,6 +38,7 @@ pub struct SmartPort {
     pub index: u8,
     pub timestamp: u32,
     pub data: Option<SmartPortData>,
+    pub motor_command: Option<vex_v5_qemu_protocol::SmartPortCommand>,
     pub(crate) handle: V5_Device,
 }
 
@@ -47,6 +48,7 @@ impl SmartPort {
             index,
             data: None,
             timestamp: 0,
+            motor_command: None,
             handle: V5_Device {
                 zero_indexed_port: index,
                 _unknown0: 0,
@@ -60,6 +62,9 @@ impl SmartPort {
 
     pub fn update(&mut self, data: SmartPortData, timestamp: u32) {
         self.timestamp = timestamp;
+        if !matches!(&data, SmartPortData::Motor) {
+            self.motor_command = None;
+        }
         self.data = Some(data);
 
         let device_type = self.device_type();
@@ -88,7 +93,8 @@ impl Device for SmartPort {
         if let Some(data) = &self.data {
             match data {
                 SmartPortData::DistanceSensor(_) => V5_DeviceType::kDeviceTypeDistanceSensor,
-                // _ => V5_DeviceType::kDeviceTypeNoSensor,
+                SmartPortData::Motor => V5_DeviceType::kDeviceTypeMotorSensor,
+                SmartPortData::Disconnected => V5_DeviceType::kDeviceTypeNoSensor,
             }
         } else {
             V5_DeviceType::kDeviceTypeNoSensor

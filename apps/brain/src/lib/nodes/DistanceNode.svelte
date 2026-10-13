@@ -1,6 +1,11 @@
 <script lang="ts">
   import { useHandleConnections, useNodesData } from "~/lib/flow-hooks.svelte"
-  import { type NodeProps, type Node, Position } from "@xyflow/svelte"
+  import {
+    type NodeProps,
+    type Node,
+    Position,
+    useSvelteFlow,
+  } from "@xyflow/svelte"
   import { DataHandle, SmartPortHandle } from "~/lib/handles"
   import { Field, NodeBase, Divider } from "~/lib/components"
   import { Checkbox } from "~/lib/components/ui/checkbox"
@@ -8,19 +13,33 @@
   import { Slider } from "~/lib/components/ui/slider"
   import { DistanceSensor } from "~/lib/icons"
 
-  type NodeData = {}
+  type NodeData = { distance?: number; size?: number; objectVisible?: boolean }
 
   type $$Props = NodeProps<Node<NodeData>>
 
   export let data: NodeData
   export let id: $$Props["id"]
 
-  let distance = 1000
-  let size = 200
+  let distance = data.distance ?? 1000
+  let size = data.size ?? 200
+  $: {
+    distance = data.distance ?? 1000
+    size = data.size ?? 200
+  }
   $: distance = Math.max(20, Math.min(2000, distance))
   $: size = Math.max(0, Math.min(400, size))
 
-  let objectVisible = true
+  let objectVisible = data.objectVisible ?? true
+  $: objectVisible = data.objectVisible ?? true
+  const { updateNodeData } = useSvelteFlow()
+  let published = ""
+  $: {
+    const key = JSON.stringify({ distance, size, objectVisible })
+    if (key !== published) {
+      published = key
+      updateNodeData(id, { distance, size, objectVisible })
+    }
+  }
 
   const distanceConnections = useHandleConnections({
     nodeId: id,
@@ -75,7 +94,7 @@
         max={2000}
         min={20}
         step={10}
-        disabled={!objectVisible && $distanceConnections.length > 0}
+        disabled={$distanceConnections.length > 0}
         bind:value={distance}
       />{:else}<Input
         type="number"
@@ -88,7 +107,7 @@
     <Slider
       type="single"
       bind:value={distance}
-      disabled={!objectVisible}
+      disabled={!objectVisible || $distanceConnections.length > 0}
       min={20}
       max={2000}
       step={10}
@@ -110,7 +129,7 @@
         max={400}
         min={0}
         step={10}
-        disabled={!objectVisible && $sizeConnections.length > 0}
+        disabled={$sizeConnections.length > 0}
         bind:value={size}
       />{:else}<Input
         type="number"

@@ -28,9 +28,8 @@ import {
 } from '~/components/ui/tooltip'
 import { cn } from '~/lib/utils'
 import { Link } from '@tanstack/react-router'
-import { useAction } from 'convex/react'
-import { useQuery } from '@tanstack/react-query'
-import { convexQuery } from '@convex-dev/react-query'
+import { useAction, useMutation, usePaginatedQuery } from 'convex/react'
+import { ConvexError } from 'convex/values'
 import { api } from '../../../convex/_generated/api'
 import type { Doc } from '../../../convex/_generated/dataModel'
 import { authClient } from '~/lib/auth-client'
@@ -44,6 +43,8 @@ import {
 import { Skeleton } from '~/components/ui/skeleton'
 import { templateInfo, templates, type Template } from './templates'
 import { TemplateIcon } from './template-icon'
+import { ImportProject } from './import-project'
+import { ProgramActions } from './program-actions'
 
 type Sort = 'created' | 'name'
 
@@ -68,37 +69,69 @@ function isEditable(target: EventTarget | null) {
 export function Dashboard() {
   const [sort, setSort] = useState<Sort>('created')
   const [starredOnly, setStarredOnly] = useState(false)
-  const [starred, setStarred] = useState<Set<string>>(new Set())
   const [query, setQuery] = useState('')
   const searchRef = useRef<HTMLInputElement>(null)
   const { data: session } = authClient.useSession()
-  const user = session?.user
+  const migratingStars = useRef(new Set<string>())
+  const setStarred = useMutation(api.program.setStarred)
   const createProgram = useAction(api.program.createProgram)
+  const [archived, setArchived] = useState(false)
   const {
-    data: programs,
-    isPending,
-    error: loadError,
-  } = useQuery(convexQuery(api.program.list))
+    results: programs,
+    status,
+    loadMore,
+  } = usePaginatedQuery(
+    api.program.listPaginated,
+    { archived, search: query.trim(), sort, starredOnly },
+    { initialNumItems: 50 },
+  )
+  const isPending = status === 'LoadingFirstPage'
   const [creating, setCreating] = useState<Template | null>(null)
   const creatingRef = useRef(false)
   const [error, setError] = useState<string | null>(null)
-  const starKey = user ? `v5x:starred-programs:${user.id}` : null
+  const starred = useMemo(
+    () =>
+      new Set(
+        programs
+          .filter((program) => program.starred)
+          .map((program) => program._id),
+      ),
+    [programs],
+  )
 
   useEffect(() => {
-    if (!starKey) return
+    if (!session?.user) return
+    const key = `v5x:starred-programs:${session.user.id}`
     try {
-      const saved: unknown = JSON.parse(localStorage.getItem(starKey) || '[]')
-      setStarred(
-        new Set(
-          Array.isArray(saved)
-            ? saved.filter((id): id is string => typeof id === 'string')
-            : [],
-        ),
-      )
+      const saved: unknown = JSON.parse(localStorage.getItem(key) || '[]')
+      if (!Array.isArray(saved)) return
+      for (const program of programs) {
+        if (
+          !saved.includes(program._id) ||
+          migratingStars.current.has(program._id)
+        )
+          continue
+        migratingStars.current.add(program._id)
+        void setStarred({ programId: program._id, starred: true })
+          .then(() => {
+            // Read again so concurrent migrations preserve each other's removals.
+            const current: unknown = JSON.parse(
+              localStorage.getItem(key) || '[]',
+            )
+            if (Array.isArray(current))
+              localStorage.setItem(
+                key,
+                JSON.stringify(current.filter((id) => id !== program._id)),
+              )
+          })
+          .catch(() =>
+            setError('Unable to sync saved stars. Reload to try again.'),
+          )
+      }
     } catch {
-      setStarred(new Set())
+      setError('Unable to read previously saved stars.')
     }
-  }, [starKey])
+  }, [programs, session?.user, setStarred])
 
   async function create(template: Template) {
     if (creatingRef.current) return
@@ -107,8 +140,12 @@ export function Dashboard() {
     setError(null)
     try {
       await createProgram({ template })
-    } catch {
-      setError('Unable to create program. Try again.')
+    } catch (reason) {
+      setError(
+        reason instanceof ConvexError && typeof reason.data === 'string'
+          ? reason.data
+          : 'Unable to create program. Try again.',
+      )
     } finally {
       creatingRef.current = false
       setCreating(null)
@@ -128,31 +165,19 @@ export function Dashboard() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
-  function toggleStar(id: string) {
-    const next = new Set(starred)
-    if (!next.delete(id)) next.add(id)
-    setStarred(next)
-    if (starKey) {
-      try {
-        localStorage.setItem(starKey, JSON.stringify([...next]))
-      } catch {
-        // Stars remain available for this session if storage is unavailable.
-      }
+  async function toggleStar(program: Doc<'program'>) {
+    try {
+      await setStarred({ programId: program._id, starred: !program.starred })
+    } catch {
+      setError('Unable to save the star. Try again.')
     }
   }
 
-  const visible = useMemo(() => {
-    const needle = query.trim().toLowerCase()
+  const visible = programs
 
-    return [...(programs ?? [])]
-      .filter((p) => p.name.toLowerCase().includes(needle))
-      .filter((p) => !starredOnly || starred.has(p._id))
-      .sort((a, b) =>
-        sort === 'name'
-          ? a.name.localeCompare(b.name)
-          : b._creationTime - a._creationTime,
-      )
-  }, [programs, query, starredOnly, starred, sort])
+  useEffect(() => {
+    if (status === 'CanLoadMore' && programs.length === 0) loadMore(50)
+  }, [status, programs.length, loadMore])
 
   const pinned = visible.filter((p) => starred.has(p._id))
   const rest = visible.filter((p) => !starred.has(p._id))
@@ -183,6 +208,7 @@ export function Dashboard() {
               aria-keyshortcuts="/"
               placeholder="Search programs"
               value={query}
+              maxLength={120}
               onChange={(event) => setQuery(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === 'Escape') {
@@ -214,6 +240,9 @@ export function Dashboard() {
         />
 
         <main className="mx-auto max-w-4xl px-6 py-6">
+          <div className="mb-4">
+            <ImportProject />
+          </div>
           <Toolbar
             sort={sort}
             onSortChange={setSort}
@@ -221,9 +250,17 @@ export function Dashboard() {
             onStarredOnlyChange={setStarredOnly}
           />
 
-          {(error || loadError) && (
+          <Button
+            variant={archived ? 'secondary' : 'outline'}
+            aria-pressed={archived}
+            onClick={() => setArchived(!archived)}
+            className="mb-4"
+          >
+            {archived ? 'Viewing archived programs' : 'View archive'}
+          </Button>
+          {error && (
             <p role="alert" className="mb-4 text-sm text-destructive">
-              {error || 'Unable to load programs. Try reloading the page.'}
+              {error}
             </p>
           )}
           {isPending ? (
@@ -235,7 +272,11 @@ export function Dashboard() {
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
             </div>
-          ) : loadError ? null : visible.length === 0 ? (
+          ) : visible.length === 0 && status !== 'Exhausted' ? (
+            <p role="status" className="text-sm text-muted-foreground">
+              Searching programs...
+            </p>
+          ) : visible.length === 0 ? (
             <EmptyState query={query} starredOnly={starredOnly} />
           ) : (
             groups.map((group) => (
@@ -248,14 +289,24 @@ export function Dashboard() {
                     <li key={program._id}>
                       <ProgramRow
                         program={program}
+                        onError={setError}
                         starred={starred.has(program._id)}
-                        onToggleStar={() => toggleStar(program._id)}
+                        onToggleStar={() => void toggleStar(program)}
                       />
                     </li>
                   ))}
                 </ul>
               </section>
             ))
+          )}
+          {(status === 'CanLoadMore' || status === 'LoadingMore') && (
+            <Button
+              variant="outline"
+              disabled={status === 'LoadingMore'}
+              onClick={() => loadMore(50)}
+            >
+              {status === 'LoadingMore' ? 'Loading...' : 'Load more programs'}
+            </Button>
           )}
         </main>
       </div>
@@ -374,21 +425,29 @@ function ProgramRow({
   program,
   starred,
   onToggleStar,
+  onError,
 }: {
   program: Doc<'program'>
   starred: boolean
   onToggleStar: () => void
+  onError: (message: string | null) => void
 }) {
   return (
     <div className="group/row relative flex items-center gap-4 rounded-lg px-3 py-1.5 hover:bg-muted/60 has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-ring">
       <TemplateIcon template={program.template} />
-      <Link
-        to="/p/$programId"
-        params={{ programId: program._id }}
-        className="min-w-0 flex-1 truncate text-sm font-medium outline-none after:absolute after:inset-0 after:rounded-lg"
-      >
-        {program.name}
-      </Link>
+      {program.deleting ? (
+        <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+          {program.name} · deletion pending
+        </span>
+      ) : (
+        <Link
+          to="/p/$programId"
+          params={{ programId: program._id }}
+          className="min-w-0 flex-1 truncate text-sm font-medium outline-none after:absolute after:inset-0 after:rounded-lg"
+        >
+          {program.name}
+        </Link>
+      )}
       <span className="w-28 shrink-0 text-right text-sm text-muted-foreground max-sm:w-auto">
         <time
           dateTime={new Date(program._creationTime).toISOString()}
@@ -398,19 +457,22 @@ function ProgramRow({
         </time>
       </span>
       <div className="relative z-10 flex items-center">
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label={starred ? 'Unstar program' : 'Star program'}
-          aria-pressed={starred}
-          onClick={onToggleStar}
-          className={cn(!starred && 'text-muted-foreground')}
-        >
-          <StarIcon
-            weight={starred ? 'fill' : 'regular'}
-            className={cn(starred && 'text-primary')}
-          />
-        </Button>
+        <ProgramActions program={program} onError={onError} />
+        {!program.deleting && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={starred ? 'Unstar program' : 'Star program'}
+            aria-pressed={starred}
+            onClick={onToggleStar}
+            className={cn(!starred && 'text-muted-foreground')}
+          >
+            <StarIcon
+              weight={starred ? 'fill' : 'regular'}
+              className={cn(starred && 'text-primary')}
+            />
+          </Button>
+        )}
       </div>
     </div>
   )

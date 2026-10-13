@@ -99,3 +99,22 @@ QEMU's `COPYING` alongside the artifacts. If distributing the generated emulator
 provide its corresponding source, including this overlay and build scripts, in
 accordance with the QEMU license. QEMU source is pinned by archive checksum in
 `build.sh`; Emscripten and dependency versions come from its upstream Dockerfile.
+
+## Device runtime acceptance
+
+Build the freestanding C++ fixture with an ARM GCC toolchain:
+
+```sh
+bash tools/wasm/fixtures/build-device-state.sh
+```
+
+Upload `/tmp/v5x-device-state.bin` through Brain's real application. Connect a
+Distance Sensor to smart port 1 and a motor to smart port 2. The terminal prints
+`V5X_DEVICE motor_target=120`, while a host-generated line reports
+`Motor port 2: velocity target 120`. Distance scenarios should produce 2000,
+1000, 200, 9999, and 2000 mm. This verifies command delivery; it does not
+simulate motor movement or robot physics. Reset must replay the current wiring
+and battery. Generated binaries belong outside Git.
+
+Browser startup now waits for the kernel's code-signature packet before sending
+initial device state. QEMU thread startup alone is too early for UART updates.

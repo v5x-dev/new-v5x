@@ -32,8 +32,8 @@ if ((await connection.open()) === true) {
 
 const flow = [
   { product: design, verb: "Plan", detail: "Lay out the drivetrain with real part models." },
-  { product: code, verb: "Build", detail: "Clang compiles hot and cold .bin files on your machine." },
-  { product: brain, verb: "Test", detail: "The simulator runs those same binaries." },
+  { product: code, verb: "Build", detail: "Clang builds VEXcode binaries and hot/cold PROS, EZ-Template and JAR packages in your browser." },
+  { product: brain, verb: "Test", detail: "Run supported VEXcode binaries; other project formats need their package loader first." },
   { product: serial, verb: "Upload", detail: "code sends them to the Brain over @v5x/serial." },
 ]
 

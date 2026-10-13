@@ -1,17 +1,49 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte"
 
-  import { desktop, listen } from "~/lib/runtime"
+  import { desktop, listen, request } from "~/lib/runtime"
+  import { DeviceSync, graphDeviceState } from "~/lib/device-state"
+  import { receiveSimulatorHandoff } from "~/lib/simulator-handoff"
+  import { getTerminalTheme } from "~/lib/terminal-theme"
+  let deviceError = ""
+  let handoffStatus = ""
+  const deviceSync = new DeviceSync(
+    async (update) => {
+      const body =
+        update.command === "disconnect" ? { port: update.port } : update.state
+      await request(update.command, new Blob([JSON.stringify(body)]))
+    },
+    (message) => {
+      deviceError = message
+    },
+  )
+  $: {
+    try {
+      deviceSync.update(
+        $session?.running ? graphDeviceState($nodes, $edges) : undefined,
+      )
+    } catch (reason) {
+      deviceError = String(reason)
+    }
+  }
   type UnlistenFn = () => void
 
   import { SvelteFlowProvider, type NodeTypes } from "@xyflow/svelte"
 
   import * as SidebarUI from "~/lib/components/ui/sidebar"
 
+  import ConfigurationControls from "~/lib/layout/ConfigurationControls.svelte"
   import Session from "~/lib/session"
-  import { terminal, session, nodes, edges } from "~/lib/stores"
+  import {
+    terminal,
+    session,
+    nodes,
+    edges,
+    configurationError,
+    persistConfiguration,
+    configurationRevision,
+  } from "~/lib/stores"
   import { Button as IconButton } from "~/lib/components/ui/button"
-  import { Toggle } from "~/lib/components/ui/toggle"
   import { Sun, Moon, Map } from "@lucide/svelte"
   import { Toolbar, Sidebar, Flow, Terminal } from "~/lib/layout"
   import {
@@ -25,6 +57,7 @@
     TimeNode,
     LightSensorNode,
     MotorNode,
+    ControllerNode,
   } from "~/lib/nodes"
   import { AdiEdge, DataEdge } from "~/lib/edges"
 
@@ -53,15 +86,13 @@
     document.documentElement.classList.toggle("dark", dark)
     window.localStorage.setItem("theme", dark ? "dark" : "light")
     if ($terminal) {
-      $terminal.options.theme = {
-        ...$terminal.options.theme,
-        background: dark ? "#252525" : "#ffffff",
-        foreground: dark ? "#fafafa" : "#252525",
-      }
+      $terminal.options.theme = getTerminalTheme()
     }
   }
 
   let unlistenUserSerial: UnlistenFn | undefined
+  let unlistenMotorCommands: UnlistenFn | undefined
+  let stopPersistence: (() => void) | undefined
 
   let dragNode: DragData | null = null
 
@@ -77,6 +108,7 @@
     time: TimeNode,
     light_sensor: LightSensorNode,
     motor: MotorNode,
+    controller: ControllerNode,
   }
   const edgeTypes = {
     data: DataEdge,
@@ -84,14 +116,44 @@
   }
 
   onMount(async () => {
+    stopPersistence = persistConfiguration()
     unlistenUserSerial = await listen<number[]>("brain_usb_recv", (event) => {
       $terminal?.write(decoder.decode(new Uint8Array(event.payload)))
     })
+    unlistenMotorCommands = await listen<number[]>("motor_command", (event) => {
+      $terminal?.write(decoder.decode(new Uint8Array(event.payload)))
+    })
+
+    const fragment = window.location.hash
+    if (!fragment.includes("v5x-handoff")) return
+    history.replaceState(
+      history.state,
+      "",
+      `${location.pathname}${location.search}`,
+    )
+    try {
+      const trustedEndpoint = import.meta.env.VITE_CODE_CONVEX_SITE_URL
+      if (!trustedEndpoint)
+        throw new Error("Brain is missing its trusted Code handoff endpoint.")
+      const handoff = await receiveSimulatorHandoff(fragment, trustedEndpoint)
+      if (!handoff) return
+      const file = new File([handoff.bytes.slice().buffer], "workspace.bin", {
+        type: "application/octet-stream",
+      })
+      const next = new Session(file.name, file)
+      await next.start()
+      handoffStatus = `Running VEXcode build ${handoff.manifest.commitSha.slice(0, 8)}`
+    } catch (reason) {
+      handoffStatus = `Simulator handoff failed: ${String(reason)}`
+    }
   })
 
   onDestroy(() => {
+    deviceSync.update(undefined)
     $session?.stop()
     unlistenUserSerial?.()
+    unlistenMotorCommands?.()
+    stopPersistence?.()
   })
 
   function handleWindowKeyDown({ key, ctrlKey, metaKey }: KeyboardEvent) {
@@ -117,6 +179,9 @@
         }}
       />
       <div class="flex min-h-0 min-w-0 flex-1 flex-col bg-sidebar">
+        {#if $configurationError}<p role="alert">{$configurationError}</p>{/if}
+        {#if deviceError}<p role="alert">{deviceError}</p>{/if}
+        {#if handoffStatus}<p role="status">{handoffStatus}</p>{/if}
         <Toolbar>
           <svelte:fragment slot="left">
             <SidebarUI.Trigger title="Toggle sidebar" />
@@ -124,6 +189,8 @@
               variant="ghost"
               size="icon"
               title={($session?.paused ? "Unpause" : "Pause") + " execution"}
+              aria-label={($session?.paused ? "Unpause" : "Pause") +
+                " execution"}
               disabled={!$session?.running || desktop}
               onclick={() => $session?.togglePause()}
             >
@@ -136,6 +203,7 @@
               variant="ghost"
               size="icon"
               title="Reset program"
+              aria-label="Reset program"
               disabled={!$session?.running}
               onclick={() => $session?.reset()}
             >
@@ -145,6 +213,7 @@
               variant="ghost"
               size="icon"
               title="Unload program"
+              aria-label="Unload program"
               disabled={!$session?.running}
               onclick={() => {
                 $session?.stop()
@@ -155,16 +224,18 @@
             </IconButton>
           </svelte:fragment>
           <svelte:fragment slot="right">
-            <Toggle
-              pressed={showMinimap}
-              onPressedChange={setMinimap}
-              size="default"
-              class="size-7 px-0"
+            <ConfigurationControls />
+            <IconButton
+              variant="ghost"
+              size="icon"
+              aria-pressed={showMinimap}
+              class="aria-pressed:bg-muted"
+              onclick={() => setMinimap(!showMinimap)}
               title={showMinimap ? "Hide minimap" : "Show minimap"}
               aria-label={showMinimap ? "Hide minimap" : "Show minimap"}
             >
-              <Map />
-            </Toggle>
+              <Map size="16" />
+            </IconButton>
             <IconButton
               variant="ghost"
               size="icon"
@@ -190,7 +261,9 @@
               class="display-view relative flex min-h-0 flex-auto items-center-safe justify-center overflow-auto bg-[linear-gradient(var(--card)_1px,transparent_1px),linear-gradient(90deg,var(--card)_1px,transparent_1px)] bg-size-[20px_20px] bg-position-[-1px_-1px]"
               role="application"
             >
-              <Flow {nodeTypes} {edgeTypes} {nodes} {edges} {showMinimap} />
+              {#key $configurationRevision}
+                <Flow {nodeTypes} {edgeTypes} {nodes} {edges} {showMinimap} />
+              {/key}
             </section>
             <Terminal />
           </div>

@@ -42,7 +42,8 @@ const BrowserHostFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_browserhost_free(ptr >>> 0, 1));
 /**
- * The browser host uses exactly the same bincode packets and renderer as the native host.
+ * The browser host uses exactly the same bincode packets and renderer as the
+ * native host.
  */
 export class BrowserHost {
 
@@ -89,11 +90,78 @@ export class BrowserHost {
         return v1;
     }
     /**
-     * @param {number} capacity
+     * @param {number} port
+     * @param {number} distance
+     * @param {number} size
+     * @param {boolean} visible
+     * @param {number} timestamp
      * @returns {Uint8Array}
      */
-    battery(capacity) {
-        const ret = wasm.browserhost_battery(this.__wbg_ptr, capacity);
+    distance(port, distance, size, visible, timestamp) {
+        const ret = wasm.browserhost_distance(this.__wbg_ptr, port, distance, size, visible, timestamp);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
+     * @param {number} port
+     * @param {number} timestamp
+     * @returns {Uint8Array}
+     */
+    disconnect(port, timestamp) {
+        const ret = wasm.browserhost_disconnect(this.__wbg_ptr, port, timestamp);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
+     * @param {number} port
+     * @returns {Uint8Array}
+     */
+    motor(port) {
+        const ret = wasm.browserhost_motor(this.__wbg_ptr, port);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
+     * @param {number} id
+     * @param {number} axis1
+     * @param {number} axis2
+     * @param {number} axis3
+     * @param {number} axis4
+     * @param {number} buttons
+     * @param {number} capacity
+     * @param {boolean} connected
+     * @returns {Uint8Array}
+     */
+    controller(id, axis1, axis2, axis3, axis4, buttons, capacity, connected) {
+        const ret = wasm.browserhost_controller(this.__wbg_ptr, id, axis1, axis2, axis3, axis4, buttons, capacity, connected);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
+     * @param {number} capacity
+     * @param {number} voltage
+     * @param {number} current
+     * @param {number} temperature
+     * @returns {Uint8Array}
+     */
+    battery(capacity, voltage, current, temperature) {
+        const ret = wasm.browserhost_battery(this.__wbg_ptr, capacity, voltage, current, temperature);
         if (ret[3]) {
             throw takeFromExternrefTable0(ret[2]);
         }

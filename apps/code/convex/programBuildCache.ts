@@ -29,7 +29,12 @@ export const cacheLatest = internalMutation({
   ),
   handler: async (ctx, args) => {
     const program = await ctx.db.get('program', args.programId)
-    if (!program || program.currentCommitSha !== args.commitSha) return null
+    if (
+      !program ||
+      program.deleting ||
+      program.currentCommitSha !== args.commitSha
+    )
+      return null
 
     for (const artifact of args.artifacts) {
       if (!artifact.sha256) continue

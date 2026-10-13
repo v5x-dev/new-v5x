@@ -1,0 +1,89 @@
+name: Repository checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - run: bun run check
+
+  builds:
+    runs-on: ubuntu-latest
+    env:
+      # Compile the frontend without connecting to a production backend.
+      VITE_CONVEX_URL: https://build-only.convex.cloud
+      VITE_CONVEX_SITE_URL: https://build-only.convex.site
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - run: bun run build:all
+
+  code-browser:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: browser-tests
+    env:
+      VITE_CONVEX_URL: ${{ secrets.TEST_CONVEX_URL }}
+      VITE_CONVEX_SITE_URL: ${{ secrets.TEST_CONVEX_SITE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - name: Require a dedicated test backend
+        run: test -n "$VITE_CONVEX_URL" && test -n "$VITE_CONVEX_SITE_URL"
+      - run: bunx playwright install --with-deps chromium
+        working-directory: apps/code
+      - run: bun run test:e2e:code
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: code-browser-failures
+          path: |
+            apps/code/test-results
+            apps/code/playwright-report
+
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2025-07-26
+          components: rust-src
+          targets: armv7a-none-eabi,wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            emulator
+            emulator/kernel
+      - run: cargo test --locked -p vex-v5-wasm-host
+        working-directory: emulator
+      - run: cargo build --locked
+        working-directory: emulator/kernel
+      - name: Check deployed Rust artifact provenance
+        run: bun tools/wasm/artifact-manifest.mjs

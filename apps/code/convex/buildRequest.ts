@@ -30,7 +30,7 @@ export const acquire = internalMutation({
     } | null
   }> => {
     const program = await ctx.db.get('program', programId)
-    if (!program || program.ownerId !== ownerId)
+    if (!program || program.ownerId !== ownerId || program.deleting)
       throw new Error('Program not found')
     const commitSha = program.currentCommitSha
     if (!commitSha) throw new Error('Program commit is still loading')

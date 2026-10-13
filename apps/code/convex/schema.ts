@@ -17,6 +17,9 @@ export default defineSchema({
     name: v.string(),
     repoId: v.string(),
     ownerId: v.string(),
+    archived: v.optional(v.boolean()),
+    deleting: v.optional(v.boolean()),
+    starred: v.optional(v.boolean()),
     currentCommitSha: v.optional(v.string()),
     template: v.optional(
       v.union(
@@ -26,7 +29,10 @@ export default defineSchema({
         v.literal('jar-template'),
       ),
     ),
-  }).index('by_owner', ['ownerId']),
+  })
+    .index('by_owner', ['ownerId'])
+    .index('by_owner_and_archived', ['ownerId', 'archived'])
+    .index('by_ownerId_and_archived_and_name', ['ownerId', 'archived', 'name']),
   buildPool: defineTable({
     template: v.string(),
     imageTag: v.string(),
@@ -57,4 +63,18 @@ export default defineSchema({
     ),
     timings: v.array(v.object({ stage: v.string(), ms: v.number() })),
   }).index('by_program', ['programId']),
+  simulatorHandoffs: defineTable({
+    tokenHash: v.string(),
+    ownerId: v.string(),
+    programId: v.id('program'),
+    commitSha: v.string(),
+    sourceSha256: v.string(),
+    artifactSha256: v.string(),
+    artifactSize: v.number(),
+    expiresAt: v.number(),
+    storageId: v.optional(v.id('_storage')),
+    consumedAt: v.optional(v.number()),
+  })
+    .index('by_token_hash', ['tokenHash'])
+    .index('by_program', ['programId']),
 })

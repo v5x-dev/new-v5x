@@ -2,7 +2,7 @@ import { betterAuth } from 'better-auth/minimal'
 import { createClient } from '@convex-dev/better-auth'
 import { convex } from '@convex-dev/better-auth/plugins'
 import authConfig from '../auth.config'
-import { components } from '../_generated/api'
+import { components, internal } from '../_generated/api'
 import { query } from '../_generated/server'
 import type { GenericCtx } from '@convex-dev/better-auth'
 import type { DataModel } from '../_generated/dataModel'
@@ -50,7 +50,20 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
     plugins: [
       // The Convex plugin is required for Convex compatibility
       convex({ authConfig }),
-      anonymous(),
+      anonymous({
+        onLinkAccount: async ({ anonymousUser, newUser }) => {
+          if (!anonymousUser.user.isAnonymous || newUser.user.isAnonymous)
+            return
+          if (!('runMutation' in ctx))
+            throw new Error(
+              'Account linking requires a writable backend context',
+            )
+          await ctx.runMutation(internal.program.transferGuestPrograms, {
+            guestId: anonymousUser.user.id,
+            accountId: newUser.user.id,
+          })
+        },
+      }),
     ],
   })
 }

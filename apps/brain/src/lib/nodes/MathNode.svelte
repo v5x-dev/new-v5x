@@ -14,7 +14,11 @@
   import { DataHandle } from "~/lib/handles"
 
   type NodeData = {
-    value: number
+    value?: number
+    lhs?: number
+    rhs?: number
+    operation?: string
+    currentTab?: string
   }
 
   type $$Props = NodeProps<Node<NodeData>>
@@ -22,8 +26,8 @@
   export let data: NodeData
   export let id: $$Props["id"]
 
-  export let lhs = 0
-  export let rhs = 0
+  export let lhs = data.lhs ?? 0
+  export let rhs = data.rhs ?? 0
 
   const binaryOps = [
     {
@@ -69,7 +73,7 @@
       label: "Tangent",
     },
   ]
-  let operation = binaryOps[0].value
+  let operation = data.operation ?? binaryOps[0].value
 
   let result = 0
   $: {
@@ -107,18 +111,20 @@
     }
   }
 
-  let currentTab = "binary"
+  let currentTab = data.currentTab ?? "binary"
 
   $: {
     if (currentTab === "binary") {
-      operation = binaryOps[0].value
+      if (!binaryOps.some((option) => option.value === operation))
+        operation = binaryOps[0].value
     } else {
-      operation = unaryOps[0].value
+      if (!unaryOps.some((option) => option.value === operation))
+        operation = unaryOps[0].value
     }
   }
 
   const { updateNodeData } = useSvelteFlow()
-  $: updateNodeData(id, { value: result })
+  $: updateNodeData(id, { value: result, lhs, rhs, operation, currentTab })
 
   const lhsConnections = useHandleConnections({
     nodeId: id,

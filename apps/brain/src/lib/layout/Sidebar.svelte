@@ -8,6 +8,7 @@
 </script>
 
 <script lang="ts">
+  import { simulatedDeviceTypes } from "~/lib/configuration"
   import * as Sidebar from "~/lib/components/ui/sidebar"
   import * as Dialog from "~/lib/components/ui/dialog"
   import { Info } from "@lucide/svelte"
@@ -18,6 +19,7 @@
     vexV5QemuRepo,
   } from "~/lib/credits"
   import { createEventDispatcher } from "svelte"
+  import { nodes } from "~/lib/stores"
   import {
     ADI,
     Motor,
@@ -154,12 +156,36 @@
             {#each group.devices as device (device.node)}
               <Sidebar.MenuItem>
                 <Sidebar.MenuButton
-                  title={`${device.name} (drag to add)`}
+                  disabled={(group.label !== "Data" &&
+                    !simulatedDeviceTypes.has(device.node)) ||
+                    (device.node === "controller" &&
+                      $nodes.filter((node) => node.type === "controller")
+                        .length >= 2)}
+                  title={device.node === "controller" &&
+                  $nodes.filter((node) => node.type === "controller").length >=
+                    2
+                    ? "Both controller slots are in use"
+                    : device.name}
                   tooltipContent={device.name}
-                  onmousedown={(event) => handleDragStart(event, device.node)}
+                  onmousedown={(event) => {
+                    if (
+                      group.label === "Data" ||
+                      (simulatedDeviceTypes.has(device.node) &&
+                        (device.node !== "controller" ||
+                          $nodes.filter((node) => node.type === "controller")
+                            .length < 2))
+                    )
+                      handleDragStart(event, device.node)
+                  }}
                 >
                   <svelte:component this={device.icon} />
-                  <span>{device.name}</span>
+                  <span
+                    >{device.name}{device.node === "controller" &&
+                    $nodes.filter((node) => node.type === "controller")
+                      .length >= 2
+                      ? " · Full"
+                      : ""}</span
+                  >
                 </Sidebar.MenuButton>
               </Sidebar.MenuItem>
             {/each}
@@ -189,8 +215,8 @@
             This simulator runs the
             <a href={vexV5QemuRepo}>vex-v5-qemu</a>
             kernel, protocol, and display renderer. The project is
-            <a href={vexV5QemuLicense}>MIT licensed</a>.
-            These are the maintainers and contributors.
+            <a href={vexV5QemuLicense}>MIT licensed</a>. These are the
+            maintainers and contributors.
           </Dialog.Description>
         </Dialog.Header>
         <ul class="flex flex-col gap-1 text-xs/relaxed">

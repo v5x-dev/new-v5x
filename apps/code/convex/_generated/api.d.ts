@@ -28,7 +28,10 @@ import type * as lib_cloudBuildMachine from "../lib/cloudBuildMachine.js";
 import type * as program from "../program.js";
 import type * as programBuild from "../programBuild.js";
 import type * as programBuildCache from "../programBuildCache.js";
+import type * as programHistory from "../programHistory.js";
+import type * as quotas from "../quotas.js";
 import type * as store from "../store.js";
+import type * as simulatorHandoff from "../simulatorHandoff.js";
 import type * as template from "../template.js";
 
 import type {
@@ -58,7 +61,10 @@ declare const fullApi: ApiFromModules<{
   program: typeof program;
   programBuild: typeof programBuild;
   programBuildCache: typeof programBuildCache;
+  programHistory: typeof programHistory;
+  quotas: typeof quotas;
   store: typeof store;
+  simulatorHandoff: typeof simulatorHandoff;
   template: typeof template;
 }>;
 
@@ -90,4 +96,5 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   betterAuth: import("@convex-dev/better-auth/_generated/component.js").ComponentApi<"betterAuth">;
+  rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
 };

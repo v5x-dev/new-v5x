@@ -1,3 +1,4 @@
+import { verifyRustArtifacts } from "../../../tools/wasm/artifact-manifest.mjs"
 import { access } from "node:fs/promises"
 const files = [
   "qemu-system-arm.js",
@@ -13,7 +14,9 @@ for (const name of files) {
     await access(new URL(`../public/wasm/${name}`, import.meta.url))
   } catch {
     throw new Error(
-      `Missing Wasm artifact ${name}. Run npm run wasm:build first.`,
+      `Missing Wasm artifact ${name}. Run bun run wasm:build first.`,
     )
   }
 }
+
+await verifyRustArtifacts()

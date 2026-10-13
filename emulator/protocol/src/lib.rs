@@ -87,11 +87,17 @@ pub enum KernelBoundPacket {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum SmartPortData {
     DistanceSensor(DistanceSensorData),
+    Motor,
+    Disconnected,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Encode, Decode)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub enum SmartPortCommand {}
+pub enum SmartPortCommand {
+    VelocitySet { velocity: i32 },
+    PwmSet { pwm: i32 },
+    VoltageSet { voltage: i32 },
+}
 
 #[macro_export]
 macro_rules! impl_bincode_bitflags {

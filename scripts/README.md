@@ -67,7 +67,7 @@ smol pack push --file .build/vexcode-v2.smolmachine \
 ```
 
 The Convex build action uses `v1` when `VEXCODE_IMAGE_TAG` is unset. It runs
-`make -j2` for PROS and EZ Template projects and plain `make` for VEXcode.
+`make -j8` for cloud builds, including template-worker preparation.
 
 ## Smaller V5 image
 
@@ -82,3 +82,22 @@ package repair or upgrades can reinstall trimmed files.
 The v2 image recipe above trims the rootfs before it installs these build
 assets. Use the full rootfs instead if builds need another ARM target or float
 ABI.
+
+## Optional cloud worker pool
+
+The Code application builds locally in browser workers. The retained cloud
+build actions also support benchmark and verification tooling. Cloud template
+worker replenishment is disabled by default, even when `SMOL_CLOUD_TOKEN` is
+configured. Set `V5X_CLOUD_BUILD_POOL_ENABLED=true` in the Convex deployment to
+opt in. The minute cron and refill requests both enter the same guarded action.
+Disabling the flag stops new replenishment; existing worker leases expire.
+Direct cloud builds remain available to authorized callers with credentials.
+
+## Brain Rust artifacts
+
+Run `bun run --cwd apps/brain wasm:build:rust` after changing emulator host,
+protocol, display, or kernel sources. This rebuilds the host bindings and kernel
+without rebuilding QEMU, then records source and asset SHA-256 hashes. Brain's
+production build checks that manifest. Use `wasm:build` for a full QEMU rebuild.
+Do not edit the generated bindings or manifest to bypass a failed provenance
+check. Both scripts use the pinned Rust toolchain and wasm-bindgen 0.2.100.

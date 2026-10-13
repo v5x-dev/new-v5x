@@ -6,6 +6,7 @@ import { get } from "svelte/store"
 export default class Session {
   paused = false
   running = false
+  private capturedFile = false
   private unlisten: (() => void)[] = []
   private ended(error?: string) {
     this.running = false
@@ -36,6 +37,16 @@ export default class Session {
             this.ended(payload),
           ),
         )
+        if (this.file && !this.capturedFile) {
+          this.file = new File(
+            [await this.file.arrayBuffer()],
+            this.file.name,
+            {
+              type: this.file.type,
+            },
+          )
+          this.capturedFile = true
+        }
         await request("start", this.file)
       }
       this.running = true

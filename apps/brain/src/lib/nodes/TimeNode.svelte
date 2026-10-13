@@ -13,7 +13,9 @@
   import { onDestroy, onMount } from "svelte"
 
   type NodeData = {
-    value: number
+    value?: number
+    updateRate?: number
+    advanced?: boolean
   }
 
   type $$Props = NodeProps<Node<NodeData>>
@@ -28,7 +30,7 @@
 
   const { setInterval, clearInterval } = window
 
-  let updateRate = 60
+  let updateRate = data.updateRate ?? 60
   $: updateRate = Math.max(1, Math.min(1000, updateRate))
 
   let timeInterval: number | undefined
@@ -61,7 +63,8 @@
     clearInterval(updateInterval)
   })
 
-  let advanced = false
+  let advanced = data.advanced ?? false
+  $: updateNodeData(id, { updateRate, advanced })
 
   void data
 </script>

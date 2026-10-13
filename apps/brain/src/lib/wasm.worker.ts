@@ -14,9 +14,33 @@ interface QemuModule {
   PThread: { terminateAllThreads(): void }
 }
 interface Host {
+  controller(
+    id: number,
+    axis1: number,
+    axis2: number,
+    axis3: number,
+    axis4: number,
+    buttons: number,
+    capacity: number,
+    connected: boolean,
+  ): Uint8Array
   push(bytes: Uint8Array): { event: string; payload: number[] }[]
   take_frame(): Uint8Array | undefined
-  battery(capacity: number): Uint8Array
+  battery(
+    capacity: number,
+    voltage: number,
+    current: number,
+    temperature: number,
+  ): Uint8Array
+  distance(
+    port: number,
+    distance: number,
+    size: number,
+    visible: boolean,
+    timestamp: number,
+  ): Uint8Array
+  disconnect(port: number, timestamp: number): Uint8Array
+  motor(port: number): Uint8Array
   free(): void
 }
 let qemu: QemuModule | undefined
@@ -71,15 +95,15 @@ function poll() {
       read = write
       Atomics.store(state, 2, read)
       for (const event of host.push(bytes)) {
+        if (event.event === "brain_ready" && startId !== undefined) {
+          reply(startId)
+          startId = undefined
+        }
         emit(event.event, event.payload)
       }
       const frame = host.take_frame()
       if (frame)
         emit("brain_display_frame", frame, [frame.buffer as ArrayBuffer])
-    }
-    if (startId !== undefined && Atomics.load(state, 6)) {
-      reply(startId)
-      startId = undefined
     }
     if (control && Atomics.load(state, 5) === control.pause) {
       reply(control.id)
@@ -112,7 +136,7 @@ async function start(id: number, program: ArrayBuffer, base: string) {
     const response = await fetch(asset(name))
     if (!response.ok)
       throw new Error(
-        `Missing ${name}. Run npm run wasm:build before starting the simulator.`,
+        `Missing ${name}. Run bun run wasm:build before starting the simulator.`,
       )
     return new Uint8Array(await response.arrayBuffer())
   }
@@ -199,7 +223,38 @@ scope.onmessage = async ({ data }) => {
       Atomics.store(meta(), 4, control.pause)
       return
     }
-    if (command === "battery") send(host!.battery(data.capacity))
+    if (command === "controller")
+      send(
+        host!.controller(
+          data.controllerId,
+          ...(data.axes as [number, number, number, number]),
+          data.buttons,
+          data.capacity,
+          data.connected,
+        ),
+      )
+    else if (command === "battery")
+      send(
+        host!.battery(
+          data.capacity,
+          data.voltage,
+          data.current,
+          data.temperature,
+        ),
+      )
+    else if (command === "distance")
+      send(
+        host!.distance(
+          data.port,
+          data.distance,
+          data.size,
+          data.visible,
+          performance.now() >>> 0,
+        ),
+      )
+    else if (command === "disconnect")
+      send(host!.disconnect(data.port, performance.now() >>> 0))
+    else if (command === "motor") send(host!.motor(data.port))
     else throw new Error(`Unknown simulator command: ${command}`)
     reply(id)
   } catch (error) {

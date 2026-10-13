@@ -24,7 +24,7 @@ export const products: Product[] = [
     color: "#c99a00",
     colorOnDark: "#fdc700",
     line: "a v5 c++ editor that builds in your browser.",
-    body: "VEXcode, PROS, EZ-Template and JAR-Template projects with clangd completions, Clang builds on your own machine, and USB upload to the Brain.",
+    body: "VEXcode, PROS, EZ-Template and JAR-Template projects with clangd completions, in-browser Clang builds, and USB upload to the Brain.",
   },
   {
     id: "brain",
@@ -35,7 +35,7 @@ export const products: Product[] = [
     color: "#a3004c",
     colorOnDark: "#ef4f8e",
     line: "a v5 brain simulator in a browser tab.",
-    body: "The V5 runtime running in QEMU, compiled to WebAssembly. Upload a program, wire up devices, and watch the screen respond.",
+    body: "Run supported VEXcode binaries on the V5 runtime in QEMU. Test battery, distance and controller inputs, then inspect motor targets in the terminal. The simulator does not model robot motion, and PROS, EZ-Template and JAR handoff is not available yet.",
   },
   {
     id: "design",

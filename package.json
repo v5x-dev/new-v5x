@@ -16,7 +16,10 @@
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "lint": "oxlint --deny-warnings .",
-    "test:e2e:code": "bun --cwd=apps/code run test:e2e"
+    "test:e2e:code": "bun --cwd=apps/code run test:e2e",
+    "check": "bun scripts/check-workspace.ts",
+    "build:all": "bun scripts/check-workspace.ts --build",
+    "test": "bun test"
   },
   "workspaces": [
     "packages/*",

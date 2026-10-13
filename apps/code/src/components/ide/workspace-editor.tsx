@@ -56,6 +56,7 @@ import {
   withinPath,
 } from '~/lib/ide/file-operations'
 import { readWorkspace, writeWorkspace } from '~/lib/ide/persistence'
+import { DraftWriter, type DraftStatus } from '~/lib/ide/draft-writer'
 
 export interface ProjectSnapshot {
   files: Record<string, string>
@@ -105,6 +106,43 @@ export function WorkspaceEditor(props: Props) {
   const documentsRef = React.useRef(documents)
   const commitRef = React.useRef('')
   const conflictsRef = React.useRef<Array<string>>([])
+  const [draftStatus, setDraftStatus] = React.useState<DraftStatus>('saved')
+  const [draftError, setDraftError] = React.useState<string | undefined>()
+  const draftWriterRef = React.useRef<DraftWriter | null>(null)
+  const blockedDraftsRef = React.useRef(new Set<string>())
+
+  React.useEffect(() => {
+    let active = true
+    const writer = new DraftWriter(
+      async (snapshot) => {
+        if (blockedDraftsRef.current.has(props.workspaceId))
+          throw new Error(
+            'The existing local draft could not be read. Download a recovery copy of your current work before reloading to retry.',
+          )
+        await writeWorkspace(props.workspaceId, snapshot)
+      },
+      (status, error) => {
+        if (active) {
+          setDraftStatus(status)
+          setDraftError(error)
+        }
+      },
+    )
+    draftWriterRef.current = writer
+    const flush = () => void writer.flush()
+    const hidden = () => {
+      if (document.visibilityState === 'hidden') flush()
+    }
+    window.addEventListener('pagehide', flush)
+    document.addEventListener('visibilitychange', hidden)
+    return () => {
+      active = false
+      flush()
+      draftWriterRef.current = null
+      window.removeEventListener('pagehide', flush)
+      document.removeEventListener('visibilitychange', hidden)
+    }
+  }, [props.workspaceId])
 
   React.useEffect(() => {
     const ref = props.buildSnapshotRef
@@ -301,7 +339,17 @@ export function WorkspaceEditor(props: Props) {
     clientRef.current = client
 
     void run(async () => {
-      const cached = await readWorkspace(props.workspaceId)
+      const cached = await readWorkspace(props.workspaceId).catch(() => {
+        // Continue with the remote source, but preserve any unreadable local draft.
+        blockedDraftsRef.current.add(props.workspaceId)
+        if (isActive()) {
+          setDraftStatus('error')
+          setDraftError(
+            'The existing local draft could not be read. Download your current work before reloading to retry.',
+          )
+        }
+        return undefined
+      })
 
       const loaded = await propsRef.current
         .loadSnapshot()
@@ -520,18 +568,14 @@ export function WorkspaceEditor(props: Props) {
     props.onDirtyChange(workspaceDocuments(documents).some(isDirty))
     if (!commitRef.current) return
 
-    const timer = setTimeout(() => {
-      void writeWorkspace(props.workspaceId, {
-        documents,
-        conflicts,
-        commitSha: commitRef.current,
-        tabs,
-        selectedFile: props.selectedFile,
-        template: props.template,
-      }).catch(() => {})
-    }, 250)
-
-    return () => clearTimeout(timer)
+    draftWriterRef.current?.schedule({
+      documents,
+      conflicts,
+      commitSha: commitRef.current,
+      tabs,
+      selectedFile: props.selectedFile,
+      template: props.template,
+    })
   }, [documents, props.selectedFile, conflicts, tabs])
 
   React.useEffect(() => {
@@ -1286,6 +1330,48 @@ export function WorkspaceEditor(props: Props) {
         hasSelectedFile={!!selected}
         onFormat={() => void run(formatDocument)}
       >
+        <span role="status" title={draftError}>
+          {draftStatus === 'error'
+            ? 'Draft not saved locally'
+            : draftStatus === 'saving'
+              ? 'Saving draft…'
+              : workspaceDocuments(documents).some(isDirty)
+                ? 'Draft saved locally · Not committed'
+                : 'Committed'}
+        </span>
+        {draftStatus === 'error' && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              const blob = new Blob(
+                [
+                  JSON.stringify(
+                    {
+                      version: 1,
+                      files: Object.fromEntries(
+                        workspaceDocuments(documentsRef.current)
+                          .filter((doc) => !doc.deleted)
+                          .map((doc) => [doc.path, doc.contents]),
+                      ),
+                    },
+                    null,
+                    2,
+                  ),
+                ],
+                { type: 'application/json' },
+              )
+              const url = URL.createObjectURL(blob)
+              const link = document.createElement('a')
+              link.href = url
+              link.download = 'v5x-draft-recovery.json'
+              link.click()
+              setTimeout(() => URL.revokeObjectURL(url), 1000)
+            }}
+          >
+            Download recovery copy
+          </Button>
+        )}
         {props.statusBarEnd}
       </WorkspaceEditorToolbar>
       <WorkspaceCompletions

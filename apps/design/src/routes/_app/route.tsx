@@ -4,6 +4,7 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
@@ -13,25 +14,15 @@ import {
 } from "#/components/ui/sidebar"
 import { createFileRoute, Outlet } from "@tanstack/react-router"
 import { useState } from "react"
-import { Input } from "#/components/ui/input"
-import { BoxIcon } from "lucide-react"
-import { modelPaths, PART_DRAG_TYPE } from "#/lib/parts"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "#/components/ui/input-group"
+import { BoxIcon, SearchIcon } from "lucide-react"
+import { modelPaths, partName, PART_DRAG_TYPE } from "#/lib/parts"
 
 const modelRoot = "/models/vex-v5rc-parts/"
-
-const PART_LABELS: Record<string, string> = {
-  "/models/vex-v5rc-parts/angles/aluminum/1x1x35-aluminum-angle.glb":
-    "1x1x35 Aluminum Angle",
-  "/models/vex-v5rc-parts/angles/steel/2x2x25-steel-angle.glb":
-    "2x2x25 Steel Angle",
-  "/models/vex-v5rc-parts/angles/steel/2x2x35-steel-angle.glb":
-    "2x2x35 Steel Angle",
-  "/models/vex-v5rc-parts/angles/steel/3x3x35-steel-angle.glb":
-    "3x3x35 Steel Angle",
-  "/models/vex-v5rc-parts/bars/1x25-steel-bar.glb": "1x25 Steel Bar",
-  "/models/vex-v5rc-parts/bars/drive-shaft-bar-lock.glb":
-    "Drive Shaft Bar Lock",
-}
 
 function categoryLabel(category: string) {
   return category
@@ -56,10 +47,7 @@ for (const path of modelPaths) {
   const category = relativePath.slice(0, separator)
   const part = {
     path,
-    name: relativePath
-      .slice(separator + 1)
-      .replace(/\.glb$/, "")
-      .trim(),
+    name: partName(path),
   }
   const parts = partGroups.get(category) ?? []
 
@@ -79,7 +67,7 @@ function RouteComponent() {
       [
         category,
         parts.filter((part) =>
-          `${PART_LABELS[part.path] || part.name} ${category}`
+          `${part.name} ${category}`
             .toLowerCase()
             .includes(query.trim().toLowerCase()),
         ),
@@ -91,15 +79,20 @@ function RouteComponent() {
         <Outlet />
       </SidebarInset>
       <Sidebar side="right" collapsible="icon">
-        <SidebarContent>
-          <div className="p-2">
-            <Input
+        <SidebarHeader className="group-data-[collapsible=icon]:hidden">
+          <InputGroup>
+            <InputGroupInput
               aria-label="Search parts"
               placeholder="Search parts"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
-          </div>
+            <InputGroupAddon>
+              <SearchIcon />
+            </InputGroupAddon>
+          </InputGroup>
+        </SidebarHeader>
+        <SidebarContent>
           {visibleGroups.map(([category, parts]) => (
             <SidebarGroup key={category}>
               <SidebarGroupLabel title={categoryLabel(category)}>
@@ -116,11 +109,11 @@ function RouteComponent() {
                           event.dataTransfer.effectAllowed = "copy"
                           event.dataTransfer.setData(PART_DRAG_TYPE, part.path)
                         }}
-                        tooltip={PART_LABELS[part.path] || part.name}
+                        tooltip={part.name}
                       >
-                        <div title={PART_LABELS[part.path] || part.name}>
+                        <div title={part.name}>
                           <BoxIcon />
-                          <span>{PART_LABELS[part.path] || part.name}</span>
+                          <span>{part.name}</span>
                         </div>
                       </SidebarMenuButton>
                     </SidebarMenuItem>

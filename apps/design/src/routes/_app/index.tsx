@@ -28,7 +28,6 @@ import {
   type DirectionalLight,
   type Group,
 } from "three"
-import { Perf } from "r3f-perf"
 import { Toggle } from "#/components/ui/toggle"
 import { Move, Rotate3D, ScanLine } from "lucide-react"
 import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group"
@@ -44,6 +43,7 @@ import {
 } from "#/lib/assembly"
 import { HOLES, MODEL_SCALE } from "#/lib/holes"
 import { AssemblyPanel } from "#/components/assembly-panel"
+import { AssemblyToolbar } from "#/components/assembly-toolbar"
 
 export const Route = createFileRoute("/_app/")({
   component: RouteComponent,
@@ -257,36 +257,10 @@ function RouteComponent() {
   }, [selectedId])
 
   return (
-    <div
-      className="relative h-full w-full"
-      onDragOver={(event) => {
-        if (!event.dataTransfer.types.includes(PART_DRAG_TYPE)) return
-
-        event.preventDefault()
-        event.dataTransfer.dropEffect = "copy"
-      }}
-      onDrop={(event) => {
-        const path = event.dataTransfer.getData(PART_DRAG_TYPE)
-        if (!modelPathSet.has(path)) return
-
-        event.preventDefault()
-        const id = crypto.randomUUID()
-        dispatch({
-          type: "add",
-          part: {
-            id,
-            path,
-            position: [0, 0, 0],
-            rotation: [0, 0, 0],
-          },
-        })
-        setSelectedId(id)
-      }}
-    >
-      <AssemblyPanel
+    <div className="flex h-full min-h-0 w-full flex-col">
+      <AssemblyToolbar
         history={history}
         dispatch={dispatch}
-        selectedId={selectedId}
         onSelect={setSelectedId}
         onImport={(document) => {
           restoreFailed.current = false
@@ -295,157 +269,184 @@ function RouteComponent() {
           setSelectedId(null)
         }}
         error={saveError}
-        loaded={loaded}
       />
-      <div className="absolute bottom-4 left-4 z-10 flex items-center gap-1 rounded-lg border bg-card p-1">
-        <ToggleGroup
-          type="single"
-          value={mode}
-          onValueChange={(value) => {
-            if (value === "translate" || value === "rotate") setMode(value)
-          }}
-          size="icon"
-          spacing={1}
-          aria-label="Transform tool"
-        >
-          <ToggleGroupItem value="translate" aria-label="Move" title="Move (W)">
-            <Move />
-          </ToggleGroupItem>
-          <ToggleGroupItem
-            value="rotate"
-            aria-label="Rotate"
-            title="Rotate (E)"
-          >
-            <Rotate3D />
-          </ToggleGroupItem>
-        </ToggleGroup>
-        <Toggle
-          variant="default"
-          pressed={renderHoles}
-          onPressedChange={setRenderHoles}
-          size="icon"
-          aria-label="Show holes"
-          title="Show holes"
-        >
-          <ScanLine />
-        </Toggle>
-      </div>
       <div
-        className="pointer-events-none absolute top-4 right-4 z-10 rounded-lg border bg-card px-3 py-2 text-xs text-muted-foreground"
-        aria-live="polite"
-      >
-        {anchor
-          ? "Click a hole on another part to attach it · Esc to cancel"
-          : renderHoles
-            ? "Click two holes to attach parts. Angles and C-channels have model-derived holes."
-            : selectedId
-              ? "Drag an axis to transform · Esc to deselect"
-              : "Click a part to select"}
-      </div>
-      <Canvas
-        onPointerMissed={(event) => {
-          if (event.button === 0 && !dragging.current) setSelectedId(null)
+        className="relative min-h-0 w-full flex-1"
+        onDragOver={(event) => {
+          if (!event.dataTransfer.types.includes(PART_DRAG_TYPE)) return
+
+          event.preventDefault()
+          event.dataTransfer.dropEffect = "copy"
+        }}
+        onDrop={(event) => {
+          const path = event.dataTransfer.getData(PART_DRAG_TYPE)
+          if (!modelPathSet.has(path)) return
+
+          event.preventDefault()
+          const id = crypto.randomUUID()
+          dispatch({
+            type: "add",
+            part: {
+              id,
+              path,
+              position: [0, 0, 0],
+              rotation: [0, 0, 0],
+            },
+          })
+          setSelectedId(id)
         }}
       >
-        {parts.map((part) => (
-          <Suspense key={part.id} fallback={null}>
-            <Part
-              part={part}
-              selected={selectedId === part.id}
-              mode={mode}
-              dragging={dragging}
-              onSelect={() => setSelectedId(part.id)}
-              onDraggingChange={(value) => {
-                dragging.current = value
-              }}
-              onTransform={(position, rotation) => {
-                dispatch({ type: "transform", id: part.id, position, rotation })
-              }}
-              onHole={(hole) => {
-                if (!anchor || anchor.id === part.id) {
-                  setAnchor({ id: part.id, hole })
-                  return
-                }
-                const fixed = parts.find((item) => item.id === anchor.id)
-                const fixedHole = fixed && HOLES[fixed.path]?.[anchor.hole]
-                const movingHole = HOLES[part.path]?.[hole]
-                if (fixed && fixedHole && movingHole) {
-                  try {
-                    const command = {
-                      type: "mate" as const,
-                      mate: {
-                        movingId: part.id,
-                        movingHole: hole,
-                        fixedId: fixed.id,
-                        fixedHole: anchor.hole,
-                      },
-                    }
-                    editAssembly(history, command)
-                    dispatch(command)
-                  } catch (reason) {
-                    setSaveError(String(reason))
-                  }
-                  setSelectedId(part.id)
-                }
-                setAnchor(null)
-              }}
-              renderHoles={renderHoles}
-            />
-          </Suspense>
-        ))}
-
-        <Grid
-          args={[18, 18]}
-          cellColor="#404040"
-          sectionColor="#525252"
-          sectionSize={3}
-          cellSize={0.5}
-          side={DoubleSide}
+        <AssemblyPanel
+          history={history}
+          dispatch={dispatch}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
         />
-
-        <Line
-          lineWidth={2}
-          color="#dc2626"
-          points={[
-            [-9, 0, 0],
-            [9, 0, 0],
-          ]}
-        />
-
-        <Line
-          lineWidth={2}
-          color="#65a30d"
-          points={[
-            [0, 0, -9],
-            [0, 0, 9],
-          ]}
-        />
-
-        <Line
-          lineWidth={2}
-          color="#0284c7"
-          points={[
-            [0, 0, 0],
-            [0, 1, 0],
-          ]}
-        />
-
-        <CameraLight />
-        <ambientLight intensity={0.25} />
-
-        <PerspectiveCamera makeDefault position={[6, 4, 6]} />
-
-        <OrbitControls
-          makeDefault
-          mouseButtons={{
-            RIGHT: MOUSE.ROTATE,
-            MIDDLE: MOUSE.PAN,
-            LEFT: undefined,
+        <div className="absolute bottom-4 left-4 z-10 flex items-center gap-1 rounded-lg border bg-card p-1">
+          <ToggleGroup
+            type="single"
+            value={mode}
+            onValueChange={(value) => {
+              if (value === "translate" || value === "rotate") setMode(value)
+            }}
+            size="icon"
+            spacing={1}
+            aria-label="Transform tool"
+          >
+            <ToggleGroupItem
+              value="translate"
+              aria-label="Move"
+              title="Move (W)"
+            >
+              <Move />
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="rotate"
+              aria-label="Rotate"
+              title="Rotate (E)"
+            >
+              <Rotate3D />
+            </ToggleGroupItem>
+          </ToggleGroup>
+          <Toggle
+            variant="default"
+            pressed={renderHoles}
+            onPressedChange={setRenderHoles}
+            size="icon"
+            aria-label="Show holes"
+            title="Show holes"
+          >
+            <ScanLine />
+          </Toggle>
+        </div>
+        <Canvas
+          onPointerMissed={(event) => {
+            if (event.button === 0 && !dragging.current) setSelectedId(null)
           }}
-        />
+        >
+          {parts.map((part) => (
+            <Suspense key={part.id} fallback={null}>
+              <Part
+                part={part}
+                selected={selectedId === part.id}
+                mode={mode}
+                dragging={dragging}
+                onSelect={() => setSelectedId(part.id)}
+                onDraggingChange={(value) => {
+                  dragging.current = value
+                }}
+                onTransform={(position, rotation) => {
+                  dispatch({
+                    type: "transform",
+                    id: part.id,
+                    position,
+                    rotation,
+                  })
+                }}
+                onHole={(hole) => {
+                  if (!anchor || anchor.id === part.id) {
+                    setAnchor({ id: part.id, hole })
+                    return
+                  }
+                  const fixed = parts.find((item) => item.id === anchor.id)
+                  const fixedHole = fixed && HOLES[fixed.path]?.[anchor.hole]
+                  const movingHole = HOLES[part.path]?.[hole]
+                  if (fixed && fixedHole && movingHole) {
+                    try {
+                      const command = {
+                        type: "mate" as const,
+                        mate: {
+                          movingId: part.id,
+                          movingHole: hole,
+                          fixedId: fixed.id,
+                          fixedHole: anchor.hole,
+                        },
+                      }
+                      editAssembly(history, command)
+                      dispatch(command)
+                    } catch (reason) {
+                      setSaveError(String(reason))
+                    }
+                    setSelectedId(part.id)
+                  }
+                  setAnchor(null)
+                }}
+                renderHoles={renderHoles}
+              />
+            </Suspense>
+          ))}
 
-        {import.meta.env.DEV && <Perf position="top-left" overClock />}
-      </Canvas>
+          <Grid
+            args={[18, 18]}
+            cellColor="#404040"
+            sectionColor="#525252"
+            sectionSize={3}
+            cellSize={0.5}
+            side={DoubleSide}
+          />
+
+          <Line
+            lineWidth={2}
+            color="#dc2626"
+            points={[
+              [-9, 0, 0],
+              [9, 0, 0],
+            ]}
+          />
+
+          <Line
+            lineWidth={2}
+            color="#65a30d"
+            points={[
+              [0, 0, -9],
+              [0, 0, 9],
+            ]}
+          />
+
+          <Line
+            lineWidth={2}
+            color="#0284c7"
+            points={[
+              [0, 0, 0],
+              [0, 1, 0],
+            ]}
+          />
+
+          <CameraLight />
+          <ambientLight intensity={0.25} />
+
+          <PerspectiveCamera makeDefault position={[6, 4, 6]} />
+
+          <OrbitControls
+            makeDefault
+            mouseButtons={{
+              RIGHT: MOUSE.ROTATE,
+              MIDDLE: MOUSE.PAN,
+              LEFT: undefined,
+            }}
+          />
+        </Canvas>
+      </div>
     </div>
   )
 }

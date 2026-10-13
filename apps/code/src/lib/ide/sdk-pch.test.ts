@@ -1,6 +1,6 @@
 import { expect, it } from 'bun:test'
 import { templateFiles } from '../../../convex/template'
-import { matchesSdkPchPrefix, sdkPchPrefix } from './sdk-pch'
+import { matchesSdkPchPrefix, sdkPchPrefix } from '@v5x/compiler/sdk-pch'
 
 it('keeps SDK prefixes eligible after project-header edits but rejects preprocessing changes', () => {
   for (const [template, files] of Object.entries(templateFiles)) {

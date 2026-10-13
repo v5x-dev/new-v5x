@@ -7,7 +7,7 @@ import {
 import { buildTimings } from './build-performance'
 import { compileCommands } from './compile-commands'
 import { buildCacheKey, dependencyPaths } from './build-cache'
-import { validPath } from './workspace'
+import { validPath } from './workspace-path'
 import {
   coldSdkBinary,
   coldSdkConfiguration,

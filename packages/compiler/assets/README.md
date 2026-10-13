@@ -5,7 +5,7 @@ The gzip file is a build input, derived from the pinned `microbit-clang-wasm@21.
 Reproduction requires Python 3 for the portable gzip wrapper. To reproduce on x86_64 Linux, download `https://github.com/WebAssembly/binaryen/releases/download/version_133/binaryen-version_133-x86_64-linux.tar.gz`, verify SHA256 `2dc9c7813f5375db93d96ead4b78222fcc3e2677bbb832297af4797782a37489`, and extract it. Run:
 
 ```sh
-WASM_OPT=/absolute/path/binaryen-version_133/bin/wasm-opt bun apps/code/scripts/optimize-browser-compiler.ts
+WASM_OPT=/absolute/path/binaryen-version_133/bin/wasm-opt bun packages/compiler/scripts/optimize-browser-compiler.ts
 bun scripts/prepare-browser-compiler.ts
 ```
 

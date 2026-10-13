@@ -3,16 +3,16 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { gzipSync } from 'node:zlib'
 import { resolve } from 'node:path'
 import { createSession, setAssetLoader } from 'microbit-clang-wasm'
-import { buildCacheKey } from '../src/lib/ide/build-cache'
+import { buildCacheKey } from '@v5x/compiler/build-cache'
 import {
   coldSdkBinary,
   coldSdkConfiguration,
   coldSdkDigest,
   coldSdkSymbols,
   normalizeLinkerScript,
-} from '../src/lib/ide/cold-sdk'
+} from '@v5x/compiler/cold-sdk'
 import { readSdkBundle } from './read-sdk-bundle'
-import type { BuildAsset, BuildSdkManifest } from '../src/lib/ide/build-assets'
+import type { BuildAsset, BuildSdkManifest } from '@v5x/compiler/build-assets'
 
 const publicDir = resolve(import.meta.dir, '../public')
 const compilerDir = resolve(publicDir, 'compiler')

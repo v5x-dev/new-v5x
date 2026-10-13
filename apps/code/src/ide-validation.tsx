@@ -13,7 +13,7 @@ import {
   SidebarProvider,
 } from './components/ui/sidebar'
 import type { FileOperations } from '~/lib/ide/file-operations'
-import type { ProjectTemplate } from './lib/ide/compile-commands'
+import type { ProjectTemplate } from '@v5x/compiler'
 import './styles/app.css'
 
 const vexFiles: Record<string, string> = {

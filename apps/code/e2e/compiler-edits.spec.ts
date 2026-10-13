@@ -1,11 +1,11 @@
-import { buildCacheKey } from '../src/lib/ide/build-cache'
+import { buildCacheKey } from '@v5x/compiler/build-cache'
 import { createHash } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { gzipSync } from 'node:zlib'
 import { expect, test } from '@playwright/test'
 import { templateFiles } from '../convex/template'
-import type { BuildTimingEvent } from '../src/lib/ide/build-performance'
+import type { BuildTimingEvent } from '@v5x/compiler/build-performance'
 
 // Uses the real application, editor, Build button, worker, and downloaded artifacts.
 const enabled = process.env.BUILD_COMPILER_EDITS === '1'

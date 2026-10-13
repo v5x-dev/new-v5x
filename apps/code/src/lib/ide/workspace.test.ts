@@ -9,7 +9,7 @@ import {
   searchWorkspace,
   uriPath,
 } from './workspace'
-import { compileCommands } from './compile-commands'
+import { compileCommands } from '@v5x/compiler'
 import { symbolFoldingRanges } from './folding'
 import { decodeSemanticTokens } from './semantic-tokens'
 import type { Documents } from './workspace'

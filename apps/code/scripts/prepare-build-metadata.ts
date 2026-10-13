@@ -6,9 +6,9 @@ import {
   patchBuildMetadata,
   timestampArguments,
   timestampSource,
-} from '../src/lib/ide/build-metadata'
-import { buildCacheKey } from '../src/lib/ide/build-cache'
-import type { BuildSdkManifest } from '../src/lib/ide/build-assets'
+} from '@v5x/compiler/build-metadata'
+import { buildCacheKey } from '@v5x/compiler/build-cache'
+import type { BuildSdkManifest } from '@v5x/compiler/build-assets'
 
 const compilerDir = resolve(import.meta.dir, '../public/compiler')
 setAssetLoader(await compilerAssetLoader())

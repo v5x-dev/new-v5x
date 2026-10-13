@@ -8,13 +8,13 @@ import { templateFiles } from '../convex/template'
 import {
   browserCompileCommands,
   browserPchArguments,
-} from '../src/lib/ide/browser-build'
-import { buildCacheKey, dependencyPaths } from '../src/lib/ide/build-cache'
+} from '@v5x/compiler/browser-build'
+import { buildCacheKey, dependencyPaths } from '@v5x/compiler/build-cache'
 import { readSdkBundle } from './read-sdk-bundle'
-import { sdkPchHeader, sdkPchPrefix } from '../src/lib/ide/sdk-pch'
+import { sdkPchHeader, sdkPchPrefix } from '@v5x/compiler/sdk-pch'
 import type { ProgramTemplate } from '../convex/template'
-import { compilerPlan } from '../src/lib/ide/compiler-plan'
-import type { CompilerPlan } from '../src/lib/ide/compiler-plan'
+import { compilerPlan } from '@v5x/compiler/compiler-plan'
+import type { CompilerPlan } from '@v5x/compiler/compiler-plan'
 
 const publicDir = resolve(import.meta.dir, '../public')
 const compilerDir = resolve(publicDir, 'compiler')

@@ -6,12 +6,12 @@ import { templateFiles } from '../convex/template'
 import {
   browserCompileCommands,
   compileBrowserProject,
-} from '../src/lib/ide/browser-build'
-import { BrowserBuildSession } from '../src/lib/ide/build-session'
+} from '@v5x/compiler/browser-build'
+import { BrowserBuildSession } from '@v5x/compiler/build-session'
 import { readSdkBundle } from './read-sdk-bundle'
-import type { BrowserBuildInput } from '../src/lib/ide/browser-build'
-import type { BuildSdkManifest } from '../src/lib/ide/build-assets'
-import type { BuildTimingEvent } from '../src/lib/ide/build-performance'
+import type { BrowserBuildInput } from '@v5x/compiler/browser-build'
+import type { BuildSdkManifest } from '@v5x/compiler/build-assets'
+import type { BuildTimingEvent } from '@v5x/compiler/build-performance'
 
 const publicDir = resolve(import.meta.dir, '../public')
 const headers: BuildSdkManifest = JSON.parse(

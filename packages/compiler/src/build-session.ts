@@ -1,6 +1,6 @@
 import { buildCacheKey } from './build-cache'
 import { normalizeLinkerScript } from './cold-sdk'
-import { validPath } from './workspace'
+import { validPath } from './workspace-path'
 import { sdkPchHeader } from './sdk-pch'
 import type { BuildBundleFile } from './build-archive'
 import type { Session } from 'microbit-clang-wasm'

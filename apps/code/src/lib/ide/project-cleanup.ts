@@ -1,4 +1,4 @@
-import { deleteBrowserBuild } from './build-client'
+import { deleteBrowserBuild } from '@v5x/compiler'
 import { deleteWorkspace } from './persistence'
 
 export async function deleteLocalProjectData(projectId: string) {

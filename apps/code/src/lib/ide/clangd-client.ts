@@ -1,11 +1,11 @@
-import { observeBrowserBuild } from './build-activity'
+import { observeBrowserBuild } from '@v5x/compiler/build-activity'
 import { fileUri } from './workspace'
 import type {
   Diagnostic,
   InitializeResult,
   WorkspaceEdit,
 } from 'vscode-languageserver-protocol'
-import type { CompileCommand, ProjectTemplate } from './compile-commands'
+import type { CompileCommand, ProjectTemplate } from '@v5x/compiler'
 
 interface RpcMessage {
   jsonrpc: '2.0'

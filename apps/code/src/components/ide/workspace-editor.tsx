@@ -22,7 +22,7 @@ import type {
   SymbolInformation,
   TextEdit,
 } from 'vscode-languageserver-protocol'
-import type { ProjectTemplate } from '~/lib/ide/compile-commands'
+import type { ProjectTemplate } from '@v5x/compiler'
 import type { Documents } from '~/lib/ide/workspace'
 import type { SemanticColor } from '~/lib/ide/semantic-tokens'
 import type { SnippetStop } from '~/lib/ide/snippets'
@@ -33,7 +33,7 @@ import { decodeSemanticTokens } from '~/lib/ide/semantic-tokens'
 import { ClangdClient } from '~/lib/ide/clangd-client'
 import { formatWorkspace } from '~/lib/ide/format-workspace'
 import { symbolFoldingRanges } from '~/lib/ide/folding'
-import { compileCommands } from '~/lib/ide/compile-commands'
+import { compileCommands } from '@v5x/compiler'
 import {
   applyTextEdits,
   fileUri,

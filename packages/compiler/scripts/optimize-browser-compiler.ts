@@ -2,13 +2,13 @@ import { createHash } from 'node:crypto'
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
-// Install the verified Binaryen release described in compiler/README.md first.
+// Install the verified Binaryen release described in assets/README.md first.
 const optimizer = process.env.WASM_OPT
 if (!optimizer) throw new Error('Set WASM_OPT to Binaryen version 133 wasm-opt')
 const version = await Bun.$`${optimizer} --version`.text()
 if (!/version 133\b/.test(version))
   throw new Error('Binaryen version 133 is required')
-const directory = resolve(import.meta.dir, '../compiler')
+const directory = resolve(import.meta.dir, '../assets')
 const metadataPath = resolve(
   directory,
   'llvm-21.11.0-alpha.1-binaryen-133.json',

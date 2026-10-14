@@ -38,7 +38,7 @@ export function WorkspaceEditorToolbar({
   children,
 }: Props) {
   return (
-    <div className="relative z-20 mx-2 mb-2 mt-2 flex h-9 shrink-0 items-center gap-2 px-2 text-muted-foreground">
+    <div className="relative z-20 mx-2 mb-2 flex h-9 shrink-0 items-center gap-2 px-2 text-muted-foreground">
       <div className="flex items-center gap-0.5">
         {problems.some(
           ({ diagnostic }) =>

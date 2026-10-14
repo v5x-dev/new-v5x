@@ -1,4 +1,13 @@
-import { DotsThreeIcon } from '@phosphor-icons/react'
+import {
+  ArchiveIcon,
+  ArrowCounterClockwiseIcon,
+  ClockCounterClockwiseIcon,
+  DotsThreeIcon,
+  DownloadSimpleIcon,
+  FilesIcon,
+  PencilSimpleIcon,
+  TrashIcon,
+} from '@phosphor-icons/react'
 import { useAction, useMutation } from 'convex/react'
 import { useState } from 'react'
 import { ConvexError } from 'convex/values'
@@ -172,38 +181,66 @@ export function ProgramActions({
         >
           <DotsThreeIcon />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" className="w-max">
           {program.deleting ? (
-            <DropdownMenuItem onClick={openDeleteDialog}>
-              Retry project deletion
+            <DropdownMenuItem
+              className="whitespace-nowrap"
+              onClick={openDeleteDialog}
+            >
+              <TrashIcon aria-hidden="true" />
+              Retry deletion
             </DropdownMenuItem>
           ) : (
             <DropdownMenuGroup>
               <DropdownMenuItem
+                className="whitespace-nowrap"
                 onClick={() => {
                   setName(program.name)
                   setRenameError(null)
                   setOpen(true)
                 }}
               >
+                <PencilSimpleIcon aria-hidden="true" />
                 Rename
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setHistoryOpen(true)}>
+              <DropdownMenuItem
+                className="whitespace-nowrap"
+                onClick={() => setHistoryOpen(true)}
+              >
+                <ClockCounterClockwiseIcon aria-hidden="true" />
                 History
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => void exportSources()}>
-                Export committed sources (ZIP)
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => void copy()}>
-                Duplicate committed project
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => void archive()}>
-                {program.archived ? 'Restore from archive' : 'Archive'}
+              <DropdownMenuItem
+                className="whitespace-nowrap"
+                onClick={() => void exportSources()}
+              >
+                <DownloadSimpleIcon aria-hidden="true" />
+                Export
               </DropdownMenuItem>
               <DropdownMenuItem
+                className="whitespace-nowrap"
+                onClick={() => void copy()}
+              >
+                <FilesIcon aria-hidden="true" />
+                Duplicate
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="whitespace-nowrap"
+                onClick={() => void archive()}
+              >
+                {program.archived ? (
+                  <ArrowCounterClockwiseIcon aria-hidden="true" />
+                ) : (
+                  <ArchiveIcon aria-hidden="true" />
+                )}
+                {program.archived ? 'Restore archive' : 'Archive'}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="whitespace-nowrap"
                 variant="destructive"
                 onClick={openDeleteDialog}
               >
+                <TrashIcon aria-hidden="true" />
                 Delete project
               </DropdownMenuItem>
             </DropdownMenuGroup>

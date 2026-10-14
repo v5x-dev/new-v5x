@@ -32,8 +32,8 @@ type Env = {
   readonly CONVEX_SITE_URL: string;
   readonly SMOL_CLOUD_TOKEN: string | undefined;
   readonly SMOL_CLOUD_URL: string | undefined;
-  readonly VEXCODE_IMAGE_TAG: string | undefined;
   readonly V5X_BRAIN_ORIGINS: string | undefined;
+  readonly VEXCODE_IMAGE_TAG: string | undefined;
 };
 
 /**

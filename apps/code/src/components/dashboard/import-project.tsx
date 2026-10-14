@@ -1,5 +1,5 @@
 import { useAction } from 'convex/react'
-import { UploadSimpleIcon } from '@phosphor-icons/react'
+import { CaretUpDownIcon, UploadSimpleIcon } from '@phosphor-icons/react'
 import { useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import { Button } from '~/components/ui/button'
@@ -128,11 +128,9 @@ export function ImportProject({ disabled = false }: { disabled?: boolean }) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Import project sources</DialogTitle>
+          <DialogTitle>Import</DialogTitle>
           <DialogDescription>
-            Choose a source ZIP or a downloaded draft recovery JSON. Import up
-            to 2,000 files and 8 MiB. Choose the project’s SDK template. Build
-            outputs and binary assets are omitted. Existing projects are kept.
+            Choose a source ZIP or a downloaded draft recovery JSON.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -164,40 +162,46 @@ export function ImportProject({ disabled = false }: { disabled?: boolean }) {
                 required
               />
             </label>
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button
-                    variant="outline"
-                    type="button"
-                    disabled={busy}
-                    aria-label="SDK template"
-                  />
-                }
-              >
-                {templateInfo[template].label}
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuRadioGroup
-                  value={template}
-                  onValueChange={(value) => {
-                    if (templates.includes(value as Template))
-                      setTemplate(value as Template)
-                  }}
+            <label className="flex flex-col gap-1">
+              SDK template
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      className="w-full justify-start"
+                      variant="outline"
+                      type="button"
+                      disabled={busy}
+                      aria-label={`SDK template: ${templateInfo[template].label}`}
+                    />
+                  }
                 >
-                  {templates.map((value) => (
-                    <DropdownMenuRadioItem key={value} value={value}>
-                      {templateInfo[value].label}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <p role="status">
-              {files.length
-                ? `${files.length} source files selected`
-                : 'Choose a file to review its sources.'}
-            </p>
+                  <CaretUpDownIcon
+                    aria-hidden="true"
+                    data-icon="inline-start"
+                  />
+                  {templateInfo[template].label}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuRadioGroup
+                    value={template}
+                    onValueChange={(value) => {
+                      if (templates.includes(value as Template))
+                        setTemplate(value as Template)
+                    }}
+                  >
+                    {templates.map((value) => (
+                      <DropdownMenuRadioItem key={value} value={value}>
+                        {templateInfo[value].label}
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </label>
+            {files.length > 0 && (
+              <p role="status">{files.length} source files selected</p>
+            )}
             {enclosingRoot && (
               <label className="flex items-center gap-2">
                 <input
@@ -226,12 +230,20 @@ export function ImportProject({ disabled = false }: { disabled?: boolean }) {
               {error}
             </p>
           )}
-          <DialogFooter>
+          <DialogFooter className="flex-row justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setOpen(false)}
+              disabled={busy}
+            >
+              Cancel
+            </Button>
             <Button
               type="submit"
               disabled={busy || !files.length || !name.trim()}
             >
-              {busy ? 'Importing...' : 'Create imported project'}
+              {busy ? 'Importing...' : 'Import'}
             </Button>
           </DialogFooter>
         </form>

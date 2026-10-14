@@ -41,13 +41,22 @@ import {
   EmptyTitle,
   EmptyDescription,
 } from '~/components/ui/empty'
-import { Skeleton } from '~/components/ui/skeleton'
 import { templateInfo, templates, type Template } from './templates'
 import { TemplateIcon } from './template-icon'
 import { ImportProject } from './import-project'
 import { ProgramActions } from './program-actions'
 
 type Sort = 'created' | 'name'
+type ProgramQuery = {
+  archived: boolean
+  search: string
+  sort: Sort
+  starredOnly: boolean
+}
+type ProgramSnapshot = ProgramQuery & { programs: Doc<'program'>[] }
+type ProgramArchiveCache = Omit<ProgramQuery, 'archived'> & {
+  results: Partial<Record<'active' | 'archived', Doc<'program'>[]>>
+}
 
 const DAY = 24 * 60 * 60 * 1000
 const groupTitles = ['Today', 'Previous 7 days', 'Earlier'] as const
@@ -77,28 +86,70 @@ export function Dashboard() {
   const setStarred = useMutation(api.program.setStarred)
   const createProgram = useAction(api.program.createProgram)
   const [archived, setArchived] = useState(false)
+  const queryArgs = { archived, search: query.trim(), sort, starredOnly }
+  const lastLoadedQuery = useRef<ProgramSnapshot | null>(null)
+  const archiveCache = useRef<ProgramArchiveCache | null>(null)
   const {
     results: programs,
     status,
     loadMore,
-  } = usePaginatedQuery(
-    api.program.listPaginated,
-    { archived, search: query.trim(), sort, starredOnly },
-    { initialNumItems: 50 },
-  )
+  } = usePaginatedQuery(api.program.listPaginated, queryArgs, {
+    initialNumItems: 50,
+  })
   const isPending = status === 'LoadingFirstPage'
+  const previousQuery = lastLoadedQuery.current
+  const isArchiveTransition =
+    isPending &&
+    previousQuery !== null &&
+    previousQuery.archived !== archived &&
+    previousQuery.search === queryArgs.search &&
+    previousQuery.sort === sort &&
+    previousQuery.starredOnly === starredOnly
+  const cachedArchiveResults = archiveCache.current
+  const hasMatchingArchiveCache =
+    cachedArchiveResults !== null &&
+    cachedArchiveResults.search === queryArgs.search &&
+    cachedArchiveResults.sort === sort &&
+    cachedArchiveResults.starredOnly === starredOnly
+  const visible =
+    isArchiveTransition && previousQuery !== null
+      ? ((hasMatchingArchiveCache
+          ? cachedArchiveResults.results[archived ? 'archived' : 'active']
+          : undefined) ?? previousQuery.programs)
+      : programs
   const [creating, setCreating] = useState<Template | null>(null)
   const creatingRef = useRef(false)
   const [error, setError] = useState<string | null>(null)
   const starred = useMemo(
     () =>
       new Set(
-        programs
+        visible
           .filter((program) => program.starred)
           .map((program) => program._id),
       ),
-    [programs],
+    [visible],
   )
+
+  useEffect(() => {
+    if (isPending) return
+
+    lastLoadedQuery.current = { ...queryArgs, programs }
+    const previousCache = archiveCache.current
+    const matchesFilters =
+      previousCache !== null &&
+      previousCache.search === queryArgs.search &&
+      previousCache.sort === sort &&
+      previousCache.starredOnly === starredOnly
+    archiveCache.current = {
+      search: queryArgs.search,
+      sort,
+      starredOnly,
+      results: {
+        ...(matchesFilters ? previousCache.results : {}),
+        [archived ? 'archived' : 'active']: programs,
+      },
+    }
+  }, [archived, isPending, programs, queryArgs.search, sort, starredOnly])
 
   useEffect(() => {
     if (!session?.user) return
@@ -174,8 +225,6 @@ export function Dashboard() {
     }
   }
 
-  const visible = programs
-
   useEffect(() => {
     if (status === 'CanLoadMore' && programs.length === 0) loadMore(50)
   }, [status, programs.length, loadMore])
@@ -240,7 +289,7 @@ export function Dashboard() {
           onCreate={(template) => void create(template)}
         />
 
-        <main className="mx-auto max-w-4xl px-6 py-6">
+        <main className="mx-auto max-w-4xl px-6 py-6" aria-busy={isPending}>
           <Toolbar
             sort={sort}
             onSortChange={setSort}
@@ -254,15 +303,10 @@ export function Dashboard() {
               {error}
             </p>
           )}
-          {isPending ? (
-            <div
-              role="status"
-              aria-label="Loading programs"
-              className="flex flex-col gap-3"
-            >
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
+          {isPending && !isArchiveTransition ? (
+            <p role="status" className="text-sm text-muted-foreground">
+              Loading programs...
+            </p>
           ) : visible.length === 0 && status !== 'Exhausted' ? (
             <p role="status" className="text-sm text-muted-foreground">
               Searching programs...

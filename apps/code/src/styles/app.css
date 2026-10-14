@@ -80,7 +80,11 @@
   --sidebar-ring: oklch(0.547 0.021 43.1);
 }
 
-/* Back the translucent corner border with the same fill as the sidebar. */
+/*
+ * Fill the corner with the sidebar color, but blend the arc border over the
+ * editor background. The straight borders blend there, so the arc matches them.
+ * The opaque backing also stops the arc from stacking on those borders.
+ */
 .workspace-sidebar-corner {
   background-image:
     radial-gradient(
@@ -93,7 +97,9 @@
     radial-gradient(
       circle at 100% 0,
       transparent calc(var(--radius-lg) - 1px),
-      var(--sidebar) calc(var(--radius-lg) - 1px)
+      var(--background) calc(var(--radius-lg) - 1px),
+      var(--background) var(--radius-lg),
+      var(--sidebar) var(--radius-lg)
     );
 }
 

@@ -30,8 +30,8 @@ import type * as programBuild from "../programBuild.js";
 import type * as programBuildCache from "../programBuildCache.js";
 import type * as programHistory from "../programHistory.js";
 import type * as quotas from "../quotas.js";
-import type * as store from "../store.js";
 import type * as simulatorHandoff from "../simulatorHandoff.js";
+import type * as store from "../store.js";
 import type * as template from "../template.js";
 
 import type {
@@ -63,8 +63,8 @@ declare const fullApi: ApiFromModules<{
   programBuildCache: typeof programBuildCache;
   programHistory: typeof programHistory;
   quotas: typeof quotas;
-  store: typeof store;
   simulatorHandoff: typeof simulatorHandoff;
+  store: typeof store;
   template: typeof template;
 }>;
 

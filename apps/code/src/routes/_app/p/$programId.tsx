@@ -256,11 +256,11 @@ function RouteComponent() {
       return
     buildLock.current = true
     try {
-      if (hasUnsavedChanges) {
-        if (!saveHandlerRef.current)
-          throw new Error('Wait for the workspace to load.')
-        await saveHandlerRef.current()
-      }
+      // The save handler reads live documents, including edits whose dirty
+      // notification has not rendered yet when a shortcut fires.
+      if (!saveHandlerRef.current)
+        throw new Error('Wait for the workspace to load.')
+      await saveHandlerRef.current()
     } catch (error) {
       setBuildMessage(
         error instanceof Error ? error.message : 'Could not save changes.',
@@ -764,7 +764,12 @@ function RouteComponent() {
 
   React.useEffect(() => {
     const commitSha = program?.currentCommitSha
-    if (!commitSha || buildLock.current) return
+    if (
+      !commitSha ||
+      buildLock.current ||
+      attemptedBuildRef.current === `${programId}:${commitSha}`
+    )
+      return
 
     buildGenerationRef.current++
     attemptedBuildRef.current = ''

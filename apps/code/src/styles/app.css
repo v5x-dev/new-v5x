@@ -80,6 +80,23 @@
   --sidebar-ring: oklch(0.547 0.021 43.1);
 }
 
+/* Back the translucent corner border with the same fill as the sidebar. */
+.workspace-sidebar-corner {
+  background-image:
+    radial-gradient(
+      circle at 100% 0,
+      transparent calc(var(--radius-lg) - 1px),
+      var(--sidebar-border) calc(var(--radius-lg) - 1px),
+      var(--sidebar-border) var(--radius-lg),
+      transparent var(--radius-lg)
+    ),
+    radial-gradient(
+      circle at 100% 0,
+      transparent calc(var(--radius-lg) - 1px),
+      var(--sidebar) calc(var(--radius-lg) - 1px)
+    );
+}
+
 file-tree-container {
   --trees-bg-override: var(--sidebar);
   --trees-fg-override: var(--sidebar-foreground);

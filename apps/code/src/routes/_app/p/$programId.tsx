@@ -66,12 +66,6 @@ import {
 } from '~/components/ui/sidebar'
 import { parseProgramFilePaths } from '~/lib/program-files'
 
-function formatBuildElapsed(seconds: number) {
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
-  return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`
-}
-
 function describeBuildElapsed(seconds: number) {
   const minutes = Math.floor(seconds / 60)
   const remainingSeconds = seconds % 60
@@ -755,10 +749,7 @@ function RouteComponent() {
 
   return (
     <>
-      <SidebarProvider
-        className="h-svh min-h-0 overflow-hidden"
-        style={{ '--sidebar-width': '20rem' } as React.CSSProperties}
-      >
+      <SidebarProvider className="h-svh min-h-0 overflow-hidden">
         <Sidebar
           variant="floating"
           innerClassName="relative group-data-[variant=floating]:rounded-br-none group-data-[variant=floating]:shadow-none [filter:drop-shadow(0_1px_2px_rgb(0_0_0/0.08))]"
@@ -769,7 +760,7 @@ function RouteComponent() {
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute bottom-9 left-full size-(--radius-lg) bg-[radial-gradient(circle_at_100%_0,transparent_calc(var(--radius-lg)-1px),var(--sidebar-border)_calc(var(--radius-lg)-1px),var(--sidebar-border)_var(--radius-lg),var(--sidebar)_var(--radius-lg))]"
+            className="workspace-sidebar-corner pointer-events-none absolute bottom-9 left-full size-(--radius-lg)"
           />
           <SidebarHeader className="flex-row items-center gap-1 px-2">
             <Button
@@ -852,14 +843,6 @@ function RouteComponent() {
                 <WorkspaceEditor
                   statusBarEnd={
                     <>
-                      <p
-                        aria-hidden="true"
-                        className="min-w-0 truncate text-xs text-muted-foreground"
-                      >
-                        {isBuilding
-                          ? `Building ${formatBuildElapsed(buildElapsedSeconds)}`
-                          : uploadMessage || buildMessage}
-                      </p>
                       <Button
                         size="icon-xs"
                         variant="ghost"

@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { DownloadSimpleIcon } from '@phosphor-icons/react'
 import { BrainTerminal } from './brain-terminal'
 import { WorkspaceEditorTabs } from './workspace-editor-tabs'
 import { WorkspaceFilePicker } from './workspace-file-picker'
@@ -1330,7 +1331,7 @@ export function WorkspaceEditor(props: Props) {
         hasSelectedFile={!!selected}
         onFormat={() => void run(formatDocument)}
       >
-        <span role="status" title={draftError}>
+        <span className="sr-only" role="status" title={draftError}>
           {draftStatus === 'error'
             ? 'Draft not saved locally'
             : draftStatus === 'saving'
@@ -1342,7 +1343,9 @@ export function WorkspaceEditor(props: Props) {
         {draftStatus === 'error' && (
           <Button
             variant="ghost"
-            size="sm"
+            size="icon-xs"
+            aria-label="Download recovery copy"
+            title="Download recovery copy"
             onClick={() => {
               const blob = new Blob(
                 [
@@ -1369,7 +1372,7 @@ export function WorkspaceEditor(props: Props) {
               setTimeout(() => URL.revokeObjectURL(url), 1000)
             }}
           >
-            Download recovery copy
+            <DownloadSimpleIcon />
           </Button>
         )}
         {props.statusBarEnd}

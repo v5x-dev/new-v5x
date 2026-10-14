@@ -7,6 +7,7 @@ class LanguageWorker {
   static current: LanguageWorker
   onmessage?: (event: { data: unknown }) => void
   messages: Array<any> = []
+  respond = true
 
   constructor() {
     LanguageWorker.current = this
@@ -18,7 +19,7 @@ class LanguageWorker {
     if (message.kind === 'start')
       queueMicrotask(() => this.onmessage?.({ data: { kind: 'started' } }))
 
-    if (message.kind === 'rpc' && message.message.id)
+    if (this.respond && message.kind === 'rpc' && message.message.id)
       queueMicrotask(() =>
         this.onmessage?.({
           data: {
@@ -68,6 +69,46 @@ const changes = (worker: LanguageWorker) =>
   worker.messages.filter(
     (entry) => entry.message?.method === 'textDocument/didChange',
   )
+
+describe('request deadlines', () => {
+  test('cancels an expired request and accepts a later retry', async () => {
+    const worker = await setup()
+    worker.respond = false
+
+    await expect(
+      client.request('textDocument/semanticTokens/full', {}, undefined, 10),
+    ).rejects.toThrow('textDocument/semanticTokens/full timed out')
+
+    const request = worker.messages.find((entry) => entry.message?.id)
+    expect(
+      worker.messages.find(
+        (entry) => entry.message?.method === '$/cancelRequest',
+      )?.message.params.id,
+    ).toBe(request.message.id)
+
+    worker.respond = true
+    await expect(
+      client.request('textDocument/semanticTokens/full', {}, undefined, 100),
+    ).resolves.toEqual({ capabilities: {} })
+  })
+
+  test('a longer background deadline remains abortable', async () => {
+    const worker = await setup()
+    worker.respond = false
+    const controller = new AbortController()
+    const pending = client.request(
+      'textDocument/semanticTokens/full',
+      {},
+      controller.signal,
+      100,
+    )
+    const result = pending.catch((error: Error) => error)
+
+    await Bun.sleep(20)
+    controller.abort()
+    expect(((await result) as Error).message).toBe('Language request cancelled')
+  })
+})
 
 describe('typing synchronization', () => {
   test('keeps the latest document during compilation and catches up afterward', async () => {

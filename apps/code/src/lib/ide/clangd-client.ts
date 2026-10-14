@@ -359,6 +359,7 @@ export class ClangdClient {
     method: string,
     params: unknown,
     signal?: AbortSignal,
+    timeoutMs = 30_000,
   ): Promise<T> {
     // Commands must see the latest text even during a burst of typing.
     this.flushSyncs(true)
@@ -379,7 +380,7 @@ export class ClangdClient {
       const timer = setTimeout(() => {
         this.notify('$/cancelRequest', { id })
         this.settle(id, undefined, { message: `${method} timed out` })
-      }, 30_000)
+      }, timeoutMs)
 
       signal?.addEventListener('abort', cancel, { once: true })
 

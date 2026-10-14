@@ -476,52 +476,84 @@ export function WorkspaceEditor(props: Props) {
     const { path, version } = selected
     const params = { textDocument: { uri: fileUri(path) } }
 
-    const timer = setTimeout(() => {
+    let timer: ReturnType<typeof setTimeout>
+    let attempts = 0
+    let colors: Array<SemanticColor> | undefined
+    let ranges: Array<FoldingRange> | undefined
+
+    const refresh = () => {
+      attempts++
       const provider = client.capabilities.semanticTokensProvider
 
       const tokens =
-        provider && provider.full
-          ? client
-              .request<SemanticTokens | null>(
-                'textDocument/semanticTokens/full',
-                params,
-                controller.signal,
-              )
-              .then((result) =>
-                result ? decodeSemanticTokens(result, provider.legend) : [],
-              )
-          : Promise.resolve([])
+        colors !== undefined
+          ? Promise.resolve(colors)
+          : provider && provider.full
+            ? client
+                .request<SemanticTokens | null>(
+                  'textDocument/semanticTokens/full',
+                  params,
+                  controller.signal,
+                  120_000,
+                )
+                .then((result) =>
+                  result ? decodeSemanticTokens(result, provider.legend) : [],
+                )
+            : Promise.resolve([])
 
-      const folds = client.capabilities.foldingRangeProvider
-        ? client
-            .request<Array<FoldingRange> | null>(
-              'textDocument/foldingRange',
-              params,
-              controller.signal,
-            )
-            .then((result) => result ?? [])
-        : client.capabilities.documentSymbolProvider
-          ? client
-              .request<Array<DocumentSymbol> | Array<SymbolInformation> | null>(
-                'textDocument/documentSymbol',
-                params,
-                controller.signal,
-              )
-              .then((symbols) => symbolFoldingRanges(symbols ?? []))
-          : Promise.resolve([])
+      const folds =
+        ranges !== undefined
+          ? Promise.resolve(ranges)
+          : client.capabilities.foldingRangeProvider
+            ? client
+                .request<Array<FoldingRange> | null>(
+                  'textDocument/foldingRange',
+                  params,
+                  controller.signal,
+                  120_000,
+                )
+                .then((result) => result ?? [])
+            : client.capabilities.documentSymbolProvider
+              ? client
+                  .request<
+                    Array<DocumentSymbol> | Array<SymbolInformation> | null
+                  >(
+                    'textDocument/documentSymbol',
+                    params,
+                    controller.signal,
+                    120_000,
+                  )
+                  .then((symbols) => symbolFoldingRanges(symbols ?? []))
+              : Promise.resolve([])
 
-      void Promise.all([tokens, folds])
-        .then(([colors, ranges]) => {
+      void Promise.allSettled([tokens, folds]).then(
+        ([tokenResult, foldResult]) => {
           if (
-            !controller.signal.aborted &&
-            documentsRef.current[path]?.version === version
+            controller.signal.aborted ||
+            documentsRef.current[path]?.version !== version
           )
-            setAnalysis({ path, version, tokens: colors, folds: ranges })
-        })
-        .catch((reason) => {
-          if (!controller.signal.aborted) setError(String(reason))
-        })
-    }, 180)
+            return
+
+          if (tokenResult.status === 'fulfilled') colors = tokenResult.value
+          if (foldResult.status === 'fulfilled') ranges = foldResult.value
+
+          // Background analysis is optional. Keep Pierre's existing colors and
+          // folds when clangd is busy, and retain either successful response.
+          if (colors !== undefined || ranges !== undefined)
+            setAnalysis((current) => ({
+              path,
+              version,
+              tokens: colors ?? (current?.path === path ? current.tokens : []),
+              folds: ranges ?? (current?.path === path ? current.folds : []),
+            }))
+
+          if ((colors === undefined || ranges === undefined) && attempts < 3)
+            timer = setTimeout(refresh, attempts * 2_000)
+        },
+      )
+    }
+
+    timer = setTimeout(refresh, 180)
 
     return () => {
       clearTimeout(timer)

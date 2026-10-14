@@ -172,7 +172,23 @@ export function ProgramFileTree({
         renameRef.current(sourcePath, destinationPath),
       onError: setError,
     },
+    // Native overflow avoids false ellipses from duplicate-text height measurement.
     unsafeCSS: `
+      [data-truncate-grid] {
+        display: block;
+      }
+
+      [data-truncate-content="visible"] {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      [data-truncate-content="overflow"],
+      [data-truncate-marker-cell],
+      [data-truncate-fill] {
+        display: none;
+      }
+
       [data-type='item'][data-item-path^='build/'],
       [data-type='item'][data-item-path^='bin/'] {
         color: var(--trees-fg-muted);

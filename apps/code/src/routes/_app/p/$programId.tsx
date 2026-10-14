@@ -31,6 +31,11 @@ import {
   scheduleBrowserCompilerPreload,
   writeBrowserBuild,
 } from '@v5x/compiler'
+import { buildOnServer } from '@v5x/compiler/remote-build'
+import {
+  CompilationServerDialog,
+  compilationServerStorageKey,
+} from '~/components/ide/compilation-server-dialog'
 import { simulatorTemplate } from '@v5x/simulator'
 import {
   simulatorBinary,
@@ -100,6 +105,34 @@ function RouteComponent() {
   const [paths, setPaths] = React.useState<Array<string> | null>(null)
   const [loadError, setLoadError] = React.useState<string | null>(null)
   const [selectedFile, setSelectedFile] = React.useState<string | null>(null)
+  const [compilationServer, setCompilationServer] = React.useState('')
+  const [compilationServerLoaded, setCompilationServerLoaded] =
+    React.useState(false)
+  const [compilationServerOpen, setCompilationServerOpen] =
+    React.useState(false)
+
+  React.useEffect(() => {
+    try {
+      setCompilationServer(
+        localStorage.getItem(compilationServerStorageKey) ?? '',
+      )
+    } catch {
+      /* Settings remain available when storage is disabled. */
+    }
+    setCompilationServerLoaded(true)
+  }, [])
+
+  const connectCompilationServer = (endpoint: string) => {
+    setCompilationServer(endpoint)
+    releaseBrowserCompiler()
+    try {
+      if (endpoint) localStorage.setItem(compilationServerStorageKey, endpoint)
+      else localStorage.removeItem(compilationServerStorageKey)
+    } catch {
+      /* Use the selected server for this session. */
+    }
+  }
+
   const [buildFiles, setBuildFiles] = React.useState<Array<string>>([])
 
   const [buildArtifacts, setBuildArtifacts] = React.useState<
@@ -211,7 +244,10 @@ function RouteComponent() {
 
     setBuildOutput('')
     try {
-      const result = await buildInBrowser(
+      const compile = compilationServer
+        ? buildOnServer.bind(null, compilationServer)
+        : buildInBrowser
+      const result = await compile(
         {
           ...snapshot,
           workspaceId: programId,
@@ -653,14 +689,25 @@ function RouteComponent() {
   }, [getProgramFiles, programId])
 
   React.useEffect(() => {
-    if (!program?.currentCommitSha) return
+    if (
+      !program?.currentCommitSha ||
+      !compilationServerLoaded ||
+      compilationServer
+    )
+      return
     return scheduleBrowserCompilerPreload({
       workspaceId: programId,
       template: program.template ?? 'vexcode',
       commitSha: program.currentCommitSha,
       files: {},
     })
-  }, [programId, program?.template, program?.currentCommitSha])
+  }, [
+    programId,
+    program?.template,
+    program?.currentCommitSha,
+    compilationServer,
+    compilationServerLoaded,
+  ])
 
   React.useEffect(() => {
     const commitSha = program?.currentCommitSha
@@ -736,7 +783,8 @@ function RouteComponent() {
       ? 'Commit changes before building'
       : !program?.currentCommitSha
         ? 'Loading build status'
-        : buildMessage || 'Build program'
+        : buildMessage ||
+          (compilationServer ? 'Build on compilation server' : 'Build program')
 
   const uploadUnavailableReason =
     hasUnsavedChanges || isSaving
@@ -1056,6 +1104,14 @@ function RouteComponent() {
                           <DropdownMenuGroup>
                             <DropdownMenuItem
                               disabled={isBuilding}
+                              onClick={() => setCompilationServerOpen(true)}
+                            >
+                              <GearIcon />
+                              Compilation server
+                              {compilationServer ? ' · Remote' : ' · Browser'}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              disabled={isBuilding}
                               onClick={() => releaseBrowserCompiler()}
                             >
                               <GearIcon />
@@ -1108,6 +1164,12 @@ function RouteComponent() {
             </>
           )}
         </SidebarInset>
+        <CompilationServerDialog
+          open={compilationServerOpen}
+          onOpenChange={setCompilationServerOpen}
+          endpoint={compilationServer}
+          onConnect={connectCompilationServer}
+        />
       </SidebarProvider>
     </>
   )

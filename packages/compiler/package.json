@@ -20,7 +20,8 @@
     "./elf-binary": "./src/elf-binary.ts",
     "./parallel-compiler": "./src/parallel-compiler.ts",
     "./sdk-pch": "./src/sdk-pch.ts",
-    "./workspace-path": "./src/workspace-path.ts"
+    "./workspace-path": "./src/workspace-path.ts",
+    "./remote-build": "./src/remote-build.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -35,5 +36,6 @@
   "devDependencies": {
     "@types/bun": "latest",
     "typescript": "npm:@typescript/typescript6@^6.0.2"
-  }
+  },
+  "version": "0.1.0"
 }

@@ -1,0 +1,32 @@
+{
+  "name": "@v5x/compile-server",
+  "version": "0.1.0",
+  "description": "WebSocket compilation server for VEX V5 projects in v5x code",
+  "type": "module",
+  "bin": {
+    "v5x-compile-server": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "dev": "bun src/cli.ts",
+    "build": "bun scripts/build.ts",
+    "prepack": "bun run build",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@v5x/compiler": "workspace:*",
+    "@types/bun": "latest",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "microbit-clang-wasm": "21.11.0-alpha.1"
+  }
+}

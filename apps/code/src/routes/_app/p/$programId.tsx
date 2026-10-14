@@ -120,7 +120,7 @@ function RouteComponent() {
     null,
   )
 
-  const [buildElapsedSeconds, setBuildElapsedSeconds] = React.useState(0)
+  const [buildElapsedSeconds, setBuildElapsedSeconds] = React.useState(1)
   const [isUploading, setIsUploading] = React.useState(false)
   const [isHandingOff, setIsHandingOff] = React.useState(false)
   const [brainSlot, setBrainSlot] = React.useState(1)
@@ -201,7 +201,7 @@ function RouteComponent() {
     buildAbortRef.current = controller
     const generation = ++buildGenerationRef.current
     setBuildStartedAt(started)
-    setBuildElapsedSeconds(0)
+    setBuildElapsedSeconds(1)
     setIsBuilding(true)
     setBuildMessage('')
     setUploadMessage('')
@@ -600,7 +600,7 @@ function RouteComponent() {
 
     const updateElapsedTime = () => {
       setBuildElapsedSeconds(
-        Math.floor((performance.now() - buildStartedAt) / 1000),
+        Math.floor((performance.now() - buildStartedAt) / 1000) + 1,
       )
     }
 
@@ -729,8 +729,9 @@ function RouteComponent() {
         ? selectedFile
         : firstFile
 
+  const buildElapsedLabel = describeBuildElapsed(buildElapsedSeconds)
   const buildButtonLabel = isBuilding
-    ? `Building program, ${describeBuildElapsed(buildElapsedSeconds)} elapsed`
+    ? `Building program, ${buildElapsedLabel} elapsed`
     : hasUnsavedChanges || isSaving
       ? 'Commit changes before building'
       : !program?.currentCommitSha
@@ -862,13 +863,19 @@ function RouteComponent() {
                       </Button>
                       {isBuilding ? (
                         <Button
-                          size="icon-xs"
+                          size="xs"
                           variant="ghost"
-                          aria-label="Cancel build"
-                          title="Cancel build"
+                          aria-label={`Cancel build, ${buildElapsedLabel} elapsed`}
+                          title={`Cancel build, ${buildElapsedSeconds}s elapsed`}
                           onClick={() => buildAbortRef.current?.abort()}
                         >
-                          <Spinner />
+                          <Spinner
+                            data-icon="inline-start"
+                            aria-hidden="true"
+                          />
+                          <span className="min-w-[3ch] text-center font-mono tabular-nums">
+                            {buildElapsedSeconds}s
+                          </span>
                         </Button>
                       ) : (
                         <Button

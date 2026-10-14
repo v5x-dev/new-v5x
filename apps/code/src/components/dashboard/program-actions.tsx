@@ -183,17 +183,13 @@ export function ProgramActions({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-max">
           {program.deleting ? (
-            <DropdownMenuItem
-              className="whitespace-nowrap"
-              onClick={openDeleteDialog}
-            >
+            <DropdownMenuItem onClick={openDeleteDialog}>
               <TrashIcon aria-hidden="true" />
               Retry deletion
             </DropdownMenuItem>
           ) : (
             <DropdownMenuGroup>
               <DropdownMenuItem
-                className="whitespace-nowrap"
                 onClick={() => {
                   setName(program.name)
                   setRenameError(null)
@@ -203,31 +199,19 @@ export function ProgramActions({
                 <PencilSimpleIcon aria-hidden="true" />
                 Rename
               </DropdownMenuItem>
-              <DropdownMenuItem
-                className="whitespace-nowrap"
-                onClick={() => setHistoryOpen(true)}
-              >
+              <DropdownMenuItem onClick={() => setHistoryOpen(true)}>
                 <ClockCounterClockwiseIcon aria-hidden="true" />
                 History
               </DropdownMenuItem>
-              <DropdownMenuItem
-                className="whitespace-nowrap"
-                onClick={() => void exportSources()}
-              >
+              <DropdownMenuItem onClick={() => void exportSources()}>
                 <DownloadSimpleIcon aria-hidden="true" />
                 Export
               </DropdownMenuItem>
-              <DropdownMenuItem
-                className="whitespace-nowrap"
-                onClick={() => void copy()}
-              >
+              <DropdownMenuItem onClick={() => void copy()}>
                 <FilesIcon aria-hidden="true" />
                 Duplicate
               </DropdownMenuItem>
-              <DropdownMenuItem
-                className="whitespace-nowrap"
-                onClick={() => void archive()}
-              >
+              <DropdownMenuItem onClick={() => void archive()}>
                 {program.archived ? (
                   <ArrowCounterClockwiseIcon aria-hidden="true" />
                 ) : (
@@ -236,7 +220,6 @@ export function ProgramActions({
                 {program.archived ? 'Restore archive' : 'Archive'}
               </DropdownMenuItem>
               <DropdownMenuItem
-                className="whitespace-nowrap"
                 variant="destructive"
                 onClick={openDeleteDialog}
               >

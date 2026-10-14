@@ -105,7 +105,7 @@ export function WorkspaceEditorToolbar({
           aria-label={ready ? 'C++ ready' : 'Starting C++'}
         >
           {ready ? (
-            <CheckIcon className="size-4 text-emerald-500" aria-hidden="true" />
+            <CheckIcon className="size-3 text-emerald-500" aria-hidden="true" />
           ) : (
             <Spinner aria-hidden="true" />
           )}

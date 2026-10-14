@@ -29,7 +29,14 @@ import type { SemanticColor } from '~/lib/ide/semantic-tokens'
 import type { SnippetStop } from '~/lib/ide/snippets'
 import type { FileOperations } from '~/lib/ide/file-operations'
 import { Button } from '~/components/ui/button'
-import { Spinner } from '~/components/ui/spinner'
+import { Skeleton } from '~/components/ui/skeleton'
+import { Alert, AlertDescription } from '~/components/ui/alert'
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from '~/components/ui/resizable'
+import { parseBuildProblems } from '~/lib/ide/build-problems'
 import { decodeSemanticTokens } from '~/lib/ide/semantic-tokens'
 import { ClangdClient } from '~/lib/ide/clangd-client'
 import { formatWorkspace } from '~/lib/ide/format-workspace'
@@ -70,6 +77,8 @@ export interface CommitChange {
 }
 
 interface Props {
+  onBuild?: () => void
+  outputRequest?: number
   statusBarEnd?: React.ReactNode
   brainTerminal?: BrainTerminalProps
   workspaceId: string
@@ -102,6 +111,7 @@ export function WorkspaceEditor(props: Props) {
   const propsRef = React.useRef(props)
   propsRef.current = props
   const [tabs, setTabs] = React.useState<Array<string>>([])
+  const [loadAttempt, setLoadAttempt] = React.useState(0)
   const [workspaceLoaded, setWorkspaceLoaded] = React.useState(false)
   const [documents, setDocuments] = React.useState<Documents>({})
   const documentsRef = React.useRef(documents)
@@ -235,12 +245,14 @@ export function WorkspaceEditor(props: Props) {
     Record<string, Array<Diagnostic>>
   >({})
 
-  const problems = Object.entries(diagnostics)
-    .filter(([path]) => documents[path] && !documents[path].deleted)
-    .flatMap(([path, entries]) =>
-      entries.map((diagnostic) => ({ path, diagnostic })),
-    )
-    .sort((a, b) => (a.diagnostic.severity ?? 3) - (b.diagnostic.severity ?? 3))
+  const problems = [
+    ...parseBuildProblems(props.buildOutput ?? ''),
+    ...Object.entries(diagnostics)
+      .filter(([path]) => documents[path] && !documents[path].deleted)
+      .flatMap(([path, entries]) =>
+        entries.map((diagnostic) => ({ path, diagnostic })),
+      ),
+  ].sort((a, b) => (a.diagnostic.severity ?? 3) - (b.diagnostic.severity ?? 3))
 
   const [position, setPosition] = React.useState<Position>({
     line: 0,
@@ -426,7 +438,7 @@ export function WorkspaceEditor(props: Props) {
       active = false
       client.stop()
     }
-  }, [props.workspaceId])
+  }, [props.workspaceId, loadAttempt])
 
   React.useEffect(() => {
     if (!ready) return
@@ -979,6 +991,18 @@ export function WorkspaceEditor(props: Props) {
   const keyboard = (event: React.KeyboardEvent) => {
     const mod = event.ctrlKey || event.metaKey
 
+    if (
+      mod &&
+      !event.shiftKey &&
+      !event.altKey &&
+      event.key.toLowerCase() === 'b'
+    ) {
+      event.preventDefault()
+      event.stopPropagation()
+      propsRef.current.onBuild?.()
+      return
+    }
+
     if (mod && event.shiftKey && event.key.toLowerCase() === 'f') {
       event.preventDefault()
       event.stopPropagation()
@@ -1047,6 +1071,10 @@ export function WorkspaceEditor(props: Props) {
 
   const shown = sdkHeader ?? selected
 
+  React.useEffect(() => {
+    if (props.outputRequest) setPanel('output')
+  }, [props.outputRequest])
+
   return (
     <div
       className="relative flex h-full min-h-0 flex-col overflow-hidden"
@@ -1055,7 +1083,8 @@ export function WorkspaceEditor(props: Props) {
           !event.defaultPrevented &&
           (event.ctrlKey || event.metaKey) &&
           ((event.shiftKey && event.key.toLowerCase() === 'f') ||
-            event.key.toLowerCase() === 'j')
+            event.key.toLowerCase() === 'j' ||
+            event.key.toLowerCase() === 'b')
         )
           keyboard(event)
       }}
@@ -1097,9 +1126,20 @@ export function WorkspaceEditor(props: Props) {
         }}
       />
       {error && (
-        <p role="alert" className="px-3 py-2 text-xs text-destructive">
-          {error}
-        </p>
+        <Alert>
+          <AlertDescription>{error}</AlertDescription>
+          {!workspaceLoaded && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                setError('')
+                setLoadAttempt((attempt) => attempt + 1)
+              }}
+            >
+              Retry
+            </Button>
+          )}
+        </Alert>
       )}
       {conflicts.map((path) => (
         <div
@@ -1176,181 +1216,193 @@ export function WorkspaceEditor(props: Props) {
           ))}
         </div>
       ))}
-      <div className="relative flex min-h-0 flex-1 flex-col">
-        <WorkspaceSearch
-          searchOpen={searchOpen}
-          setSearchOpen={setSearchOpen}
-          searchInputRef={searchInputRef}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          matchCase={matchCase}
-          setMatchCase={setMatchCase}
-          searchResults={searchResults}
-          searchGroups={searchGroups}
-          onSelect={(result) => {
-            setSearchOpen(false)
-            setSdkHeader(null)
-            props.onSelect(result.path)
+      <ResizablePanelGroup orientation="vertical" className="min-h-0 flex-1">
+        <ResizablePanel defaultSize="70%" minSize="20%">
+          <div className="relative flex h-full min-h-0 flex-col">
+            <WorkspaceSearch
+              searchOpen={searchOpen}
+              setSearchOpen={setSearchOpen}
+              searchInputRef={searchInputRef}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              matchCase={matchCase}
+              setMatchCase={setMatchCase}
+              searchResults={searchResults}
+              searchGroups={searchGroups}
+              onSelect={(result) => {
+                setSearchOpen(false)
+                setSdkHeader(null)
+                props.onSelect(result.path)
 
-            setTarget({
-              path: result.path,
-              position: { line: result.line, character: result.character },
-            })
-          }}
-        />
-        <div className="relative flex min-h-0 flex-1 flex-col">
-          {!workspaceLoaded && !error && (
-            <div className="grid min-h-0 flex-1 place-items-center">
-              <Spinner aria-label="Loading editor" />
-            </div>
-          )}
-          {workspaceLoaded && !shown && (
-            <div className="grid min-h-0 flex-1 place-items-center">
-              <Button
-                variant="ghost"
-                size="sm"
-
-                onClick={() => setFileQuery('')}
-              >
-                Open a file to start editing
-              </Button>
-            </div>
-          )}
-          {workspaceLoaded &&
-            [
-              ...tabs.flatMap((path) => {
-                const doc = documents[path]
-                return doc && !doc.deleted ? [doc] : []
-              }),
-              ...(sdkHeader ? [sdkHeader] : []),
-            ].map((doc) => {
-              const active = doc.path === shown?.path
-              const readOnly = doc === sdkHeader
-
-              return (
-                <div
-                  key={`${doc.path}:${editorRevision}`}
-                  // Keep each virtualizer's viewport measurable between tab switches.
-                  // display:none makes Pierre discard its rendered lines.
-                  className={
-                    active
-                      ? 'relative flex min-h-0 flex-1 flex-col'
-                      : 'pointer-events-none invisible absolute inset-0 flex min-h-0 flex-col'
-                  }
-                  inert={!active}
-                  aria-hidden={!active}
-                >
-                  <PierreDocument
-                    active={active}
-                    path={doc.path}
-                    contents={doc.contents}
-                    sessionKey={`${props.workspaceId}:${doc.path}:${editorRevision}`}
-                    diagnostics={
-                      readOnly
-                        ? emptyDiagnostics
-                        : (diagnostics[doc.path] ?? emptyDiagnostics)
-                    }
-                    semanticTokens={
-                      analysis?.path === doc.path && !readOnly
-                        ? analysis.tokens
-                        : emptyTokens
-                    }
-                    foldingRanges={
-                      analysis?.path === doc.path &&
-                      'version' in doc &&
-                      analysis.version === doc.version &&
-                      !readOnly
-                        ? analysis.folds
-                        : emptyFolds
-                    }
-                    readOnly={!!readOnly}
-                    focusPosition={
-                      active && target?.path === doc.path
-                        ? target.position
-                        : undefined
-                    }
-                    onEditor={(editor) => {
-                      editorRef.current = editor
-                    }}
-                    onPosition={(at) => {
-                      const completionCursor = context.current?.position
-                      if (
-                        active &&
-                        completionCursor &&
-                        (completionCursor.line !== at.line ||
-                          completionCursor.character !== at.character)
-                      ) {
-                        setCompletions((current) =>
-                          current.length ? [] : current,
-                        )
-                      }
-                      if (active)
-                        setPosition((previous) =>
-                          previous.line === at.line &&
-                          previous.character === at.character
-                            ? previous
-                            : at,
-                        )
-                    }}
-                    onCommand={keyboard}
-                    onNavigate={(at) => void run(() => navigate(at))}
-                    onChange={(contents, changes) => {
-                      if (readOnly) return
-
-                      if (active && snippet.current && changes)
-                        snippet.current.stops = remapSnippetStops(
-                          snippet.current.stops,
-                          changes,
-                        )
-
-                      if (active)
-                        setCompletions((current) =>
-                          current.length ? [] : current,
-                        )
-
-                      publish(
-                        updateDocument(
-                          documentsRef.current,
-                          doc.path,
-                          contents,
-                        ),
-                      )
-
-                      setDiagnostics((old) =>
-                        Object.hasOwn(old, doc.path) && old[doc.path].length
-                          ? { ...old, [doc.path]: emptyDiagnostics }
-                          : old,
-                      )
-                    }}
+                setTarget({
+                  path: result.path,
+                  position: { line: result.line, character: result.character },
+                })
+              }}
+            />
+            <div className="relative flex min-h-0 flex-1 flex-col">
+              {!workspaceLoaded && !error && (
+                <div className="grid min-h-0 flex-1 place-items-center">
+                  <Skeleton
+                    aria-label="Loading editor"
+                    className="h-32 w-3/4"
                   />
                 </div>
-              )
-            })}
-        </div>
-      </div>
-      {props.brainTerminal && (
-        <BrainTerminal
-          {...props.brainTerminal}
-          open={panel === 'terminal'}
-          onOpenChange={(open) => {
-            if (!open)
-              setPanel((current) => (current === 'terminal' ? null : current))
-          }}
-        />
-      )}
-      <WorkspacePanels
-        panel={panel}
-        setPanel={setPanel}
-        problems={problems}
-        buildOutput={props.buildOutput}
-        ready={ready}
-        onSelect={({ path, diagnostic }) => {
-          setPanel(null)
-          setSdkHeader(null)
-          props.onSelect(path)
-          setTarget({ path, position: diagnostic.range.start })
-        }}
-      />
+              )}
+              {workspaceLoaded && !shown && (
+                <div className="grid min-h-0 flex-1 place-items-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+
+                    onClick={() => setFileQuery('')}
+                  >
+                    Open a file to start editing
+                  </Button>
+                </div>
+              )}
+              {workspaceLoaded &&
+                [
+                  ...tabs.flatMap((path) => {
+                    const doc = documents[path]
+                    return doc && !doc.deleted ? [doc] : []
+                  }),
+                  ...(sdkHeader ? [sdkHeader] : []),
+                ].map((doc) => {
+                  const active = doc.path === shown?.path
+                  const readOnly = doc === sdkHeader
+
+                  return (
+                    <div
+                      key={`${doc.path}:${editorRevision}`}
+                      // Keep each virtualizer's viewport measurable between tab switches.
+                      // display:none makes Pierre discard its rendered lines.
+                      className={
+                        active
+                          ? 'relative flex min-h-0 flex-1 flex-col'
+                          : 'pointer-events-none invisible absolute inset-0 flex min-h-0 flex-col'
+                      }
+                      inert={!active}
+                      aria-hidden={!active}
+                    >
+                      <PierreDocument
+                        active={active}
+                        path={doc.path}
+                        contents={doc.contents}
+                        sessionKey={`${props.workspaceId}:${doc.path}:${editorRevision}`}
+                        diagnostics={
+                          readOnly
+                            ? emptyDiagnostics
+                            : (diagnostics[doc.path] ?? emptyDiagnostics)
+                        }
+                        semanticTokens={
+                          analysis?.path === doc.path && !readOnly
+                            ? analysis.tokens
+                            : emptyTokens
+                        }
+                        foldingRanges={
+                          analysis?.path === doc.path &&
+                          'version' in doc &&
+                          analysis.version === doc.version &&
+                          !readOnly
+                            ? analysis.folds
+                            : emptyFolds
+                        }
+                        readOnly={!!readOnly}
+                        focusPosition={
+                          active && target?.path === doc.path
+                            ? target.position
+                            : undefined
+                        }
+                        onEditor={(editor) => {
+                          editorRef.current = editor
+                        }}
+                        onPosition={(at) => {
+                          const completionCursor = context.current?.position
+                          if (
+                            active &&
+                            completionCursor &&
+                            (completionCursor.line !== at.line ||
+                              completionCursor.character !== at.character)
+                          ) {
+                            setCompletions((current) =>
+                              current.length ? [] : current,
+                            )
+                          }
+                          if (active)
+                            setPosition((previous) =>
+                              previous.line === at.line &&
+                              previous.character === at.character
+                                ? previous
+                                : at,
+                            )
+                        }}
+                        onCommand={keyboard}
+                        onNavigate={(at) => void run(() => navigate(at))}
+                        onChange={(contents, changes) => {
+                          if (readOnly) return
+
+                          if (active && snippet.current && changes)
+                            snippet.current.stops = remapSnippetStops(
+                              snippet.current.stops,
+                              changes,
+                            )
+
+                          if (active)
+                            setCompletions((current) =>
+                              current.length ? [] : current,
+                            )
+
+                          publish(
+                            updateDocument(
+                              documentsRef.current,
+                              doc.path,
+                              contents,
+                            ),
+                          )
+
+                          setDiagnostics((old) =>
+                            Object.hasOwn(old, doc.path) && old[doc.path].length
+                              ? { ...old, [doc.path]: emptyDiagnostics }
+                              : old,
+                          )
+                        }}
+                      />
+                    </div>
+                  )
+                })}
+            </div>
+          </div>
+        </ResizablePanel>
+        {panel && <ResizableHandle withHandle />}
+        <ResizablePanel defaultSize="30%" minSize="15%" hidden={!panel}>
+          {props.brainTerminal && (
+            <BrainTerminal
+              {...props.brainTerminal}
+              open={panel === 'terminal'}
+              onOpenChange={(open) => {
+                if (!open)
+                  setPanel((current) =>
+                    current === 'terminal' ? null : current,
+                  )
+              }}
+            />
+          )}
+          <WorkspacePanels
+            panel={panel}
+            setPanel={setPanel}
+            problems={problems}
+            buildOutput={props.buildOutput}
+            ready={ready}
+            onSelect={({ path, diagnostic }) => {
+              setPanel(null)
+              setSdkHeader(null)
+              props.onSelect(path)
+              setTarget({ path, position: diagnostic.range.start })
+            }}
+          />
+        </ResizablePanel>
+      </ResizablePanelGroup>
       <WorkspaceEditorToolbar
         hasBrainTerminal={!!props.brainTerminal}
         problems={problems}

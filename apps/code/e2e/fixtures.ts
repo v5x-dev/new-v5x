@@ -105,7 +105,11 @@ export async function reloadReady(page: Page) {
   const session = page.waitForResponse(
     (response) => new URL(response.url()).pathname === '/api/auth/get-session',
   )
+  const acceptLeave = (dialog: import('@playwright/test').Dialog) =>
+    void dialog.accept()
+  page.on('dialog', acceptLeave)
   await page.reload()
+  page.off('dialog', acceptLeave)
   await session
 }
 

@@ -1,3 +1,5 @@
+import { Alert, AlertDescription } from '~/components/ui/alert'
+import { Skeleton } from '~/components/ui/skeleton'
 import {
   ArchiveIcon,
   MagnifyingGlassIcon,
@@ -299,14 +301,20 @@ export function Dashboard() {
             onArchivedChange={setArchived}
           />
           {error && (
-            <p role="alert" className="mb-4 text-sm text-destructive">
-              {error}
-            </p>
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
           {isPending && !isArchiveTransition ? (
-            <p role="status" className="text-sm text-muted-foreground">
-              Loading programs...
-            </p>
+            <div
+              role="status"
+              aria-label="Loading programs"
+              className="flex flex-col gap-3"
+            >
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+            </div>
           ) : visible.length === 0 && status !== 'Exhausted' ? (
             <p role="status" className="text-sm text-muted-foreground">
               Searching programs...

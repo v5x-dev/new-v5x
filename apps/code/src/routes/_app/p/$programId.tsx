@@ -43,6 +43,15 @@ import {
 } from '~/lib/ide/simulator-handoff'
 import { WorkspaceEditor } from '~/components/ide/workspace-editor'
 import { ProgramFileTree } from '~/components/ide/program-file-tree'
+import { Kbd } from '~/components/ui/kbd'
+import { Alert, AlertDescription } from '~/components/ui/alert'
+import {
+  Empty,
+  EmptyHeader,
+  EmptyTitle,
+  EmptyDescription,
+} from '~/components/ui/empty'
+import { Skeleton } from '~/components/ui/skeleton'
 import { Button } from '~/components/ui/button'
 import {
   DropdownMenu,
@@ -147,6 +156,7 @@ function RouteComponent() {
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false)
   const [isSaving, setIsSaving] = React.useState(false)
+  const [firstBrowserBuild, setFirstBrowserBuild] = React.useState(true)
   const [isBuilding, setIsBuilding] = React.useState(false)
 
   const [buildStartedAt, setBuildStartedAt] = React.useState<number | null>(
@@ -159,6 +169,11 @@ function RouteComponent() {
   const [brainSlot, setBrainSlot] = React.useState(1)
   const [buildMessage, setBuildMessage] = React.useState('')
   const [buildOutput, setBuildOutput] = React.useState('')
+  const [simulatorMessage, setSimulatorMessage] = React.useState('')
+  const [outputRequest, setOutputRequest] = React.useState(0)
+  const [loadAttempt, setLoadAttempt] = React.useState(0)
+  const buildLock = React.useRef(false)
+  const [serialSupported, setSerialSupported] = React.useState(false)
   const [uploadMessage, setUploadMessage] = React.useState('')
   const [isBrainConnected, setIsBrainConnected] = React.useState(false)
   const [brainDevice, setBrainDevice] = React.useState<V5SerialDevice | null>(
@@ -214,21 +229,53 @@ function RouteComponent() {
     await disposeBrainConnection(connection.device, true)
   }
 
+  React.useEffect(() => {
+    setSerialSupported('serial' in navigator)
+    try {
+      const slot = Number(localStorage.getItem(`v5x:brain-slot:${programId}`))
+      setBrainSlot(Number.isInteger(slot) && slot >= 1 && slot <= 8 ? slot : 1)
+    } catch {
+      setBrainSlot(1)
+    }
+  }, [programId])
+
+  React.useEffect(() => {
+    if (!hasUnsavedChanges) return
+    const guard = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', guard)
+    return () => window.removeEventListener('beforeunload', guard)
+  }, [hasUnsavedChanges])
+
   const [accountError, setAccountError] = React.useState<string | null>(null)
 
   const build = async () => {
-    if (
-      !program?.currentCommitSha ||
-      hasUnsavedChanges ||
-      isSaving ||
-      isBuilding ||
-      isUploading
-    )
+    if (!program || isSaving || isBuilding || isUploading || buildLock.current)
       return
+    buildLock.current = true
+    try {
+      if (hasUnsavedChanges) {
+        if (!saveHandlerRef.current)
+          throw new Error('Wait for the workspace to load.')
+        await saveHandlerRef.current()
+      }
+    } catch (error) {
+      setBuildMessage(
+        error instanceof Error ? error.message : 'Could not save changes.',
+      )
+      buildLock.current = false
+      return
+    }
 
     const started = performance.now()
     const snapshot = buildSnapshotRef.current?.()
-    if (!snapshot || snapshot.commitSha !== program.currentCommitSha) return
+    if (!snapshot?.commitSha) {
+      buildLock.current = false
+      return
+    }
+    currentCommitShaRef.current = snapshot.commitSha
     attemptedBuildRef.current = `${programId}:${snapshot.commitSha}`
     const controller = new AbortController()
     buildAbortRef.current = controller
@@ -236,7 +283,11 @@ function RouteComponent() {
     setBuildStartedAt(started)
     setBuildElapsedSeconds(1)
     setIsBuilding(true)
-    setBuildMessage('')
+    setBuildMessage(
+      compilationServer
+        ? 'Building remotely'
+        : 'Building in browser. The first build downloads the compiler once.',
+    )
     setUploadMessage('')
     setBuildFiles([])
     setBuildArtifacts(new Map())
@@ -272,7 +323,7 @@ function RouteComponent() {
       setBuildArtifactsCommitSha(result.commitSha)
       setBuildMessage(
         result.exitCode === 0
-          ? 'Build succeeded'
+          ? `Build succeeded · ${Math.round((performance.now() - started) / 1000)}s`
           : `Build failed (exit code ${result.exitCode})`,
       )
       // Persistence failure must not discard a binary that is already ready to upload.
@@ -295,6 +346,8 @@ function RouteComponent() {
         buildAbortRef.current = null
         setBuildStartedAt(null)
         setIsBuilding(false)
+        if (!compilationServer) setFirstBrowserBuild(false)
+        buildLock.current = false
       }
       console.info(
         `Browser build finished in ${Math.round(performance.now() - started)} ms`,
@@ -542,7 +595,7 @@ function RouteComponent() {
     try {
       binary = simulatorBinary(template, buildArtifacts)
     } catch (reason) {
-      setUploadMessage(String(reason))
+      setSimulatorMessage(String(reason))
       return
     }
     if (
@@ -550,18 +603,18 @@ function RouteComponent() {
       snapshot.commitSha !== program.currentCommitSha ||
       !binary
     ) {
-      setUploadMessage('Build the current committed source first.')
+      setSimulatorMessage('Build the current committed source first.')
       return
     }
 
     const popup = window.open('about:blank', '_blank')
     if (!popup) {
-      setUploadMessage('Allow pop-ups to open the Brain simulator.')
+      setSimulatorMessage('Allow pop-ups to open the Brain simulator.')
       return
     }
 
     setIsHandingOff(true)
-    setUploadMessage('Preparing a verified simulator handoff')
+    setSimulatorMessage('Preparing a verified simulator handoff')
     try {
       const manifest = await createSimulatorHandoffManifest(
         snapshot,
@@ -618,10 +671,10 @@ function RouteComponent() {
         site: transfer.endpoint,
       }).toString()
       popup.location.replace(brainUrl.href)
-      setUploadMessage('Verified build sent to the Brain simulator.')
+      setSimulatorMessage('Verified build sent to the Brain simulator.')
     } catch (reason) {
       popup.close()
-      setUploadMessage(
+      setSimulatorMessage(
         reason instanceof Error
           ? `Simulator handoff failed: ${reason.message}`
           : 'Simulator handoff failed.',
@@ -686,7 +739,7 @@ function RouteComponent() {
         void connection.device.dispose()
       }
     }
-  }, [getProgramFiles, programId])
+  }, [getProgramFiles, programId, loadAttempt])
 
   React.useEffect(() => {
     if (
@@ -711,7 +764,7 @@ function RouteComponent() {
 
   React.useEffect(() => {
     const commitSha = program?.currentCommitSha
-    if (!commitSha) return
+    if (!commitSha || buildLock.current) return
 
     buildGenerationRef.current++
     attemptedBuildRef.current = ''
@@ -780,7 +833,7 @@ function RouteComponent() {
   const buildButtonLabel = isBuilding
     ? `Building program, ${buildElapsedLabel} elapsed`
     : hasUnsavedChanges || isSaving
-      ? 'Commit changes before building'
+      ? 'Save and build program'
       : !program?.currentCommitSha
         ? 'Loading build status'
         : buildMessage ||
@@ -820,6 +873,13 @@ function RouteComponent() {
               disabled={isSaving || isUploading}
               onClick={() => {
                 if (isSaving || isUploading) return
+                if (
+                  hasUnsavedChanges &&
+                  !window.confirm(
+                    'Leave with uncommitted changes? Commit first to keep your work in Git.',
+                  )
+                )
+                  return
                 void navigate({ to: '/' })
               }}
             >
@@ -861,16 +921,43 @@ function RouteComponent() {
         </Sidebar>
 
         <SidebarInset className="relative flex h-svh min-h-0 flex-col overflow-hidden">
+          <Alert className="m-2 w-auto md:hidden">
+            <AlertDescription>
+              Use a desktop browser for the full editor, build, and upload
+              workflow.
+            </AlertDescription>
+          </Alert>
+          {isBuilding && !compilationServer && firstBrowserBuild && (
+            <Alert className="m-2 w-auto">
+              <AlertDescription>
+                The first browser build downloads the compiler once. Later
+                builds reuse the cached compiler.
+              </AlertDescription>
+            </Alert>
+          )}
           {loadError ? (
-            <p className="p-4 text-sm text-muted-foreground">{loadError}</p>
+            <Alert>
+              <AlertDescription>{loadError}</AlertDescription>
+              <Button
+                variant="outline"
+                onClick={() => setLoadAttempt((attempt) => attempt + 1)}
+              >
+                Retry
+              </Button>
+            </Alert>
           ) : programIsPending || paths === null ? (
             <div className="grid flex-1 place-items-center">
-              <Spinner />
+              <Skeleton className="h-32 w-3/4" />
             </div>
           ) : !program ? (
-            <p className="p-4 text-sm text-muted-foreground">
-              Program not found.
-            </p>
+            <Empty>
+              <EmptyHeader>
+                <EmptyTitle>Program not found.</EmptyTitle>
+                <EmptyDescription>
+                  Return to programs to choose another project.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           ) : (
             <>
               {activeFile && buildFiles.includes(activeFile) && (
@@ -890,6 +977,8 @@ function RouteComponent() {
                 }
               >
                 <WorkspaceEditor
+                  onBuild={() => void build()}
+                  outputRequest={outputRequest}
                   statusBarEnd={
                     <>
                       <Button
@@ -927,8 +1016,7 @@ function RouteComponent() {
                         </Button>
                       ) : (
                         <Button
-                          size="icon-xs"
-                          variant="ghost"
+                          size="sm"
                           aria-label={buildButtonLabel}
                           title={buildButtonLabel}
                           onClick={() => void build()}
@@ -936,11 +1024,11 @@ function RouteComponent() {
                             !program ||
                             !program.currentCommitSha ||
                             isSaving ||
-                            hasUnsavedChanges ||
                             isUploading
                           }
                         >
-                          <HammerIcon />
+                          <HammerIcon data-icon="inline-start" />
+                          Build <Kbd>⌘/Ctrl B</Kbd>
                         </Button>
                       )}
                       <Popover>
@@ -966,6 +1054,23 @@ function RouteComponent() {
                               Upload to Brain
                             </PopoverTitle>
                           </PopoverHeader>
+                          <p
+                            role="status"
+                            className="text-xs text-muted-foreground"
+                          >
+                            {isBrainConnected
+                              ? 'Brain connected'
+                              : 'Brain disconnected'}
+                          </p>
+                          {!serialSupported && (
+                            <Alert>
+                              <AlertDescription>
+                                Web Serial is unavailable. Use a desktop browser
+                                that supports Web Serial, such as Chrome or
+                                Edge.
+                              </AlertDescription>
+                            </Alert>
+                          )}
                           <Separator />
                           <div className="grid gap-2">
                             <p className="text-xs font-medium text-muted-foreground">
@@ -990,7 +1095,17 @@ function RouteComponent() {
                                   className="w-full"
                                   aria-pressed={brainSlot === slot}
                                   disabled={isUploading}
-                                  onClick={() => setBrainSlot(slot)}
+                                  onClick={() => {
+                                    setBrainSlot(slot)
+                                    try {
+                                      localStorage.setItem(
+                                        `v5x:brain-slot:${programId}`,
+                                        String(slot),
+                                      )
+                                    } catch {
+                                      /* Keep the slot for this session. */
+                                    }
+                                  }}
                                 >
                                   {slot}
                                 </Button>
@@ -1007,6 +1122,7 @@ function RouteComponent() {
                                 }
                                 onClick={() => void uploadToBrain()}
                                 disabled={
+                                  !serialSupported ||
                                   !program ||
                                   buildArtifacts.size === 0 ||
                                   buildArtifactsCommitSha !==
@@ -1050,8 +1166,8 @@ function RouteComponent() {
                         </PopoverContent>
                       </Popover>
                       <Button
-                        size="icon-xs"
-                        variant="ghost"
+                        size="sm"
+                        variant="outline"
                         aria-label="Run in simulator"
                         title={
                           simulatorTemplate(program.template ?? 'vexcode')
@@ -1080,6 +1196,7 @@ function RouteComponent() {
                         ) : (
                           <PlayIcon data-icon="inline-start" />
                         )}
+                        Run
                       </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger
@@ -1114,12 +1231,35 @@ function RouteComponent() {
                           </DropdownMenuGroup>
                         </DropdownMenuContent>
                       </DropdownMenu>
+                      {buildMessage.startsWith('Build failed') && (
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          onClick={() =>
+                            setOutputRequest((request) => request + 1)
+                          }
+                        >
+                          View output
+                        </Button>
+                      )}
                       <span
-                        className="sr-only"
+                        className="truncate text-xs"
                         role="status"
                         aria-live="polite"
                       >
-                        {[buildMessage, uploadMessage]
+                        {[
+                          isBuilding
+                            ? `Building ${compilationServer ? 'remotely' : 'in browser'} · ${buildElapsedSeconds}s`
+                            : buildMessage,
+                          uploadMessage,
+                          simulatorMessage,
+                          isBrainConnected
+                            ? 'Brain connected'
+                            : 'Brain disconnected',
+                          compilationServer
+                            ? 'Building remotely'
+                            : 'Building in browser',
+                        ]
                           .filter(Boolean)
                           .join('. ')}
                       </span>
@@ -1138,14 +1278,20 @@ function RouteComponent() {
                     isUploading,
                   }}
                   loadSnapshot={() => loadWorkspace({ programId })}
-                  commitChanges={(changes, expectedCommitSha, message) =>
-                    commitWorkspace({
+                  commitChanges={async (
+                    changes,
+                    expectedCommitSha,
+                    message,
+                  ) => {
+                    const sha = await commitWorkspace({
                       programId,
                       changes,
                       expectedCommitSha,
                       message,
                     })
-                  }
+                    currentCommitShaRef.current = sha
+                    return sha
+                  }}
                   onSelect={setSelectedFile}
                   onPathsChange={setPaths}
                   selectedFile={activeFile ?? ''}

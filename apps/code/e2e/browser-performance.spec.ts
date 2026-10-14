@@ -208,7 +208,7 @@ for (const [template, label] of templates) {
               .getByRole('button', {
                 name:
                   route === 'project'
-                    ? /^(Build program|Build succeeded|Build restored)$/
+                    ? /^(Build program|Build succeeded.*|Build restored)$/
                     : 'Build in browser',
                 exact: true,
               })

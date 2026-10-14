@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures'
+import { expect, test, reloadReady } from './fixtures'
 
 test('choose an upload slot and require a build before uploading', async ({
   programPage: page,
@@ -25,6 +25,27 @@ test('choose an upload slot and require a build before uploading', async ({
   ).toBeDisabled()
 })
 
+test('remember the Brain slot after reloading the program', async ({
+  programPage: page,
+}) => {
+  await page
+    .getByRole('button', { name: 'Upload to Brain', exact: true })
+    .click()
+  await page
+    .getByRole('group', { name: 'Brain slot' })
+    .getByRole('button', { name: '3', exact: true })
+    .click()
+  await reloadReady(page)
+  await page
+    .getByRole('button', { name: 'Upload to Brain', exact: true })
+    .click()
+  await expect(
+    page
+      .getByRole('group', { name: 'Brain slot' })
+      .getByRole('button', { name: '3', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true')
+})
+
 test('disconnected terminal disables input and handles a cancelled connection', async ({
   programPage: page,
 }) => {
@@ -42,7 +63,7 @@ test('disconnected terminal disables input and handles a cancelled connection', 
   await page
     .getByRole('button', { name: 'Brain terminal', exact: true })
     .click()
-  const terminal = page.getByRole('dialog', {
+  const terminal = page.getByRole('region', {
     name: 'Brain terminal',
     exact: true,
   })

@@ -15,8 +15,8 @@ test('edit, undo, redo, recover a draft and commit it', async ({
   const marker = `draft-${Date.now()}`
   await appendComment(page, marker)
   await expect(
-    page.getByRole('button', { name: 'Commit changes before building' }),
-  ).toBeDisabled()
+    page.getByRole('button', { name: 'Save and build program' }),
+  ).toBeEnabled()
   await page.keyboard.press('ControlOrMeta+z')
   await expect(editor(page)).not.toContainText(marker)
   await page.keyboard.press('ControlOrMeta+Shift+z')
@@ -113,14 +113,30 @@ test('format a document and show problems and compiler output', async ({
   await expect(editor(page)).toContainText('int playwright_format = 1;')
   await editor(page).click()
   await page.keyboard.press('ControlOrMeta+j')
-  const problems = page.getByRole('dialog', { name: /^Problems/ })
+  const problems = page.getByRole('region', { name: /^Problems/ })
   await expect(problems).toBeVisible()
-  await page.keyboard.press('Escape')
+  await problems.getByRole('button', { name: 'Close panel' }).click()
   await page.getByRole('button', { name: 'Output', exact: true }).click()
-  const output = page.getByRole('dialog', { name: 'Output', exact: true })
+  const output = page.getByRole('region', { name: 'Output', exact: true })
   await expect(output).toContainText(
     'Build the project to see compiler output.',
   )
-  await page.keyboard.press('Escape')
+  await output.getByRole('button', { name: 'Close panel' }).click()
   await expect(output).toBeHidden()
+})
+
+test('cancel leaving a program with uncommitted changes', async ({
+  programPage: page,
+}) => {
+  await appendComment(page, 'guard this draft')
+  const url = page.url()
+  page.once('dialog', (dialog) => {
+    expect(dialog.message()).toContain('uncommitted changes')
+    void dialog.dismiss()
+  })
+  await page
+    .getByRole('button', { name: 'Back to programs', exact: true })
+    .click()
+  await expect(page).toHaveURL(url)
+  await expect(editor(page)).toContainText('guard this draft')
 })

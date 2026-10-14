@@ -11,12 +11,6 @@ import * as React from 'react'
 import type { V5SerialDevice, V5UserProgramTerminal } from '@v5x/serial'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetTitle,
-} from '~/components/ui/sheet'
 
 export interface BrainTerminalProps {
   brainDevice: V5SerialDevice | null
@@ -110,131 +104,122 @@ export function BrainTerminal({
     })
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="bottom"
-        showCloseButton={false}
-        className="max-h-[80vh] gap-0 data-[side=bottom]:h-[50vh]"
-      >
-        <SheetTitle className="sr-only">Brain terminal</SheetTitle>
-        <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
-          <div className="flex flex-wrap items-center gap-2">
+    <section
+      aria-label="Brain terminal"
+      hidden={!open}
+      className="flex h-full min-h-0 flex-col"
+    >
+      <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="icon-sm"
+            variant="outline"
+            aria-label={brainDevice ? 'Disconnect Brain' : 'Connect Brain'}
+            title={brainDevice ? 'Disconnect Brain' : 'Connect Brain'}
+            disabled={busy || isUploading}
+            onClick={() =>
+              void run(async () => {
+                if (brainDevice) await disconnectBrain()
+                else await connectBrain()
+              })
+            }
+          >
+            {busy ? (
+              <SpinnerGapIcon className="animate-spin" />
+            ) : brainDevice ? (
+              <PlugsIcon />
+            ) : (
+              <PlugIcon />
+            )}
+          </Button>
+          {brainDevice && !running && !isUploading && (
             <Button
               size="icon-sm"
               variant="outline"
-              aria-label={brainDevice ? 'Disconnect Brain' : 'Connect Brain'}
-              title={brainDevice ? 'Disconnect Brain' : 'Connect Brain'}
-              disabled={busy || isUploading}
-              onClick={() =>
-                void run(async () => {
-                  if (brainDevice) await disconnectBrain()
-                  else await connectBrain()
-                })
-              }
+              aria-label="Restart terminal"
+              title="Restart terminal"
+              disabled={busy}
+              onClick={() => setSession((current) => current + 1)}
             >
-              {busy ? (
-                <SpinnerGapIcon className="animate-spin" />
-              ) : brainDevice ? (
-                <PlugsIcon />
-              ) : (
-                <PlugIcon />
-              )}
+              <ArrowClockwiseIcon />
             </Button>
-            {brainDevice && !running && !isUploading && (
-              <Button
-                size="icon-sm"
-                variant="outline"
-                aria-label="Restart terminal"
-                title="Restart terminal"
-                disabled={busy}
-                onClick={() => setSession((current) => current + 1)}
-              >
-                <ArrowClockwiseIcon />
-              </Button>
-            )}
-            <Button
-              size="icon-sm"
-              variant="ghost"
-              aria-label="Clear output"
-              title="Clear output"
-              onClick={() => {
-                setOutput('')
-                followOutput.current = true
-              }}
-            >
-              <TrashIcon />
-            </Button>
-            <span role="status" className="text-xs text-muted-foreground">
-              {isUploading
-                ? 'Terminal paused during upload'
-                : running
-                  ? 'Connected'
-                  : brainDevice
-                    ? 'Terminal stopped'
-                    : 'Disconnected'}
-            </span>
-            <SheetClose
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className="ml-auto"
-                  aria-label="Close terminal"
-                  title="Close terminal"
-                />
-              }
-            >
-              <XIcon />
-            </SheetClose>
-          </div>
-          {error && (
-            <p role="alert" className="text-xs text-destructive">
-              {error}
-            </p>
           )}
-          <pre
-            ref={outputRef}
-            tabIndex={0}
-            aria-label="Brain terminal output"
-            className="min-h-0 flex-1 overflow-auto rounded-lg border bg-background p-3 font-mono text-xs whitespace-pre-wrap break-words"
-            onScroll={(event) => {
-              const element = event.currentTarget
-              followOutput.current =
-                element.scrollHeight -
-                  element.scrollTop -
-                  element.clientHeight <
-                32
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            aria-label="Clear output"
+            title="Clear output"
+            onClick={() => {
+              setOutput('')
+              followOutput.current = true
             }}
           >
-            {output || 'Waiting for program output…'}
-          </pre>
-          <form
-            className="flex gap-2"
-            onSubmit={(event) => {
-              event.preventDefault()
-              if (!busy && running && !isUploading) void send()
-            }}
+            <TrashIcon />
+          </Button>
+          <span role="status" className="text-xs text-muted-foreground">
+            {isUploading
+              ? 'Terminal paused during upload'
+              : running
+                ? 'Connected'
+                : brainDevice
+                  ? 'Terminal stopped'
+                  : 'Disconnected'}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="ml-auto"
+            aria-label="Close terminal"
+            onClick={() => onOpenChange(false)}
           >
-            <Input
-              aria-label="Brain terminal input"
-              placeholder="Send input to the program (Enter sends a newline)"
-              className="font-mono"
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              disabled={!running || busy || isUploading}
-            />
-            <Button
-              type="submit"
-              aria-label="Send input"
-              title="Send input"
-              size="icon-sm"
-              disabled={!running || busy || isUploading}
-            >
-              <PaperPlaneTiltIcon />
-            </Button>
-          </form>
+            <XIcon />
+          </Button>
         </div>
-      </SheetContent>
-    </Sheet>
+        {error && (
+          <p role="alert" className="text-xs text-destructive">
+            {error}
+          </p>
+        )}
+        <pre
+          ref={outputRef}
+          tabIndex={0}
+          aria-label="Brain terminal output"
+          className="min-h-0 flex-1 overflow-auto rounded-lg border bg-background p-3 font-mono text-xs whitespace-pre-wrap break-words"
+          onScroll={(event) => {
+            const element = event.currentTarget
+            followOutput.current =
+              element.scrollHeight - element.scrollTop - element.clientHeight <
+              32
+          }}
+        >
+          {output || 'Waiting for program output…'}
+        </pre>
+        <form
+          className="flex gap-2"
+          onSubmit={(event) => {
+            event.preventDefault()
+            if (!busy && running && !isUploading) void send()
+          }}
+        >
+          <Input
+            aria-label="Brain terminal input"
+            placeholder="Send input to the program (Enter sends a newline)"
+            className="font-mono"
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            disabled={!running || busy || isUploading}
+          />
+          <Button
+            type="submit"
+            aria-label="Send input"
+            title="Send input"
+            size="icon-sm"
+            disabled={!running || busy || isUploading}
+          >
+            <PaperPlaneTiltIcon />
+          </Button>
+        </form>
+      </div>
+    </section>
   )
 }

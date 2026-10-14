@@ -5,15 +5,27 @@ export const compilationProtocol = 'v5x-compile-v1'
 export const maximumSourceBytes = 6 * 1024 * 1024
 export const maximumArtifactBytes = 64 * 1024 * 1024
 
-export function compilationServerUrl(value: string) {
-  const url = new URL(value)
+export function compilationServerUrl(value: string, token = '') {
+  let url: URL
+  try {
+    url = new URL(value.trim())
+  } catch {
+    throw new Error('Enter the compilation server or tunnel URL.')
+  }
+  if (url.protocol === 'https:') url.protocol = 'wss:'
+  if (url.protocol === 'http:') url.protocol = 'ws:'
   if (
     !['ws:', 'wss:'].includes(url.protocol) ||
     url.username ||
     url.password ||
     url.hash
   )
-    throw new Error('Enter a ws:// or wss:// compilation server URL.')
+    throw new Error('Enter an http://, https://, ws://, or wss:// server URL.')
+  if (url.pathname === '/') url.pathname = '/compile'
+  const accessToken = (url.searchParams.get('token') || token).trim()
+  if (accessToken.length < 16)
+    throw new Error('Enter the access token printed by the compilation server.')
+  url.searchParams.set('token', accessToken)
   return url.href
 }
 

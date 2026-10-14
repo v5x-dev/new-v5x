@@ -8,7 +8,7 @@ After this package is published, launch it with Bun:
 bunx @v5x/compile-server --host 0.0.0.0
 ```
 
-Open a program in code, choose **More actions → Compilation server**, paste the printed URL, replace `<server-host>` with the faster computer's address, and click **Connect**. The URL includes a generated access token. Settings stay in that browser. **Use browser** switches back to local compilation. Remote connection failures are reported without starting a local build.
+Open a program in code, choose **More actions → Compilation server**, paste the printed URL, replace `<server-host>` with the faster computer's address, and click **Connect**. The URL includes a generated access token. You can also paste a Cloudflare tunnel base URL and enter the terminal token in the separate **Access token** field; code adds `/compile` and converts HTTPS to secure WebSocket automatically. Settings stay in that browser. **Use browser** switches back to local compilation. Remote connection failures are reported without starting a local build.
 
 The first build downloads the compiler and SDK from `https://code.v5x.dev`. Downloads are checked against their SHA-256 digests and cached under `~/.cache/v5x-compile-server`. The server keeps a compiler worker warm between builds, accepts one build at a time, and cancels compilation when the client disconnects. Source uploads are limited to 6 MB and artifact downloads to 64 MB.
 

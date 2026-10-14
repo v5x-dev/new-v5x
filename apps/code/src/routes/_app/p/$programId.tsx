@@ -1036,44 +1036,6 @@ function RouteComponent() {
                                 </Button>
                               ) : null}
                             </div>
-                            <Button
-                              variant="outline"
-                              className="w-full"
-                              onClick={() => void runInSimulator()}
-                              disabled={
-                                !program ||
-                                !simulatorTemplate(
-                                  program.template ?? 'vexcode',
-                                ) ||
-                                buildArtifactsCommitSha !==
-                                  program.currentCommitSha ||
-                                !((program?.template ?? 'vexcode') === 'vexcode'
-                                  ? buildArtifacts.has('build/workspace.bin')
-                                  : buildArtifacts.has('bin/hot.package.bin') &&
-                                    buildArtifacts.has(
-                                      'bin/cold.package.bin',
-                                    )) ||
-                                isBuilding ||
-                                isSaving ||
-                                isUploading ||
-                                isHandingOff ||
-                                hasUnsavedChanges
-                              }
-                            >
-                              {isHandingOff ? (
-                                <Spinner data-icon="inline-start" />
-                              ) : (
-                                <PlayIcon data-icon="inline-start" />
-                              )}
-                              Run in simulator
-                            </Button>
-                            {!simulatorTemplate(
-                              program?.template ?? 'vexcode',
-                            ) ? (
-                              <p className="text-xs text-muted-foreground">
-                                This template cannot run in the simulator.
-                              </p>
-                            ) : null}
                             {uploadMessage ? (
                               <p className="text-xs text-muted-foreground">
                                 {uploadMessage}
@@ -1087,6 +1049,38 @@ function RouteComponent() {
                           </div>
                         </PopoverContent>
                       </Popover>
+                      <Button
+                        size="icon-xs"
+                        variant="ghost"
+                        aria-label="Run in simulator"
+                        title={
+                          simulatorTemplate(program.template ?? 'vexcode')
+                            ? 'Run in simulator'
+                            : 'This template cannot run in the simulator.'
+                        }
+                        onClick={() => void runInSimulator()}
+                        disabled={
+                          !program ||
+                          !simulatorTemplate(program.template ?? 'vexcode') ||
+                          buildArtifactsCommitSha !==
+                            program.currentCommitSha ||
+                          !((program?.template ?? 'vexcode') === 'vexcode'
+                            ? buildArtifacts.has('build/workspace.bin')
+                            : buildArtifacts.has('bin/hot.package.bin') &&
+                              buildArtifacts.has('bin/cold.package.bin')) ||
+                          isBuilding ||
+                          isSaving ||
+                          isUploading ||
+                          isHandingOff ||
+                          hasUnsavedChanges
+                        }
+                      >
+                        {isHandingOff ? (
+                          <Spinner data-icon="inline-start" />
+                        ) : (
+                          <PlayIcon data-icon="inline-start" />
+                        )}
+                      </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger
                           render={

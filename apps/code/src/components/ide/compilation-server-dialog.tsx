@@ -36,13 +36,22 @@ export function CompilationServerDialog({
   onConnect: (endpoint: string) => void
 }) {
   const [url, setUrl] = React.useState(endpoint)
+  const [token, setToken] = React.useState('')
   const [error, setError] = React.useState('')
   const [connecting, setConnecting] = React.useState(false)
   const abortRef = React.useRef<AbortController | null>(null)
 
   React.useEffect(() => {
     if (open) {
-      setUrl(endpoint)
+      try {
+        const saved = new URL(endpoint)
+        setToken(saved.searchParams.get('token') ?? '')
+        saved.searchParams.delete('token')
+        setUrl(saved.href)
+      } catch {
+        setUrl(endpoint)
+        setToken('')
+      }
       setError('')
     }
     return () => {
@@ -58,7 +67,7 @@ export function CompilationServerDialog({
     setConnecting(true)
     setError('')
     try {
-      const next = compilationServerUrl(url.trim())
+      const next = compilationServerUrl(url, token)
       await testCompilationServer(next, controller.signal)
       if (controller.signal.aborted) return
       onConnect(next)
@@ -99,7 +108,7 @@ export function CompilationServerDialog({
                 id="compilation-server-url"
                 value={url}
                 onChange={(event) => setUrl(event.target.value)}
-                placeholder="wss://your-server/compile?token=…"
+                placeholder="https://your-tunnel.trycloudflare.com"
                 autoComplete="off"
                 spellCheck={false}
                 disabled={connecting}
@@ -107,12 +116,30 @@ export function CompilationServerDialog({
                 aria-describedby="compilation-server-description"
               />
               <FieldDescription id="compilation-server-description">
-                Paste the URL printed by the server, including its token.
-                Replace &lt;server-host&gt; with its address. For a remote
-                server used from HTTPS, configure TLS with --cert and --key, or
-                a secure tunnel.
+                Paste your Cloudflare tunnel URL or the server's WebSocket URL.
+                We add /compile automatically. Remote connections from HTTPS
+                require a secure tunnel or TLS.
               </FieldDescription>
               {error && <FieldError>{error}</FieldError>}
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="compilation-server-token">
+                Access token
+              </FieldLabel>
+              <Input
+                id="compilation-server-token"
+                type="password"
+                value={token}
+                onChange={(event) => setToken(event.target.value)}
+                autoComplete="off"
+                spellCheck={false}
+                disabled={connecting}
+                aria-describedby="compilation-server-token-description"
+              />
+              <FieldDescription id="compilation-server-token-description">
+                Copy the value after token= from the server's terminal. You can
+                also paste the full URL with its token above.
+              </FieldDescription>
             </Field>
           </FieldGroup>
           <DialogFooter>

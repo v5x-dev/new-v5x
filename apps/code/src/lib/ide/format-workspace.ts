@@ -21,35 +21,45 @@ export async function formatWorkspace(
   )
   if (!sources.length) return documents
 
-  if (!client?.ready)
-    throw new Error('Wait for the language service before committing.')
+  if (!client?.ready || !client.capabilities.documentFormattingProvider)
+    return documents
 
-  if (!client.capabilities.documentFormattingProvider)
-    throw new Error('Formatting is unavailable for this language.')
+  // Formatting must not prevent committing on machines where clangd is slow.
+  // Bound the whole pass, and discard partial formatting if any file fails.
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 3_000)
 
-  // Include current configuration files before requesting clangd formatting.
-  for (const doc of live) client.setFile(doc.path, doc.contents, doc.version)
+  try {
+    // Include current configuration files before requesting clangd formatting.
+    for (const doc of live) client.setFile(doc.path, doc.contents, doc.version)
 
-  for (const doc of sources) client.sync(doc.path, doc.contents, doc.version)
+    for (const doc of sources) client.sync(doc.path, doc.contents, doc.version)
 
-  let formatted = documents
+    let formatted = documents
 
-  for (const doc of sources) {
-    const edits = await client.request<Array<TextEdit> | null>(
-      'textDocument/formatting',
-      {
-        textDocument: { uri: fileUri(doc.path) },
-        options: { tabSize: 2, insertSpaces: true },
-      },
-    )
-
-    if (edits?.length)
-      formatted = updateDocument(
-        formatted,
-        doc.path,
-        applyTextEdits(doc.contents, edits),
+    for (const doc of sources) {
+      const edits = await client.request<Array<TextEdit> | null>(
+        'textDocument/formatting',
+        {
+          textDocument: { uri: fileUri(doc.path) },
+          options: { tabSize: 2, insertSpaces: true },
+        },
+        controller.signal,
+        3_000,
       )
-  }
 
-  return formatted
+      if (edits?.length)
+        formatted = updateDocument(
+          formatted,
+          doc.path,
+          applyTextEdits(doc.contents, edits),
+        )
+    }
+
+    return formatted
+  } catch {
+    return documents
+  } finally {
+    clearTimeout(timer)
+  }
 }

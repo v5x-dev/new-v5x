@@ -70,21 +70,45 @@ test('formatting failures leave the entire original program unchanged', async ()
     'main.cpp': 'main',
     'other.h': 'other',
   })
-  await expect(
-    formatWorkspace(documents, formatter('other.h')),
-  ).rejects.toThrow('Formatting failed')
+  expect(await formatWorkspace(documents, formatter('other.h'))).toBe(documents)
   expect(documents['main.cpp']!.contents).toBe('main')
   expect(workspaceDocuments(documents).some(isDirty)).toBe(false)
 })
 
-test('requires a ready formatter for source files', async () => {
+test('commits original text when the formatter is absent, starting, or unsupported', async () => {
   const { documents } = recoverDocuments({ 'main.cpp': 'main' })
-  await expect(formatWorkspace(documents, null)).rejects.toThrow(
-    'language service',
-  )
+  expect(await formatWorkspace(documents, null)).toBe(documents)
   const client = formatter()
+  client.ready = false
+  expect(await formatWorkspace(documents, client)).toBe(documents)
+  expect(client.requested).toHaveLength(0)
+  client.ready = true
   client.capabilities.documentFormattingProvider = false
-  await expect(formatWorkspace(documents, client)).rejects.toThrow(
-    'unavailable',
-  )
+  expect(await formatWorkspace(documents, client)).toBe(documents)
+  expect(client.requested).toHaveLength(0)
 })
+
+test('bounds the whole formatting pass and cancels a stalled request', async () => {
+  const { documents } = recoverDocuments({ 'main.cpp': 'main' })
+  const client = formatter()
+  let signal: AbortSignal | undefined
+  client.request = async <T>(
+    _method: string,
+    _params: unknown,
+    requestSignal?: AbortSignal,
+  ): Promise<T> => {
+    signal = requestSignal
+    return new Promise((_resolve, reject) => {
+      requestSignal?.addEventListener(
+        'abort',
+        () => reject(new Error('cancelled')),
+        {
+          once: true,
+        },
+      )
+    })
+  }
+
+  expect(await formatWorkspace(documents, client)).toBe(documents)
+  expect(signal?.aborted).toBe(true)
+}, 5_000)

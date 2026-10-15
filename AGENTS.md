@@ -2,6 +2,8 @@
 
 - Use bun and bunx instead of npm and npx.
 - For frontend work, always try to use shadcn UI components before building custom components.
+- This is a monorepo rearchitecture. Preserve every app’s existing UI and interactions, including presets, primitives, icons, typography, spacing, sidebar variants, and toolbars. Moving components must not restyle an app.
+- Shared shadcn UI components live in `packages/ui` (`@v5x/ui`, base-nova style, Phosphor icons) and are imported as `@v5x/ui/components/<name>`. Add or update them there with `bunx shadcn@latest add <name>` run from `packages/ui`, never inside an app. Design preserves its original Radix components and Lucide icons in `packages/ui/src/design`, imported as `@v5x/ui/design/<name>`. Do not switch Design to the Base UI components. Each React app's CSS needs `@source` pointing at `packages/ui/src`. `apps/brain` is the exception: it uses the shadcn `base-mira` preset (mauve), so it keeps its own copies in `apps/brain/src/components/ui` rather than the shared `base-nova` ones, and its canvas (`@xyflow/react`) and terminal are styled in `src/styles/flow.css`.
 - Keep Pierre as the editor in `apps/code`. Do not suggest or implement replacing it with Monaco or another editor. Integrate LSP and other editor features with Pierre.
 - Use the browser only to verify behavior afterward, or when the cause depends on DOM state, cookies, network responses, or runtime-only behavior.
 - Verify `apps/code` behavior in the real application routes. Never use `ide.html`, `ide-validation.tsx`, or an isolated editor harness unless the user explicitly requests it. A harness is not a substitute for testing the actual app. If the real app cannot be accessed, report that limitation instead of switching to a harness.

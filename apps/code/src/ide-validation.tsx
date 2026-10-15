@@ -11,7 +11,7 @@ import {
   SidebarFooter,
   SidebarInset,
   SidebarProvider,
-} from './components/ui/sidebar'
+} from '@v5x/ui/components/sidebar'
 import type { FileOperations } from '~/lib/ide/file-operations'
 import type { ProjectTemplate } from '@v5x/compiler'
 import './styles/app.css'

@@ -1,5 +1,5 @@
-import { Alert, AlertDescription } from '~/components/ui/alert'
-import { Skeleton } from '~/components/ui/skeleton'
+import { Alert, AlertDescription } from '@v5x/ui/components/alert'
+import { Skeleton } from '@v5x/ui/components/skeleton'
 import {
   ArchiveIcon,
   MagnifyingGlassIcon,
@@ -8,27 +8,27 @@ import {
   XIcon,
 } from '@phosphor-icons/react'
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { Button } from '~/components/ui/button'
+import { Button } from '@v5x/ui/components/button'
 import {
   InputGroup,
   InputGroupInput,
   InputGroupAddon,
   InputGroupButton,
-} from '~/components/ui/input-group'
+} from '@v5x/ui/components/input-group'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
-} from '~/components/ui/dropdown-menu'
-import { Kbd } from '~/components/ui/kbd'
+} from '@v5x/ui/components/dropdown-menu'
+import { Kbd } from '@v5x/ui/components/kbd'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '~/components/ui/tooltip'
+} from '@v5x/ui/components/tooltip'
 import { cn } from '~/lib/utils'
 import { Link } from '@tanstack/react-router'
 import { useAction, useMutation, usePaginatedQuery } from 'convex/react'
@@ -42,7 +42,7 @@ import {
   EmptyHeader,
   EmptyTitle,
   EmptyDescription,
-} from '~/components/ui/empty'
+} from '@v5x/ui/components/empty'
 import { templateInfo, templates, type Template } from './templates'
 import { TemplateIcon } from './template-icon'
 import { ImportProject } from './import-project'

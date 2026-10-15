@@ -3,7 +3,7 @@ import {
   compilationServerUrl,
   testCompilationServer,
 } from '@v5x/compiler/remote-build'
-import { Button } from '~/components/ui/button'
+import { Button } from '@v5x/ui/components/button'
 import {
   Dialog,
   DialogContent,
@@ -11,16 +11,16 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '~/components/ui/dialog'
+} from '@v5x/ui/components/dialog'
 import {
   Field,
   FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
-} from '~/components/ui/field'
-import { Input } from '~/components/ui/input'
-import { Spinner } from '~/components/ui/spinner'
+} from '@v5x/ui/components/field'
+import { Input } from '@v5x/ui/components/input'
+import { Spinner } from '@v5x/ui/components/spinner'
 
 export const compilationServerStorageKey = 'v5x-compilation-server-url'
 

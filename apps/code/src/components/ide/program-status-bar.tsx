@@ -5,16 +5,16 @@ import {
   HammerIcon,
   PlayIcon,
 } from '@phosphor-icons/react'
-import { Button } from '~/components/ui/button'
+import { Button } from '@v5x/ui/components/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '~/components/ui/dropdown-menu'
-import { Kbd } from '~/components/ui/kbd'
-import { Spinner } from '~/components/ui/spinner'
+} from '@v5x/ui/components/dropdown-menu'
+import { Kbd } from '@v5x/ui/components/kbd'
+import { Spinner } from '@v5x/ui/components/spinner'
 
 export function describeBuildElapsed(seconds: number) {
   const minutes = Math.floor(seconds / 60)
@@ -83,7 +83,8 @@ export function BuildButton({
 
   return (
     <Button
-      size="sm"
+      size="xs"
+      variant="ghost"
       aria-label={label}
       title={label}
       onClick={onBuild}
@@ -108,8 +109,8 @@ export function SimulatorButton({
 }) {
   return (
     <Button
-      size="sm"
-      variant="outline"
+      size="xs"
+      variant="ghost"
       aria-label="Run in simulator"
       title={
         supported

@@ -1,15 +1,15 @@
 import { XIcon } from '@phosphor-icons/react'
 import type { RefObject } from 'react'
 import type { searchWorkspace } from '~/lib/ide/workspace'
-import { Button } from '~/components/ui/button'
-import { Input } from '~/components/ui/input'
-import { Toggle } from '~/components/ui/toggle'
+import { Button } from '@v5x/ui/components/button'
+import { Input } from '@v5x/ui/components/input'
+import { Toggle } from '@v5x/ui/components/toggle'
 import {
   Sheet,
   SheetClose,
   SheetContent,
   SheetTitle,
-} from '~/components/ui/sheet'
+} from '@v5x/ui/components/sheet'
 
 interface Props {
   searchOpen: boolean

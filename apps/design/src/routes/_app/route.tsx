@@ -11,14 +11,14 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarRail,
-} from "#/components/ui/sidebar"
+} from "@v5x/ui/design/sidebar"
 import { createFileRoute, Outlet } from "@tanstack/react-router"
 import { useState } from "react"
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-} from "#/components/ui/input-group"
+} from "@v5x/ui/design/input-group"
 import { BoxIcon, SearchIcon } from "lucide-react"
 import { modelPaths, partName, PART_DRAG_TYPE } from "#/lib/parts"
 

@@ -3,14 +3,14 @@ import { useAction } from 'convex/react'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import { Button } from '~/components/ui/button'
+import { Button } from '@v5x/ui/components/button'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '~/components/ui/dialog'
+} from '@v5x/ui/components/dialog'
 
 type Commit = { sha: string; message: string; author: string; date: string }
 const options = {

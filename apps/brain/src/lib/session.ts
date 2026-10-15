@@ -1,7 +1,6 @@
 import { spawnQemu, killQemu } from "~/lib/invoke"
 import { desktop, listen, request } from "~/lib/runtime"
-import { terminal, session } from "~/lib/stores"
-import { get } from "svelte/store"
+import { setSession, useApp } from "~/lib/stores"
 
 export default class Session {
   paused = false
@@ -12,8 +11,8 @@ export default class Session {
     this.running = false
     this.paused = false
     this.unlisten.splice(0).forEach((fn) => fn())
-    if (error) get(terminal)?.writeln(`Simulator failed: ${error}`)
-    session.set(this)
+    if (error) useApp.getState().terminal?.writeln(`Simulator failed: ${error}`)
+    setSession(this)
   }
   constructor(
     public binary: string,
@@ -50,10 +49,10 @@ export default class Session {
         await request("start", this.file)
       }
       this.running = true
-      session.set(this)
+      setSession(this)
     } catch (error) {
       this.unlisten.splice(0).forEach((fn) => fn())
-      get(terminal)?.writeln(`Failed to start program: ${error}`)
+      useApp.getState().terminal?.writeln(`Failed to start program: ${error}`)
       throw error
     }
   }
@@ -62,14 +61,14 @@ export default class Session {
     if (desktop) await killQemu()
     else await request("stop")
     this.ended()
-    get(terminal)?.clear()
-    session.set(this)
+    useApp.getState().terminal?.clear()
+    setSession(this)
   }
   async togglePause() {
     if (!this.running || desktop) return
     await request(this.paused ? "resume" : "pause")
     this.paused = !this.paused
-    session.set(this)
+    setSession(this)
   }
   async reset() {
     if (this.running) {

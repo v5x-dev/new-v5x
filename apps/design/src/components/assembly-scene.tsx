@@ -7,9 +7,9 @@ import type { AssemblyHistory, AssemblyPart } from "#/lib/assembly"
 import type { AssemblyCommand } from "#/lib/assembly"
 import { AssemblyPanel } from "#/components/assembly-panel"
 import type { TransformMode } from "#/hooks/use-assembly-document"
-import { Toggle } from "#/components/ui/toggle"
+import { Toggle } from "@v5x/ui/design/toggle"
 import { Move, Rotate3D, ScanLine } from "lucide-react"
-import { ToggleGroup, ToggleGroupItem } from "#/components/ui/toggle-group"
+import { ToggleGroup, ToggleGroupItem } from "@v5x/ui/design/toggle-group"
 import { CameraLight, Part } from "#/components/assembly-part"
 
 export function AssemblyScene({

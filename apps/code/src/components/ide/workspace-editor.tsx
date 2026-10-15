@@ -11,14 +11,14 @@ import { WorkspaceEditorToolbar } from './workspace-editor-toolbar'
 import { WorkspaceFilePicker } from './workspace-file-picker'
 import { WorkspacePanels } from './workspace-panels'
 import { WorkspaceSearch } from './workspace-search'
-import { Alert, AlertDescription } from '~/components/ui/alert'
-import { Button } from '~/components/ui/button'
+import { Alert, AlertDescription } from '@v5x/ui/components/alert'
+import { Button } from '@v5x/ui/components/button'
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
-} from '~/components/ui/resizable'
-import { Skeleton } from '~/components/ui/skeleton'
+} from '@v5x/ui/components/resizable'
+import { Skeleton } from '@v5x/ui/components/skeleton'
 import { useCompletions } from '~/hooks/use-completions'
 import { useDraftWriter } from '~/hooks/use-draft-writer'
 import { useLanguageClient } from '~/hooks/use-language-client'

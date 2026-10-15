@@ -5,7 +5,7 @@ import {
   signOutShared,
   type SharedUser,
 } from "@v5x/auth/browser"
-import { Button } from "#/components/ui/button"
+import { Button } from "@v5x/ui/design/button"
 
 export function AccountLink() {
   const [user, setUser] = useState<SharedUser | null>(null)

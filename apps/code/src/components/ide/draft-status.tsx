@@ -1,5 +1,5 @@
 import { DownloadSimpleIcon } from '@phosphor-icons/react'
-import { Button } from '~/components/ui/button'
+import { Button } from '@v5x/ui/components/button'
 import { downloadDraftRecovery } from '~/lib/draft-recovery'
 import type { DraftStatus as Status } from '~/lib/ide/draft-writer'
 

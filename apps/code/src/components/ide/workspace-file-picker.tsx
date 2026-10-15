@@ -7,7 +7,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '~/components/ui/command'
+} from '@v5x/ui/components/command'
 
 interface Props {
   documents: Documents

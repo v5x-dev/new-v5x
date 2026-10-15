@@ -1,12 +1,10 @@
 export { cn } from "cn"
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type WithoutChild<T> = T extends { child?: any } ? Omit<T, "child"> : T
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type WithoutChildren<T> = T extends { children?: any }
-  ? Omit<T, "children">
-  : T
-export type WithoutChildrenOrChild<T> = WithoutChildren<WithoutChild<T>>
-export type WithElementRef<T, U extends HTMLElement = HTMLElement> = T & {
-  ref?: U | null
+/**
+ * Join class names without merging. `cn` resolves conflicts between Tailwind
+ * utilities, which drops one of the arbitrary-variant utilities the canvas
+ * components set together (for example a font family and a font weight).
+ */
+export function cx(...parts: (string | false | null | undefined)[]) {
+  return parts.filter(Boolean).join(" ")
 }

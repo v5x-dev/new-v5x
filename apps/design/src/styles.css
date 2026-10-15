@@ -5,6 +5,8 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/space-grotesk";
 
+@source "../../../packages/ui/src";
+
 @custom-variant dark (&:is(.dark *));
 
 :root {

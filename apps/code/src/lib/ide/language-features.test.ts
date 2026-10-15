@@ -91,7 +91,11 @@ describe('definitionTarget', () => {
   test('maps workspace and SDK locations', () => {
     expect(
       definitionTarget({ uri: 'file:///workspace/src/main.cpp', range }),
-    ).toEqual({ kind: 'workspace', path: 'src/main.cpp', position: range.start })
+    ).toEqual({
+      kind: 'workspace',
+      path: 'src/main.cpp',
+      position: range.start,
+    })
 
     expect(
       definitionTarget([{ uri: 'file:///sdk/include/v5.h', range }]),

@@ -1,4 +1,4 @@
-import { Button } from '~/components/ui/button'
+import { Button } from '@v5x/ui/components/button'
 
 // Files whose recovered local draft conflicts with a newer remote commit.
 export function DraftConflicts({

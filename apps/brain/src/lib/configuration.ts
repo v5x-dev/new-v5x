@@ -1,4 +1,4 @@
-import type { Edge, Node } from "@xyflow/svelte"
+import type { Edge, Node } from "@xyflow/react"
 
 export interface SimulationConfiguration {
   version: 1

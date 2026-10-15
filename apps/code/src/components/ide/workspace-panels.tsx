@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from 'react'
 import type { Diagnostic } from 'vscode-languageserver-protocol'
-import { Button } from '~/components/ui/button'
-import { Card, CardContent } from '~/components/ui/card'
+import { Button } from '@v5x/ui/components/button'
+import { Card, CardContent } from '@v5x/ui/components/card'
 
 export type WorkspacePanel = 'problems' | 'output' | 'terminal' | null
 

@@ -1,10 +1,12 @@
 import { afterEach, expect, test } from "bun:test"
 import {
   buildOnServer,
+  compilationProtocol,
   testCompilationServer,
   validateRemoteInput,
 } from "@v5x/compiler/remote-build"
 import { createCompileServer } from "./server"
+import type { CompileServerOptions } from "./server"
 import type { BrowserBuildInput } from "@v5x/compiler/browser-build"
 
 class CompilerWorker {
@@ -41,7 +43,10 @@ class CompilerWorker {
 
 const token = "0123456789abcdef0123456789abcdef"
 let running: ReturnType<typeof createCompileServer> | undefined
-function setup(worker = new CompilerWorker()) {
+function setup(
+  worker = new CompilerWorker(),
+  overrides: Partial<CompileServerOptions> = {}
+) {
   running = createCompileServer({
     hostname: "127.0.0.1",
     port: 0,
@@ -50,6 +55,7 @@ function setup(worker = new CompilerWorker()) {
     assetsUrl: "https://code.v5x.dev",
     cacheDirectory: "/tmp/v5x-unused-test-cache",
     worker: () => worker as unknown as Worker,
+    ...overrides,
   })
   return `ws://127.0.0.1:${running.server.port}/compile?token=${token}`
 }
@@ -58,12 +64,12 @@ const input: BrowserBuildInput = {
   commitSha: "abc",
   files: { "src/main.cpp": "int main() {}" },
 }
-afterEach(() => {
-  running?.stop()
+afterEach(async () => {
+  await running?.stop()
   running = undefined
 })
 
-test("connects, streams output, and returns exact binary artifacts over WebSocket", async () => {
+test("negotiates binary-v1, streams output, and returns exact artifacts over WebSocket", async () => {
   const endpoint = setup()
   await testCompilationServer(endpoint)
   const output: Array<string> = []
@@ -74,6 +80,90 @@ test("connects, streams output, and returns exact binary artifacts over WebSocke
   expect(result.commitSha).toBe("abc")
   expect(result.artifacts[0].bytes).toEqual(new Uint8Array([0, 128, 255]))
   expect((await buildOnServer(endpoint, input, () => {})).exitCode).toBe(0)
+})
+
+test("keeps the base64 result format for clients that omit artifactEncoding", async () => {
+  const endpoint = setup()
+  const socket = new WebSocket(endpoint, compilationProtocol)
+  try {
+    const result = await new Promise<{
+      artifacts: Array<{ path: string; base64: string }>
+      commitSha: string
+      exitCode: number
+      output: string
+    }>((resolve, reject) => {
+      socket.onerror = () => reject(new Error("WebSocket error"))
+      socket.onmessage = ({ data }) => {
+        if (typeof data !== "string") {
+          reject(new Error("Legacy client received a binary frame"))
+          return
+        }
+        const message = JSON.parse(data)
+        if (message.type === "ready") {
+          socket.send(JSON.stringify({ type: "build", input }))
+        } else if (message.type === "result") resolve(message.result)
+        else if (message.type === "error") reject(new Error(message.message))
+      }
+    })
+
+    expect(result).toEqual({
+      commitSha: "abc",
+      exitCode: 0,
+      output: "compiled\n",
+      artifacts: [{ path: "build/workspace.bin", base64: "AID/" }],
+    })
+  } finally {
+    socket.close()
+  }
+})
+
+test("rejects unsupported artifact encodings before compilation", async () => {
+  const worker = new CompilerWorker()
+  const endpoint = setup(worker)
+  const socket = new WebSocket(endpoint, compilationProtocol)
+  try {
+    const message = await new Promise<{ message: string }>(
+      (resolve, reject) => {
+        socket.onerror = () => reject(new Error("WebSocket error"))
+        socket.onmessage = ({ data }) => {
+          if (typeof data !== "string") {
+            reject(new Error("Unexpected binary response"))
+            return
+          }
+          const response = JSON.parse(data)
+          if (response.type === "ready")
+            socket.send(
+              JSON.stringify({
+                type: "build",
+                input,
+                artifactEncoding: "binary-v2",
+              })
+            )
+          else if (response.type === "error") resolve(response)
+        }
+      }
+    )
+
+    expect(message.message).toBe("Unsupported artifact encoding")
+    expect(worker.terminated).toBe(false)
+  } finally {
+    socket.close()
+  }
+})
+
+test("an explicit native toolchain selects native compilation", async () => {
+  const worker = new CompilerWorker()
+  const endpoint = setup(worker, {
+    nativeToolchainDirectory: "/missing-v5x-native-toolchain",
+  })
+  let message = ""
+  try {
+    await buildOnServer(endpoint, input, () => {})
+  } catch (error) {
+    message = (error as Error).message
+  }
+  expect(message).toContain("Native ARM toolchain not found")
+  expect(worker.terminated).toBe(false)
 })
 
 test("rejects wrong tokens and unapproved browser origins", async () => {
@@ -169,7 +259,7 @@ test("a server disconnect fails the pending build instead of returning partial a
     (error) => error
   )
   await Bun.sleep(20)
-  running!.stop()
+  await running!.stop()
   running = undefined
   expect((await result).message).toContain("disconnected")
 })

@@ -1,10 +1,19 @@
 import { test as base, expect } from '@playwright/test'
+import { readFile } from 'node:fs/promises'
 import type { Page } from '@playwright/test'
 
 // Every test gets a new real Better Auth user. Cookies stay in its browser
 // context, so SSR, the auth client, and Convex all exercise normal auth paths.
 export const test = base.extend<{ signedInPage: Page; programPage: Page }>({
   signedInPage: async ({ page, baseURL }, use) => {
+    if (process.env.BUILD_IDE_SERVICE_FILE) {
+      const endpoint = (
+        await readFile(process.env.BUILD_IDE_SERVICE_FILE, 'utf8')
+      ).trim()
+      await page.addInitScript((value) => {
+        localStorage.setItem('v5x-compilation-server-url', value)
+      }, endpoint)
+    }
     const response = await page.request.post('/api/auth/sign-in/anonymous', {
       headers: { Origin: baseURL! },
       data: {},
@@ -74,7 +83,10 @@ export async function openFile(page: Page, path: string) {
   await page.keyboard.press('ControlOrMeta+p')
   const dialog = page.getByRole('dialog', { name: 'Open file', exact: true })
   await dialog.getByRole('combobox').fill(path)
-  await dialog.getByRole('option', { name: path, exact: true }).click()
+  await dialog
+    .getByRole('option')
+    .filter({ has: page.getByText(path, { exact: true }) })
+    .click()
   await expect(dialog).toBeHidden()
   await expect(
     page.getByRole('tab').filter({ hasText: path.split('/').at(-1)! }),
@@ -124,6 +136,11 @@ export async function commitChanges(page: Page) {
   await expect(commit).toBeEnabled()
   await commit.click()
   await expect(commit).toBeDisabled()
+  await expect(
+    page
+      .getByRole('status', { name: '', exact: true })
+      .filter({ hasText: /^Committed$/ }),
+  ).toHaveText('Committed')
   await expect(
     page
       .getByRole('tablist', { name: 'Open files' })

@@ -30,6 +30,7 @@ import {
   releaseBrowserCompiler,
   scheduleBrowserCompilerPreload,
   writeBrowserBuild,
+  type BrowserBuildResult,
 } from '@v5x/compiler'
 import { buildOnServer } from '@v5x/compiler/remote-build'
 import {
@@ -153,6 +154,29 @@ function RouteComponent() {
   const [buildArtifactsCommitSha, setBuildArtifactsCommitSha] = React.useState<
     string | null
   >(null)
+
+  const pendingBuildCacheRef = React.useRef<{
+    programId: string
+    result: BrowserBuildResult
+  } | null>(null)
+
+  const flushBuildCache = React.useCallback(() => {
+    const pending = pendingBuildCacheRef.current
+    if (!pending) return
+    pendingBuildCacheRef.current = null
+    void writeBrowserBuild(pending.programId, pending.result).catch((error) =>
+      console.error('Could not cache browser build:', error),
+    )
+  }, [])
+
+  React.useEffect(() => {
+    const onHide = () => flushBuildCache()
+    window.addEventListener('pagehide', onHide)
+    return () => {
+      window.removeEventListener('pagehide', onHide)
+      flushBuildCache()
+    }
+  }, [flushBuildCache])
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false)
   const [isSaving, setIsSaving] = React.useState(false)
@@ -315,7 +339,7 @@ function RouteComponent() {
         result.commitSha !== currentCommitShaRef.current
       )
         return
-      setBuildOutput(result.output)
+      setBuildOutput(result.output.slice(-400 * 1024))
       setBuildFiles(result.artifacts.map((artifact) => artifact.path))
       setBuildArtifacts(
         new Map(result.artifacts.map(({ path, bytes }) => [path, bytes])),
@@ -326,12 +350,10 @@ function RouteComponent() {
           ? `Build succeeded · ${Math.round((performance.now() - started) / 1000)}s`
           : `Build failed (exit code ${result.exitCode})`,
       )
-      // Persistence failure must not discard a binary that is already ready to upload.
-      try {
-        await writeBrowserBuild(programId, result)
-      } catch (error) {
-        console.error('Could not cache browser build:', error)
-      }
+      // Keep the upload buffers in React. Cache them after idle so IndexedDB's
+      // structured clone does not stack on the live artifacts at peak.
+      pendingBuildCacheRef.current = { programId, result }
+      setTimeout(flushBuildCache, 4_000)
     } catch (error) {
       if (generation !== buildGenerationRef.current) return
       const message = error instanceof Error ? error.message : String(error)
@@ -993,7 +1015,8 @@ function RouteComponent() {
                         title="Commit changes"
                         onClick={() => {
                           const save = saveHandlerRef.current
-                          if (save) void save()
+                          // The workspace displays save failures.
+                          if (save) void save().catch(() => {})
                         }}
                         disabled={
                           !hasUnsavedChanges ||
@@ -1272,6 +1295,9 @@ function RouteComponent() {
                   }
                   key={programId}
                   workspaceId={programId}
+                  languageServer={
+                    compilationServerLoaded ? compilationServer : null
+                  }
                   template={program.template ?? 'vexcode'}
                   commitSha={program.currentCommitSha}
                   buildOutput={buildOutput}

@@ -5,9 +5,18 @@ import { dirname, resolve } from "node:path"
 
 const root = resolve(import.meta.dir, "../apps/code")
 
-const source = resolve(root, "node_modules/@clangd-wasm/core/dist")
+const version = process.env.CLANGD_WASM_VERSION ?? "15.0.7-small"
+const packageName =
+  process.env.CLANGD_WASM_PACKAGE ?? "@clangd-wasm/core-small@15.0.7"
+const source = resolve(
+  root,
+  process.env.CLANGD_WASM_DIST ?? "node_modules/@clangd-wasm/core/dist"
+)
 
-const destination = resolve(root, "public/language/clangd-15.0.7")
+const destination = resolve(
+  root,
+  process.env.CLANGD_WASM_OUTPUT ?? `public/language/clangd-${version}`
+)
 
 await mkdir(destination, { recursive: true })
 
@@ -25,11 +34,17 @@ for (const file of files) {
 
 await prepareCompressedAsset(resolve(destination, "clangd.wasm"))
 
-await copyFile(resolve(source, "../LICENSE"), resolve(destination, "LICENSE"))
+// core-small omits the upstream license from its npm package.
+const license = resolve(
+  root,
+  process.env.CLANGD_WASM_LICENSE ??
+    "../../scripts/licenses/clangd-wasm-core-LICENSE"
+)
+await copyFile(license, resolve(destination, "LICENSE"))
 
 await writeFile(
   resolve(destination, "manifest.json"),
-  JSON.stringify({ version: "15.0.7", files: hashes }, null, 2)
+  JSON.stringify({ version, package: packageName, files: hashes }, null, 2)
 )
 
 console.log(

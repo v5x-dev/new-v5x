@@ -11,6 +11,7 @@ type StoredBlob = { bytes: Uint8Array; size: number }
 const byteLimit = 128 * 1024 * 1024
 const buildLimit = 32
 const artifactLimit = 32 * 1024 * 1024
+const buildArtifactLimit = 16 * 1024 * 1024
 
 function database() {
   return new Promise<IDBDatabase>((resolve, reject) => {
@@ -42,25 +43,36 @@ function requestValue<T>(request: IDBRequest<T>) {
 function validResult(value: unknown): value is BrowserBuildResult {
   if (!value || typeof value !== 'object') return false
   const result = value as BrowserBuildResult
+  if (
+    typeof result.commitSha !== 'string' ||
+    result.commitSha.length > 128 ||
+    !Number.isInteger(result.exitCode) ||
+    typeof result.output !== 'string' ||
+    result.output.length > 450 * 1024 ||
+    !Array.isArray(result.artifacts) ||
+    result.artifacts.length > 16 ||
+    (result.exitCode !== 0 && result.artifacts.length > 0)
+  )
+    return false
+
+  let totalBytes = 0
+  for (const artifact of result.artifacts) {
+    if (
+      !/^(build|bin)\/[\w./-]+\.bin$/.test(artifact.path) ||
+      artifact.path.split('/').includes('..') ||
+      !(artifact.bytes instanceof Uint8Array) ||
+      artifact.bytes.byteLength > artifactLimit ||
+      artifact.path === 'bin/monolith.bin'
+    )
+      return false
+
+    totalBytes += artifact.bytes.byteLength
+    if (totalBytes > buildArtifactLimit) return false
+  }
+
   return (
-    typeof result.commitSha === 'string' &&
-    result.commitSha.length <= 128 &&
-    Number.isInteger(result.exitCode) &&
-    typeof result.output === 'string' &&
-    result.output.length <= 450 * 1024 &&
-    Array.isArray(result.artifacts) &&
-    result.artifacts.length <= 16 &&
-    result.artifacts.every(
-      (artifact) =>
-        /^(build|bin)\/[\w./-]+\.bin$/.test(artifact.path) &&
-        !artifact.path.split('/').includes('..') &&
-        artifact.bytes instanceof Uint8Array &&
-        artifact.bytes.byteLength <= artifactLimit &&
-        artifact.path !== 'bin/monolith.bin',
-    ) &&
     new Set(result.artifacts.map((artifact) => artifact.path)).size ===
-      result.artifacts.length &&
-    (result.exitCode === 0 || result.artifacts.length === 0)
+    result.artifacts.length
   )
 }
 
@@ -82,16 +94,21 @@ export async function readBrowserBuild(
       record.artifacts.length > 16
     )
       return undefined
+    let totalBytes = 0
+    for (const artifact of record.artifacts) {
+      if (
+        !artifact ||
+        !/^[a-f0-9]{64}$/.test(artifact.digest) ||
+        !Number.isSafeInteger(artifact.size) ||
+        artifact.size < 0 ||
+        artifact.size > artifactLimit
+      )
+        return undefined
+      totalBytes += artifact.size
+      if (totalBytes > buildArtifactLimit) return undefined
+    }
     const blobs = await Promise.all(
-      record.artifacts.map((artifact: ArtifactReference | undefined) => {
-        if (
-          !artifact ||
-          !/^[a-f0-9]{64}$/.test(artifact.digest) ||
-          !Number.isSafeInteger(artifact.size) ||
-          artifact.size < 0 ||
-          artifact.size > artifactLimit
-        )
-          return undefined
+      record.artifacts.map((artifact: ArtifactReference) => {
         return requestValue<StoredBlob | undefined>(
           transaction.objectStore('blobs').get(artifact.digest),
         )
@@ -129,17 +146,15 @@ export async function writeBrowserBuild(
   result: BrowserBuildResult,
 ) {
   if (!validResult(result)) throw new Error('Invalid browser build result')
-  // Own bytes before hashing. The caller may transfer or edit its result later.
+  // Hash and store the caller's buffers. IndexedDB structured-clones them, so a
+  // second JavaScript copy here doubled peak renderer memory for PROS packages.
   const artifacts = await Promise.all(
-    result.artifacts.map(async ({ path, bytes }) => {
-      const owned = bytes.slice()
-      return {
-        path,
-        bytes: owned,
-        digest: await buildCacheKey([owned]),
-        size: owned.byteLength,
-      }
-    }),
+    result.artifacts.map(async ({ path, bytes }) => ({
+      path,
+      bytes,
+      digest: await buildCacheKey([bytes]),
+      size: bytes.byteLength,
+    })),
   )
   const db = await database()
   try {
@@ -188,14 +203,19 @@ export async function writeBrowserBuild(
             value?.version === 1 && Array.isArray(value.artifacts)
               ? value.artifacts
               : []
-          const valid = refs.every(
-            (artifact) =>
-              artifact &&
-              /^[a-f0-9]{64}$/.test(artifact.digest) &&
-              Number.isSafeInteger(artifact.size) &&
-              artifact.size >= 0 &&
-              artifact.size <= artifactLimit,
-          )
+          let buildSize = 0
+          const valid = refs.every((artifact) => {
+            if (
+              !artifact ||
+              !/^[a-f0-9]{64}$/.test(artifact.digest) ||
+              !Number.isSafeInteger(artifact.size) ||
+              artifact.size < 0 ||
+              artifact.size > artifactLimit
+            )
+              return false
+            buildSize += artifact.size
+            return buildSize <= buildArtifactLimit
+          })
           const size = (valid ? refs : []).reduce(
             (sum, artifact) =>
               sum + (referenced.has(artifact!.digest) ? 0 : artifact!.size),

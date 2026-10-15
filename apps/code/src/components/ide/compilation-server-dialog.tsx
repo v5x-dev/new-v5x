@@ -87,8 +87,9 @@ export function CompilationServerDialog({
         <DialogHeader>
           <DialogTitle>Compilation server</DialogTitle>
           <DialogDescription>
-            Build on a faster computer. Your project files are sent to the
-            server you connect to.
+            Build and run C++ language analysis on a faster computer. Your
+            project files are sent to the server you connect to, keeping the
+            compiler and language server out of this tab.
           </DialogDescription>
         </DialogHeader>
         <form

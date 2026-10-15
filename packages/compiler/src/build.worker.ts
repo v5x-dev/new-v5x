@@ -24,7 +24,11 @@ import type {
 const compilerBase = '/compiler/llvm-21.11.0-alpha.1/'
 
 let cacheTrace: ((event: Omit<BuildTimingEvent, 'buildId'>) => void) | undefined
-const buildCache = browserBuildCache({ trace: () => cacheTrace })
+const buildCache = browserBuildCache({
+  memoryBytes: 16 * 1024 * 1024,
+  pendingBytes: 4 * 1024 * 1024,
+  trace: () => cacheTrace,
+})
 let loadedSdk: { key: string; files: Array<BuildBundleFile> } | undefined
 
 let active: { key: string; state: BrowserBuildSession } | undefined
@@ -240,20 +244,14 @@ self.onmessage = async ({ data }: MessageEvent<BrowserBuildInput>) => {
       // Decode independent downloads together, then preserve overlay ordering.
       const precompiled = (async () => {
         const pch = libraries.precompiled?.[data.template]
-        if (!pch) return []
+        if (!pch) return undefined
         const [compressed, metadata] = await Promise.all([
           cachedBuildAsset(pch.binary, timing),
           cachedBuildAsset(pch.metadata, timing),
         ])
-        const bytes = await timing.measure('pch-decompression', () =>
-          decompressBuildBytes(compressed),
-        )
-        return [
-          ['/sdk/ez/main.pch', new Uint8Array(bytes)],
-          ['/sdk/ez/main-pch.json', metadata],
-        ] as Array<readonly [string, Uint8Array]>
+        return { compressed, metadata }
       })()
-      const [bundles, pchFiles] = await Promise.all([
+      const [bundles, pchAsset] = await Promise.all([
         Promise.all(
           [false, true].flatMap((binary) => {
             const manifest = binary ? libraries : headers
@@ -273,9 +271,27 @@ self.onmessage = async ({ data }: MessageEvent<BrowserBuildInput>) => {
           report(
             'Optional precompiled headers unavailable; compiling normally.\n',
           )
-          return []
+          return undefined
         }),
       ])
+      const initialization = await ready
+      if (initialization) throw initialization.error
+      let pchFiles: Array<readonly [string, Uint8Array]> = []
+      if (pchAsset) {
+        try {
+          const pchBytes = await timing.measure('pch-decompression', () =>
+            decompressBuildBytes(pchAsset.compressed),
+          )
+          pchFiles = [
+            ['/sdk/ez/main.pch', pchBytes],
+            ['/sdk/ez/main-pch.json', pchAsset.metadata],
+          ]
+        } catch {
+          report(
+            'Optional precompiled headers unavailable; compiling normally.\n',
+          )
+        }
+      }
       for (const bundle of bundles) {
         for (const entry of bundle) {
           const [path] = entry

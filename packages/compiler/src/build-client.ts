@@ -5,6 +5,7 @@ import type { BrowserBuildInput, BrowserBuildResult } from './browser-build'
 
 const stableArtifacts = new Map<string, Uint8Array>()
 let idleWorker: Worker | undefined
+let idleTemplate: BrowserBuildInput['template'] | undefined
 let activeWorker: Worker | undefined
 let cancelActive: (() => void) | undefined
 let sessionGeneration = 0
@@ -14,6 +15,7 @@ export function releaseBrowserCompiler() {
   sessionGeneration++
   idleWorker?.terminate()
   idleWorker = undefined
+  idleTemplate = undefined
   stableArtifacts.clear()
   cancelActive?.()
   activeWorker?.terminate()
@@ -41,6 +43,14 @@ function executeBuild(
         end: performance.now(),
         outcome,
       })
+    // Changing SDKs also changes compiled WASM variants. Drop the old worker
+    // before loading the next one so its module cache cannot retain both cores.
+    if (idleWorker && idleTemplate !== input.template) {
+      idleWorker.terminate()
+      idleWorker = undefined
+      stableArtifacts.clear()
+    }
+    idleTemplate = undefined
     const worker =
       idleWorker ??
       new Worker(new URL('./build.worker.ts', import.meta.url), {
@@ -73,6 +83,7 @@ function executeBuild(
       worker.onerror = null
       if (reuse && !idleWorker) {
         idleWorker = worker
+        idleTemplate = input.template
       } else worker.terminate()
     }
     const abort = () => {

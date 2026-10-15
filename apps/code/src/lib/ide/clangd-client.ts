@@ -1,5 +1,6 @@
 import { observeBrowserBuild } from '@v5x/compiler/build-activity'
 import { fileUri } from './workspace'
+import { LanguageServerTransport } from './language-transport'
 import type {
   Diagnostic,
   InitializeResult,
@@ -35,7 +36,7 @@ export interface ClangdEvents {
 }
 
 export class ClangdClient {
-  private worker: Worker | undefined
+  private worker: Worker | LanguageServerTransport | undefined
   private pending = new Map<number | string, Pending>()
   private nextId = 0
   private fileVersions = new Map<string, number>()
@@ -61,7 +62,10 @@ export class ClangdClient {
   private startReject: ((error: Error) => void) | undefined
   capabilities: InitializeResult['capabilities'] = {}
   ready = false
-  constructor(private events: ClangdEvents) {}
+  constructor(
+    private events: ClangdEvents,
+    private serviceEndpoint = '',
+  ) {}
 
   async start(
     files: Record<string, string>,
@@ -74,7 +78,9 @@ export class ClangdClient {
       this.compiling = active
       if (!active) this.flushSyncs()
     })
-    this.worker = new Worker('/language/clangd-host.js')
+    this.worker = this.serviceEndpoint
+      ? new LanguageServerTransport(this.serviceEndpoint)
+      : new Worker('/language/clangd-host.js')
 
     this.worker.onmessage = ({ data }) => {
       if (data.kind === 'status') this.events.status(data.status)
@@ -152,7 +158,7 @@ export class ClangdClient {
             signatureInformation: { documentationFormat: ['plaintext'] },
           },
           publishDiagnostics: {
-            relatedInformation: true,
+            relatedInformation: false,
             versionSupport: true,
           },
           codeAction: {
@@ -218,9 +224,6 @@ export class ClangdClient {
             multilineTokenSupport: false,
           },
           foldingRange: { lineFoldingOnly: true },
-          inlayHint: {},
-          callHierarchy: {},
-          typeHierarchy: {},
         },
         window: { workDoneProgress: true },
       },
@@ -423,22 +426,29 @@ export class ClangdClient {
     if (this.opened.get(path) === version) return
     const uri = fileUri(path)
     this.fileVersions.set(path, version)
-    this.worker?.postMessage({ kind: 'files', files: { [path]: contents } })
-
-    if (!this.opened.has(path))
-      this.notify('textDocument/didOpen', {
-        textDocument: {
-          uri,
-          languageId: path.endsWith('.c') ? 'c' : 'cpp',
-          version,
-          text: contents,
-        },
-      })
-    else if (this.opened.get(path) !== version)
-      this.notify('textDocument/didChange', {
-        textDocument: { uri, version },
-        contentChanges: [{ text: contents }],
-      })
+    const message = !this.opened.has(path)
+      ? {
+          jsonrpc: '2.0',
+          method: 'textDocument/didOpen',
+          params: {
+            textDocument: {
+              uri,
+              languageId: path.endsWith('.c') ? 'c' : 'cpp',
+              version,
+              text: contents,
+            },
+          },
+        }
+      : {
+          jsonrpc: '2.0',
+          method: 'textDocument/didChange',
+          params: {
+            textDocument: { uri, version },
+            contentChanges: [{ text: contents }],
+          },
+        }
+    // One structured clone supplies both the filesystem and the LSP overlay.
+    this.worker?.postMessage({ kind: 'document', path, message })
 
     this.opened.set(path, version)
   }

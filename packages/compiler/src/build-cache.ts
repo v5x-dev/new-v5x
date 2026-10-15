@@ -12,13 +12,27 @@ const stringHashes = new Map<string, Uint8Array | Promise<Uint8Array>>()
 const stringHashLimit = 4096
 const stringLengthLimit = 512
 
+function responseFromBytes(bytes: Uint8Array, headers: HeadersInit) {
+  const body = new ReadableStream({
+    start(controller) {
+      controller.enqueue(bytes)
+      controller.close()
+    },
+  })
+  return new Response(body as BodyInit, { headers })
+}
+
 function partHash(part: string | Uint8Array) {
   const cacheable = typeof part === 'string' && part.length <= stringLengthLimit
   const hit = cacheable ? stringHashes.get(part) : undefined
   if (hit) return hit
   const bytes =
-    typeof part === 'string' ? encoder.encode(part) : new Uint8Array(part)
-  const pending = crypto.subtle.digest('SHA-256', bytes).then(
+    typeof part === 'string'
+      ? encoder.encode(part)
+      : part.buffer instanceof ArrayBuffer
+        ? part
+        : new Uint8Array(part)
+  const pending = crypto.subtle.digest('SHA-256', bytes as BufferSource).then(
     (digest) => {
       const hash = new Uint8Array(digest)
       if (cacheable && stringHashes.get(part) === pending)
@@ -71,8 +85,9 @@ export interface BuildCacheOptions {
 
 /** Disposable acceleration. Persistence is ordered but never gates artifact readiness. */
 export function browserBuildCache(options: BuildCacheOptions = {}): BuildCache {
-  const memoryLimit = options.memoryBytes ?? 32 * 1024 * 1024
-  const pendingLimit = options.pendingBytes ?? 16 * 1024 * 1024
+  // Memory and pending buffers stay under 24 MiB combined by default.
+  const memoryLimit = options.memoryBytes ?? 16 * 1024 * 1024
+  const pendingLimit = options.pendingBytes ?? 8 * 1024 * 1024
   const storageLimit = options.persistentBytes ?? 128 * 1024 * 1024
   const entryLimit = options.entries ?? 128
   const memory = new Map<string, Uint8Array>()
@@ -88,7 +103,18 @@ export function browserBuildCache(options: BuildCacheOptions = {}): BuildCache {
   let draining = false
   let scheduled = false
   let persistenceBlocked = false
-  const open = () => caches.open('v5x-browser-build-intermediates-v2')
+  let cachePromise: Promise<Cache> | undefined
+  const open = () => {
+    if (!cachePromise) {
+      cachePromise = caches
+        .open('v5x-browser-build-intermediates-v2')
+        .catch((error) => {
+          cachePromise = undefined
+          throw error
+        })
+    }
+    return cachePromise
+  }
   const url = (key: string) => `/__browser-build-cache/${key}`
   const remember = (key: string, bytes: Uint8Array) => {
     const previous = memory.get(key)
@@ -122,11 +148,9 @@ export function browserBuildCache(options: BuildCacheOptions = {}): BuildCache {
         await cache.delete(url(key))
         await cache.put(
           url(key),
-          new Response(new Uint8Array(bytes), {
-            headers: {
-              'X-Build-Digest': digest,
-              'X-Build-Bytes': String(bytes.byteLength),
-            },
+          responseFromBytes(bytes, {
+            'X-Build-Digest': digest,
+            'X-Build-Bytes': String(bytes.byteLength),
           }),
         )
         report?.({

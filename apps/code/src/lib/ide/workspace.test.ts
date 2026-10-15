@@ -62,6 +62,25 @@ describe('workspace correctness', () => {
     ).toThrow('Overlapping')
   })
 
+  test('keeps insertion order at replacement boundaries and the final line', () => {
+    const range = (line: number, start: number, end = start) => ({
+      start: { line, character: start },
+      end: { line, character: end },
+    })
+    expect(
+      applyTextEdits('a😀b\r\n', [
+        { range: range(1, 0), newText: 'end' },
+        { range: range(0, 1, 3), newText: 'robot' },
+        { range: range(0, 1), newText: 'first' },
+        { range: range(0, 1), newText: 'second' },
+        { range: range(0, 3), newText: 'after' },
+      ]),
+    ).toBe('afirstsecondrobotafterb\r\nend')
+    expect(() =>
+      applyTextEdits('line\n', [{ range: range(2, 0), newText: 'outside' }]),
+    ).toThrow('outside the document')
+  })
+
   test('a stale second document prevents the entire multi-file edit', () => {
     const documents: Documents = {
       'a.cpp': doc('a.cpp', 'speed'),

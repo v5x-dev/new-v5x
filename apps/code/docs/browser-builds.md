@@ -1,10 +1,16 @@
 # Browser builds
 
-The Build button on `/p/:programId` compiles the editor's committed workspace in
-a dedicated browser worker. It does not call `programBuild.build`, allocate a
-cloud machine, send source to a compiler service, or download build artifacts.
+By default, the Build button on `/p/:programId` compiles the editor's committed
+workspace in a dedicated browser worker. Local builds do not call
+`programBuild.build`, allocate a cloud machine, or send source to a compiler service.
 The Build options menu can reset the browser compiler. The cancel button stops
 the active local build.
+
+Selecting a compilation server in More actions sends source and language requests
+to that server. The server can use the pinned WASM compiler or a native ARM
+toolchain, and returns build artifacts over an authenticated WebSocket. See the
+[compilation server setup](../../../packages/compile-server/README.md). Switching
+back to Use browser restores local compilation and clangd.
 
 Clang and LLD execute as WebAssembly through pinned `microbit-clang-wasm`.
 Its ARM backend can target the V5's Cortex-A9. We discard its micro:bit runtime
@@ -43,11 +49,58 @@ The same commit can be rebuilt.
 See [implementation status](browser-build-performance-status.md) for exact cache
 rules, reproduction, experiment decisions and hardware verification limits.
 
+## Whole-workspace memory checks
+
+The 256 MiB target covers the entire application tab, including Pierre, clangd,
+compiler workers, assets and build artifacts. Cache limits do not enforce that
+target. Compiler commands still use the toolchain's own growing WASM heaps.
+Switching templates releases the previous compiler worker before loading another
+SDK; builds of the same template keep the warm worker.
+
+Run the opt-in memory check against a prepared production server, from `apps/code`:
+
+```sh
+BUILD_WORKSPACE_MEMORY=1 \
+BUILD_WORKSPACE_MEMORY_TEMPLATES=VEXcode,PROS,EZ,JAR \
+PLAYWRIGHT_BASE_URL=http://localhost:3002 \
+bunx playwright test e2e/workspace-memory.spec.ts --workers=1 \
+  --reporter=list --output=/tmp/v5x-workspace-memory
+```
+
+This creates real anonymous projects on `/p/:programId`, waits for clangd,
+edits a function with a unique consumed volatile value and compiles it through Save
+and build. It samples Linux process PSS every 50 ms in a dedicated Chromium
+instance, through artifact persistence and two seconds after build completion.
+The JSON attachment reports renderer memory before the build and the overall
+peak. Renderer totals conservatively include every renderer process in that
+Chromium instance, including the tab's workers. Browser totals also include
+GPU, browser and utility processes. PSS apportions shared resident pages; it
+is reported alongside SwapPss, which the budget check includes so swapped
+pages cannot hide memory usage. Sampling can miss short peaks. It is not a
+guaranteed allocation ceiling. No WASM wrappers or retained memory objects affect the run.
+
+Set `BUILD_WORKSPACE_MEMORY_ENFORCE=1` to fail when sampled renderer PSS plus SwapPss exceeds
+256 MiB or sampling is incomplete. Run one benchmark at a time on an otherwise
+idle machine. Keep generated results outside Git. For edit and header rebuild
+latency, use `e2e/compiler-edits.spec.ts` with `BUILD_COMPILER_EDITS=1` and
+`BUILD_BENCH_SAMPLES=5`; it covers the real `/build-demo` route.
+
+Set `BUILD_WORKSPACE_MEMORY_SERVICE` to a token-bearing compilation-server URL
+to measure service-backed compilation and language analysis separately from
+local WASM execution. Alternatively, put the URL in a private file and set
+`BUILD_WORKSPACE_MEMORY_SERVICE_FILE` to its path to keep the token out of command
+arguments. The server needs native clangd and bubblewrap installed. The editor
+remains in the tab; project files and language requests go to that server.
+
+Production must serve explicit compressed payload URLs with identity HTTP
+encoding. The compiler verifies their compressed bytes before decoding them.
+WASM and tar URLs continue to negotiate their compressed transport companions.
+
 ## Offline use
 
 Compiler assets download on first use. Production serves Brotli or gzip
 companions prepared alongside the original files. Clang WASM and its resource
-archive total about 15.8 MB over Brotli; clangd adds 11.3 MB for language support.
+archive total about 15.8 MB over Brotli; the size-optimized clangd build adds 9.3 MB for language support.
 Decoded bytes retain the original manifest checksums. Development uses the compressed resource archive companion and streams WASM
 from the development server. Production negotiates WASM compression.
 SDK download sizes depend on the template. Every asset has a size and SHA-256

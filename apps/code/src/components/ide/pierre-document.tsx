@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { EditProvider, File, Virtualizer } from '@pierre/diffs/react'
 import { getFiletypeFromFileName, preloadHighlighter } from '@pierre/diffs'
-import { Editor } from '@pierre/diffs/edit'
+import { EditStateManager, Editor } from '@pierre/diffs/edit'
 import type { FileOptions, PostRenderPhase } from '@pierre/diffs'
 import type { EditorFactory, Position } from '@pierre/diffs/edit'
 import type {
@@ -14,6 +14,10 @@ import { Spinner } from '~/components/ui/spinner'
 import { birdsOfParadiseTheme } from '~/lib/birds-of-paradise-theme'
 
 const MemoFile = React.memo(File<undefined, undefined>)
+
+EditStateManager.setCapacity(1)
+
+const editorVirtualizerConfig = { overscrollSize: 96 }
 
 const emptySemanticTokens: Array<SemanticColor> = []
 
@@ -113,6 +117,8 @@ export function PierreDocument({
 
   const nativeChanges = React.useRef<Array<string>>([])
   const applyingExternal = React.useRef(false)
+  const editorFocused = React.useRef(false)
+  const caretRevealFrame = React.useRef<number | null>(null)
 
   const callbacks = React.useRef({
     active,
@@ -315,9 +321,45 @@ export function PierreDocument({
       )
   }
 
+  const scheduleCaretReveal = React.useCallback(() => {
+    if (caretRevealFrame.current !== null)
+      cancelAnimationFrame(caretRevealFrame.current)
+
+    caretRevealFrame.current = requestAnimationFrame(() => {
+      caretRevealFrame.current = requestAnimationFrame(() => {
+        caretRevealFrame.current = null
+
+        const editor = editorRef.current
+        if (!callbacks.current.active || !editorFocused.current || !editor)
+          return
+
+        const selections = editor.getViewState().selections
+        if (!selections || selections.length !== 1) return
+
+        const selection = selections[0]!
+        if (
+          selection.start.line !== selection.end.line ||
+          selection.start.character !== selection.end.character
+        )
+          return
+
+        const caret =
+          selection.direction === -1 ? selection.start : selection.end
+
+        if (editor.getPositionRect(caret) !== undefined) return
+
+        editor.focus({
+          lineNumber: caret.line + 1,
+          character: caret.character,
+        })
+      })
+    })
+  }, [])
+
   const options = React.useMemo(
     () => ({
       matchBrackets: true,
+      historyMaxEntries: 32,
       onAttach(editor: PierreEditor) {
         setEditorAttached(true)
         editorRef.current = editor
@@ -357,11 +399,12 @@ export function PierreDocument({
       }) {
         if (!applyingExternal.current) {
           nativeChanges.current.push(event.file.contents)
-          if (nativeChanges.current.length > 128) nativeChanges.current.shift()
+          if (nativeChanges.current.length > 8) nativeChanges.current.shift()
         }
 
         callbacks.current.onChange(event.file.contents, event.changes)
         reportPosition()
+        scheduleCaretReveal()
       },
       onSelectionChange(
         selections: Array<{
@@ -377,9 +420,15 @@ export function PierreDocument({
             selection.direction === -1 ? selection.start : selection.end,
           )
       },
+      onFocus() {
+        editorFocused.current = true
+      },
+      onBlur() {
+        editorFocused.current = false
+      },
       ownsVerticalViewport: true,
     }),
-    [],
+    [scheduleCaretReveal],
   )
 
   React.useEffect(() => {
@@ -390,7 +439,7 @@ export function PierreDocument({
     void preloadHighlighter({
       langs: [getFiletypeFromFileName(path)],
       themes: [birdsOfParadiseTheme],
-      preferredHighlighter: 'shiki-js',
+      preferredHighlighter: 'shiki-wasm',
     })
       .then(() => {
         if (!live) return
@@ -419,6 +468,11 @@ export function PierreDocument({
 
       bracketInputListenerRef.current = null
       editorRef.current = null
+      editorFocused.current = false
+      if (caretRevealFrame.current !== null) {
+        cancelAnimationFrame(caretRevealFrame.current)
+        caretRevealFrame.current = null
+      }
       if (callbacks.current.active) callbacks.current.onEditor(null)
     }
   }, [path])
@@ -502,7 +556,7 @@ export function PierreDocument({
         onPostRender: onFilePostRender,
         theme: birdsOfParadiseTheme,
         themeType: 'dark',
-        preferredHighlighter: 'shiki-js',
+        preferredHighlighter: 'shiki-wasm',
         disableFileHeader: true,
         disableLineNumbers: false,
         enableGutterUtility: true,
@@ -666,6 +720,7 @@ export function PierreDocument({
         </div>
       )}
       <Virtualizer
+        config={editorVirtualizerConfig}
         className="min-h-0 flex-1 overflow-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         contentClassName="min-h-full"
       >

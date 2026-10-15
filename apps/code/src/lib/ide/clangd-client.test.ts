@@ -111,6 +111,30 @@ describe('request deadlines', () => {
 })
 
 describe('typing synchronization', () => {
+  test('opens a source with one message for the filesystem and LSP', async () => {
+    const worker = await setup()
+    client.sync('other.cpp', 'int value = 1;', 1)
+
+    expect(worker.messages).toEqual([
+      {
+        kind: 'document',
+        path: 'other.cpp',
+        message: {
+          jsonrpc: '2.0',
+          method: 'textDocument/didOpen',
+          params: {
+            textDocument: {
+              uri: 'file:///workspace/other.cpp',
+              languageId: 'cpp',
+              version: 1,
+              text: 'int value = 1;',
+            },
+          },
+        },
+      },
+    ])
+  })
+
   test('keeps the latest document during compilation and catches up afterward', async () => {
     const worker = await setup()
     setBrowserBuildActive(true)
@@ -139,7 +163,7 @@ describe('typing synchronization', () => {
     })
 
     expect(
-      worker.messages.filter((entry) => entry.kind === 'files'),
+      worker.messages.filter((entry) => entry.kind === 'document'),
     ).toHaveLength(1)
   })
 
@@ -150,7 +174,7 @@ describe('typing synchronization', () => {
 
     expect(
       worker.messages.map((entry) => entry.message?.method ?? entry.kind),
-    ).toEqual(['files', 'textDocument/didChange', 'textDocument/completion'])
+    ).toEqual(['textDocument/didChange', 'textDocument/completion'])
 
     await Bun.sleep(150)
     expect(changes(worker)).toHaveLength(1)
@@ -171,4 +195,66 @@ describe('typing synchronization', () => {
     await Bun.sleep(150)
     expect(changes(worker)).toHaveLength(0)
   })
+})
+
+test('uses the configured language service without creating a local worker', async () => {
+  let requestedPath = ''
+  const server = Bun.serve({
+    port: 0,
+    fetch(request, server) {
+      requestedPath = new URL(request.url).pathname
+      if (
+        server.upgrade(request, {
+          headers: { 'Sec-WebSocket-Protocol': 'v5x-language-v1' },
+        })
+      )
+        return
+      return new Response(null, { status: 400 })
+    },
+    websocket: {
+      open(socket) {
+        socket.send(
+          JSON.stringify({ type: 'ready', protocol: 'v5x-language-v1' }),
+        )
+      },
+      message(socket, data) {
+        const message = JSON.parse(String(data))
+        if (message.kind === 'start')
+          socket.send(JSON.stringify({ kind: 'started' }))
+        else if (message.kind === 'rpc' && message.message.id)
+          socket.send(
+            JSON.stringify({
+              kind: 'rpc',
+              message: {
+                jsonrpc: '2.0',
+                id: message.message.id,
+                result: { capabilities: {} },
+              },
+            }),
+          )
+      },
+    },
+  })
+  globalThis.Worker = class {
+    constructor() {
+      throw new Error('Unexpected local language worker')
+    }
+  } as unknown as typeof Worker
+  client = new ClangdClient(
+    {
+      status() {},
+      diagnostics() {},
+      async applyEdit() {},
+      error() {},
+    },
+    `ws://localhost:${server.port}/compile?token=language-test-token`,
+  )
+  try {
+    await client.start({ 'main.cpp': '' }, 'vexcode', [], 'test')
+    expect(client.ready).toBe(true)
+    expect(requestedPath).toBe('/language')
+  } finally {
+    client.stop()
+    server.stop(true)
+  }
 })

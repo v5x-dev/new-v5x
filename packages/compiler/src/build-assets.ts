@@ -1,9 +1,54 @@
+import { sha256 } from '@noble/hashes/sha2.js'
 import { decodeBuildArchive, isIndexedBuildArchive } from './build-archive'
 import type { buildTimings } from './build-performance'
 import type { BuildBundleFile } from './build-archive'
 import type { CompilerPlan } from './compiler-plan'
 
 type AssetTiming = ReturnType<typeof buildTimings>
+const maxCompilerAssetBytes = 64 * 1024 * 1024
+const maxDecompressedBuildBytes = 32 * 1024 * 1024
+
+const assetCaches = new WeakMap<CacheStorage, Promise<Cache | undefined>>()
+function openAssetCache() {
+  const storage = globalThis.caches
+  if (!storage) return Promise.resolve(undefined)
+  let cache = assetCaches.get(storage)
+  if (!cache) {
+    cache = storage.open('v5x-browser-build-assets-v1').catch(() => {
+      assetCaches.delete(storage)
+      return undefined
+    })
+    assetCaches.set(storage, cache)
+  }
+  return cache
+}
+
+let decompressionQueue: Promise<void> = Promise.resolve()
+let cacheStageId = 0
+
+function createCacheStageUrl(assetUrl: string) {
+  const url = new URL(
+    assetUrl,
+    globalThis.location?.href ?? 'http://localhost/',
+  )
+  url.searchParams.set(
+    '__v5x_asset_stage',
+    `${Date.now().toString(36)}-${(++cacheStageId).toString(36)}-${Math.random()
+      .toString(36)
+      .slice(2)}`,
+  )
+  return url.href
+}
+
+function responseFromBytes(bytes: Uint8Array, headers: HeadersInit) {
+  const body = new ReadableStream({
+    start(controller) {
+      controller.enqueue(bytes)
+      controller.close()
+    },
+  })
+  return new Response(body as BodyInit, { headers })
+}
 
 export interface BuildAsset {
   file?: string
@@ -66,9 +111,13 @@ export async function cachedBuildAsset(
   asset: BuildAsset,
   timing?: AssetTiming,
 ): Promise<Uint8Array> {
-  const cache = await caches
-    .open('v5x-browser-build-assets-v1')
-    .catch(() => undefined)
+  if (
+    !Number.isSafeInteger(asset.bytes) ||
+    asset.bytes <= 0 ||
+    asset.bytes > maxCompilerAssetBytes
+  )
+    throw new Error('Invalid build asset size')
+  const cache = await openAssetCache()
   const counts = { fetchedBytes: 0, cachedBytes: 0, hashedBytes: 0 }
   const measure =
     timing?.measure ??
@@ -91,14 +140,13 @@ export async function cachedBuildAsset(
     }))
   if (!response.ok)
     throw new Error(`Could not download ${asset.url} (${response.status})`)
-  const transferred = new Uint8Array(await response.arrayBuffer())
+  let bytes = new Uint8Array(await response.arrayBuffer())
+  const transferredBytes = bytes.byteLength
   // HTTP may compress the .gz file again. Fetch removes that outer layer,
   // so inspect the remaining payload rather than Content-Encoding.
-  const bytes =
-    compressed && transferred[0] === 0x1f && transferred[1] === 0x8b
-      ? new Uint8Array(await decompressBuildBytes(transferred, asset.bytes))
-      : transferred
-  counts[cached ? 'cachedBytes' : 'fetchedBytes'] = transferred.length
+  if (compressed && bytes[0] === 0x1f && bytes[1] === 0x8b)
+    bytes = await decompressBuildBytes(bytes, asset.bytes, asset.bytes)
+  counts[cached ? 'cachedBytes' : 'fetchedBytes'] = transferredBytes
   counts.hashedBytes = bytes.length
   const digest = Array.from(
     new Uint8Array(
@@ -118,12 +166,10 @@ export async function cachedBuildAsset(
     await cache
       ?.put(
         asset.url,
-        new Response(bytes, {
-          headers: {
-            'Content-Type': asset.url.endsWith('.wasm')
-              ? 'application/wasm'
-              : 'application/octet-stream',
-          },
+        responseFromBytes(bytes, {
+          'Content-Type': asset.url.endsWith('.wasm')
+            ? 'application/wasm'
+            : 'application/octet-stream',
         }),
       )
       .catch((error) => console.warn('Could not cache compiler asset:', error))
@@ -139,12 +185,10 @@ export async function streamingCompilerAsset(
   if (
     !Number.isSafeInteger(asset.bytes) ||
     asset.bytes <= 0 ||
-    asset.bytes > 128 * 1024 * 1024
+    asset.bytes > maxCompilerAssetBytes
   )
     throw new Error('Invalid compiler asset size')
-  const cache = await caches
-    .open('v5x-browser-build-assets-v1')
-    .catch(() => undefined)
+  const cache = await openAssetCache()
   const measure =
     timing?.measure ??
     (async <T>(_phase: string, work: () => Promise<T>) => work())
@@ -156,66 +200,154 @@ export async function streamingCompilerAsset(
   if (!response.ok || !response.body)
     throw new Error(`Could not download ${asset.url} (${response.status})`)
   const reader = response.body.getReader()
-  const body = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      try {
-        await measure(
-          'wasm-stream-download',
-          async () => {
-            const bytes = new Uint8Array(asset.bytes)
-            let offset = 0
-            while (true) {
-              const { done, value } = await reader.read()
-              if (done) break
-              if (offset + value.length > bytes.length)
-                throw new Error(`Build asset checksum mismatch: ${asset.url}`)
-              bytes.set(value, offset)
-              offset += value.length
-              controller.enqueue(value)
-            }
-            const digest = Array.from(
-              new Uint8Array(
-                await measure('asset-integrity', () =>
-                  crypto.subtle.digest('SHA-256', bytes),
-                ),
-              ),
-              (byte) => byte.toString(16).padStart(2, '0'),
-            ).join('')
+  const hasher = sha256.create()
+  const counts = {
+    fetchedBytes: 0,
+    cachedBytes: 0,
+    hashedBytes: 0,
+  }
+  const reportTransfer = (() => {
+    let resolve!: () => void
+    let reject!: (error: unknown) => void
+    const work = measure(
+      'wasm-stream-download',
+      () =>
+        new Promise<void>((done, fail) => {
+          resolve = done
+          reject = fail
+        }),
+      counts,
+    )
+    void work.catch(() => {})
+    return {
+      resolve() {
+        resolve()
+      },
+      reject(error: unknown) {
+        reject(error)
+      },
+    }
+  })()
+  let transferSettled = false
+  const settleTransfer = (success: boolean, error?: unknown) => {
+    if (transferSettled) return
+    transferSettled = true
+    if (success) reportTransfer.resolve()
+    else reportTransfer.reject(error)
+  }
+
+  const stageUrl = !cached && cache ? createCacheStageUrl(asset.url) : undefined
+  let stageWriteFailed = false
+  let stageWriter: WritableStreamDefaultWriter<Uint8Array> | undefined
+  let stagePut: Promise<void> | undefined
+  if (stageUrl && cache) {
+    const stage = new TransformStream<Uint8Array, Uint8Array>(
+      undefined,
+      { highWaterMark: 1 },
+      { highWaterMark: 0 },
+    )
+    stageWriter = stage.writable.getWriter()
+    stagePut = Promise.resolve()
+      .then(() =>
+        cache.put(
+          stageUrl,
+          new Response(stage.readable, {
+            headers: { 'Content-Type': 'application/wasm' },
+          }),
+        ),
+      )
+      .then(
+        () => {},
+        (error) => {
+          stageWriteFailed = true
+          if (
+            !(error instanceof Error) ||
+            !error.message.includes('checksum mismatch')
+          )
+            console.warn('Could not stage compiler asset cache:', error)
+        },
+      )
+  }
+
+  const discardStage = async (reason: unknown) => {
+    if (!stageUrl || !cache) return
+    await stageWriter?.abort(reason).catch(() => {})
+    await stagePut
+    await cache.delete(stageUrl).catch(() => false)
+  }
+
+  const finishStage = async () => {
+    if (!stageUrl || !cache || !stageWriter || !stagePut) return
+    try {
+      await stageWriter.close()
+      await stagePut
+      if (stageWriteFailed) return
+      const staged = await cache.match(stageUrl).catch(() => undefined)
+      if (staged) await cache.put(asset.url, staged)
+    } catch (error) {
+      console.warn('Could not cache compiler asset:', error)
+    } finally {
+      await cache.delete(stageUrl).catch(() => false)
+    }
+  }
+
+  let offset = 0
+  const body = new ReadableStream<Uint8Array>(
+    {
+      async pull(controller) {
+        try {
+          const { done, value } = await reader.read()
+          if (done) {
+            const digest = await measure('asset-integrity', async () =>
+              Array.from(hasher.digest(), (byte) =>
+                byte.toString(16).padStart(2, '0'),
+              ).join(''),
+            )
             if (offset !== asset.bytes || digest !== asset.sha256)
               throw new Error(`Build asset checksum mismatch: ${asset.url}`)
-            // Cache persistence must not delay compilation or the first build.
-            if (!cached)
-              void cache
-                ?.put(
-                  asset.url,
-                  new Response(bytes, {
-                    headers: { 'Content-Type': 'application/wasm' },
-                  }),
-                )
-                .catch((error) =>
-                  console.warn('Could not cache compiler asset:', error),
-                )
+
+            settleTransfer(true)
             controller.close()
-          },
-          { [cached ? 'cachedBytes' : 'fetchedBytes']: asset.bytes },
-        )
-      } catch (error) {
-        await reader.cancel().catch(() => {})
-        await cache?.delete(asset.url).catch(() => false)
-        controller.error(error)
-      }
+            void finishStage()
+            return
+          }
+
+          if (offset + value.byteLength > asset.bytes)
+            throw new Error(`Build asset checksum mismatch: ${asset.url}`)
+
+          offset += value.byteLength
+          hasher.update(value)
+          counts[cached ? 'cachedBytes' : 'fetchedBytes'] += value.byteLength
+          counts.hashedBytes += value.byteLength
+          controller.enqueue(value)
+          if (stageWriter && !stageWriteFailed) {
+            try {
+              await stageWriter.write(value)
+            } catch {
+              stageWriteFailed = true
+            }
+          }
+        } catch (error) {
+          settleTransfer(false, error)
+          await reader.cancel().catch(() => {})
+          await discardStage(error)
+          if (cached) await cache?.delete(asset.url).catch(() => false)
+          controller.error(error)
+        }
+      },
+      async cancel(reason) {
+        settleTransfer(false, reason)
+        await reader.cancel(reason).catch(() => {})
+        await discardStage(reason)
+      },
     },
-    cancel(reason) {
-      return reader.cancel(reason)
-    },
-  })
+    { highWaterMark: 0 },
+  )
   return new Response(body, { headers: { 'Content-Type': 'application/wasm' } })
 }
 
 export async function cachedBuildManifest<T>(url: string): Promise<T> {
-  const cache = await caches
-    .open('v5x-browser-build-assets-v1')
-    .catch(() => undefined)
+  const cache = await openAssetCache()
   let response: Response
   try {
     response = await fetch(url, { cache: 'no-cache' })
@@ -269,12 +401,13 @@ export async function unpackBuildBundle(
         .some((part) => !part || part === '.' || part === '..')
     )
       throw new Error('Invalid build SDK entry')
-    return [
-      path,
-      binary
-        ? Uint8Array.from(atob(contents), (char) => char.charCodeAt(0))
-        : contents,
-    ] as const
+    if (!binary) return [path, contents] as const
+
+    const decoded = atob(contents)
+    const bytes = new Uint8Array(decoded.length)
+    for (let index = 0; index < decoded.length; index++)
+      bytes[index] = decoded.charCodeAt(index)
+    return [path, bytes] as const
   })
 }
 
@@ -290,34 +423,94 @@ export async function decodeBuildAsset(
 /** Bound inflation before parsing or mounting downloaded SDK/PCH/cold data. */
 export async function decompressBuildBytes(
   bytes: Uint8Array,
-  limit = 256 * 1024 * 1024,
+  limit = maxDecompressedBuildBytes,
+  expectedBytes?: number,
 ) {
-  const reader = new Blob([new Uint8Array(bytes)])
-    .stream()
-    .pipeThrough(new DecompressionStream('gzip'))
-    .getReader()
-  const chunks: Array<Uint8Array> = []
-  let length = 0
+  if (!Number.isSafeInteger(limit) || limit < 0)
+    throw new Error('Invalid build asset size limit')
+
+  const gzipBytes =
+    bytes.byteLength >= 18 && bytes[0] === 0x1f && bytes[1] === 0x8b
+      ? new DataView(
+          bytes.buffer,
+          bytes.byteOffset + bytes.byteLength - 4,
+          4,
+        ).getUint32(0, true)
+      : undefined
+  const outputBytes = expectedBytes ?? gzipBytes
+  if (
+    outputBytes !== undefined &&
+    (!Number.isSafeInteger(outputBytes) ||
+      outputBytes < 0 ||
+      outputBytes > limit)
+  )
+    throw new Error('Build asset exceeds decompressed size limit')
+
+  const previous = decompressionQueue
+  let release!: () => void
+  decompressionQueue = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  await previous
+
   try {
-    let chunk = await reader.read()
-    while (!chunk.done) {
-      const value = chunk.value
-      length += value.byteLength
-      if (length > limit) {
-        await reader.cancel()
-        throw new Error('Build asset exceeds decompressed size limit')
+    const source = new ReadableStream<BufferSource>({
+      start(controller) {
+        controller.enqueue(bytes as BufferSource)
+        controller.close()
+      },
+    })
+    const reader = source
+      .pipeThrough(new DecompressionStream('gzip'))
+      .getReader()
+    if (outputBytes !== undefined) {
+      const output = new Uint8Array(outputBytes)
+      let offset = 0
+      try {
+        let chunk = await reader.read()
+        while (!chunk.done) {
+          const value = chunk.value
+          if (offset + value.byteLength > output.byteLength) {
+            await reader.cancel()
+            throw new Error('Build asset decompressed size mismatch')
+          }
+          output.set(value, offset)
+          offset += value.byteLength
+          chunk = await reader.read()
+        }
+      } finally {
+        reader.releaseLock()
       }
-      chunks.push(value)
-      chunk = await reader.read()
+      if (offset !== output.byteLength)
+        throw new Error('Build asset decompressed size mismatch')
+      return output
     }
+
+    const chunks: Array<Uint8Array> = []
+    let length = 0
+    try {
+      let chunk = await reader.read()
+      while (!chunk.done) {
+        const value = chunk.value
+        length += value.byteLength
+        if (length > limit) {
+          await reader.cancel()
+          throw new Error('Build asset exceeds decompressed size limit')
+        }
+        chunks.push(value)
+        chunk = await reader.read()
+      }
+    } finally {
+      reader.releaseLock()
+    }
+    const output = new Uint8Array(length)
+    let offset = 0
+    for (const chunk of chunks) {
+      output.set(chunk, offset)
+      offset += chunk.byteLength
+    }
+    return output
   } finally {
-    reader.releaseLock()
+    release()
   }
-  const output = new Uint8Array(length)
-  let offset = 0
-  for (const chunk of chunks) {
-    output.set(chunk, offset)
-    offset += chunk.byteLength
-  }
-  return output
 }

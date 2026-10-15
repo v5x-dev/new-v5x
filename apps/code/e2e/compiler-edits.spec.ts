@@ -283,7 +283,7 @@ for (const template of Object.keys(templateFiles) as Array<
 }
 
 ;(enabled ? test : test.skip)(
-  'compiler variants switch within the same application worker',
+  'compiler variants switch across template changes',
   async ({ page }) => {
     test.setTimeout(180_000)
     const cores = new Set<string>()

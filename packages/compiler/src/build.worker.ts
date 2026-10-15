@@ -40,7 +40,10 @@ let manifests:
 let busy = false
 let pendingManifests: Awaited<NonNullable<typeof manifests>> | undefined
 let compilerIdentity: string | undefined
-// Discovery is outside the build. Apply only at the next request boundary.
+// Discovery stays outside the build and applies on the next request.
+// Ten minutes is enough to notice a deploy; a one-minute poll re-downloaded
+// the 240KB compiler manifest for the whole time the editor stayed open.
+const manifestRefreshMs = 10 * 60 * 1000
 setInterval(() => {
   if (busy || !manifests) return
   void Promise.all([
@@ -52,7 +55,7 @@ setInterval(() => {
       pendingManifests = next
     })
     .catch(() => {})
-}, 60_000)
+}, manifestRefreshMs)
 let prebuiltCold:
   | {
       metadata: PrebuiltColdSdk

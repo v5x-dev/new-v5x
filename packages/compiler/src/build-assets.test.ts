@@ -2,6 +2,7 @@ import { gzipSync } from 'node:zlib'
 import { expect, it } from 'bun:test'
 import {
   cachedBuildAsset,
+  cachedBuildManifest,
   decompressBuildBytes,
   streamingCompilerAsset,
 } from './build-assets'
@@ -130,6 +131,38 @@ async function waitForCacheEntry(entries: Map<string, Response>, key: string) {
   }
   throw new Error(`Timed out waiting for cached asset ${key}`)
 }
+
+it('revalidates a cached manifest without reading a 304 body', async () => {
+  const originalFetch = globalThis.fetch
+  const originalCaches = globalThis.caches
+  const cached = new Response('{"version":2}', {
+    headers: { etag: '"sdk"' },
+  })
+  let validator = null as string | null
+  globalThis.caches = {
+    open: async () => ({
+      match: async () => cached,
+      put: async () => {
+        throw new Error('A 304 must not replace the cached manifest')
+      },
+    }),
+  } as unknown as CacheStorage
+  globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+    validator = new Headers(init?.headers).get('If-None-Match')
+    return new Response(null, { status: 304 })
+  }) as unknown as typeof fetch
+  try {
+    await expect(
+      cachedBuildManifest('/compiler/sdk-manifest.json'),
+    ).resolves.toEqual({
+      version: 2,
+    })
+    expect(validator).toBe('"sdk"')
+  } finally {
+    globalThis.fetch = originalFetch
+    globalThis.caches = originalCaches
+  }
+})
 
 it('streams WASM before EOF and promotes it to the offline cache only after integrity passes', async () => {
   const originalFetch = globalThis.fetch

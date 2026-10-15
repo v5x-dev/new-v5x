@@ -10,6 +10,7 @@ import { nitro } from "nitro/vite"
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
   server: {
+    port: 3001,
     allowedHosts: ["*.*.opentunnel.xyz"],
   },
   plugins: [

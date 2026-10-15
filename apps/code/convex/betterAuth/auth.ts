@@ -7,7 +7,12 @@ import { query } from '../_generated/server'
 import type { GenericCtx } from '@convex-dev/better-auth'
 import type { DataModel } from '../_generated/dataModel'
 import { anonymous } from 'better-auth/plugins'
-import { appHosts, previewHostPattern } from '../../auth-origins'
+import {
+  appHosts,
+  previewHostPattern,
+  sharedCookieDomain,
+  trustedAuthOrigins,
+} from '../../auth-origins'
 
 const siteUrl = process.env.SITE_URL!
 
@@ -20,6 +25,8 @@ const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET!
 export const authComponent = createClient<DataModel>(components.betterAuth)
 
 export const createAuth = (ctx: GenericCtx<DataModel>) => {
+  const cookieDomain = sharedCookieDomain(new URL(siteUrl).host)
+
   return betterAuth({
     // Preview requests must keep their own origin for cookies and redirects.
     baseURL: {
@@ -31,14 +38,15 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
       // Convex does not provide Node's production environment. Keep cookie names
       // and Secure attributes stable instead of inferring them from NODE_ENV.
       useSecureCookies: new URL(siteUrl).protocol === 'https:',
+      // The code app rewrites Domain per request host. This covers responses
+      // that leave Convex without that proxy.
+      ...(cookieDomain
+        ? {
+            crossSubDomainCookies: { enabled: true, domain: cookieDomain },
+          }
+        : {}),
     },
-    trustedOrigins: [
-      new URL(siteUrl).origin,
-      'https://code.v5x.dev',
-      'http://localhost:3000',
-      'https://k4xs74x6-3000.use.devtunnels.ms',
-      `https://${previewHostPattern}`,
-    ],
+    trustedOrigins: trustedAuthOrigins(siteUrl),
     database: authComponent.adapter(ctx),
     // Configure simple, non-verified email/password to get started
     socialProviders: {

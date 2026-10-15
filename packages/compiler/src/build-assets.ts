@@ -348,20 +348,31 @@ export async function streamingCompilerAsset(
 
 export async function cachedBuildManifest<T>(url: string): Promise<T> {
   const cache = await openAssetCache()
-  let response: Response
+  const cached = await cache?.match(url).catch(() => undefined)
+  // The compiler manifest is about 240KB. Ask with its stored validator so an
+  // unchanged file returns 304 instead of another full download.
+  const headers = new Headers()
+  const etag = cached?.headers.get('etag')
+  if (etag) headers.set('If-None-Match', etag)
+
   try {
-    response = await fetch(url, { cache: 'no-cache' })
+    const response = await fetch(url, { cache: 'no-store', headers })
+    if (response.status === 304) {
+      if (!cached) throw new Error(`Build manifest is missing: ${url}`)
+      return cached.json() as Promise<T>
+    }
     if (!response.ok) throw new Error(`Build manifest is missing: ${url}`)
+    const value = (await response.clone().json()) as T
+    await cache
+      ?.put(url, response)
+      .catch((error) =>
+        console.warn('Could not cache compiler manifest:', error),
+      )
+    return value
   } catch (error) {
-    const cached = await cache?.match(url).catch(() => undefined)
-    if (cached) return cached.json()
+    if (cached) return cached.json() as Promise<T>
     throw error
   }
-  const value: T = await response.clone().json()
-  await cache
-    ?.put(url, response)
-    .catch((error) => console.warn('Could not cache compiler manifest:', error))
-  return value
 }
 
 export async function unpackBuildBundle(

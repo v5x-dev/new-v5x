@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from "bun:test"
+import { existsSync } from "node:fs"
 import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { basename, join } from "node:path"
@@ -17,6 +18,11 @@ const token = "language-test-token-0123456789"
 const languageProtocol = "v5x-language-v1"
 const languageDirectory = fileURLToPath(
   new URL("../../../apps/code/public/language/", import.meta.url)
+)
+// Native clangd tests need the same sandbox and clangd the server launches.
+const nativeClangd = test.skipIf(
+  !existsSync(process.env.V5X_BWRAP_PATH ?? "/usr/bin/bwrap") ||
+    !existsSync(process.env.V5X_CLANGD_PATH ?? "/usr/bin/clangd")
 )
 let assetServer: ReturnType<typeof Bun.serve> | undefined
 let languageServer: ReturnType<typeof createCompileServer> | undefined
@@ -436,7 +442,7 @@ test("rejects queued language requests after session close", async () => {
   }
 })
 
-test("native clangd loads all four real SDK templates", async () => {
+nativeClangd("native clangd loads all four real SDK templates", async () => {
   const manifest = await startNativeTestServer()
   const existing = new Set(
     (await readdir(tmpdir())).filter((name) => name.startsWith("v5x-language-"))
@@ -543,92 +549,100 @@ test("native clangd loads all four real SDK templates", async () => {
   }
 })
 
-test("clangd cannot read host files or another session's workspace", async () => {
-  const manifest = await startNativeTestServer()
-  privateDirectory = await mkdtemp(join(tmpdir(), "v5x-language-host-private-"))
-  const hostSecretPath = join(privateDirectory, "host-secret.h")
-  const hostSecretMarker = "V5X_HOST_PRIVATE_SENTINEL"
-  await writeFile(
-    hostSecretPath,
-    `struct HostPrivateSentinel { int ${hostSecretMarker}; };\n`
-  )
+nativeClangd(
+  "clangd cannot read host files or another session's workspace",
+  async () => {
+    const manifest = await startNativeTestServer()
+    privateDirectory = await mkdtemp(
+      join(tmpdir(), "v5x-language-host-private-")
+    )
+    const hostSecretPath = join(privateDirectory, "host-secret.h")
+    const hostSecretMarker = "V5X_HOST_PRIVATE_SENTINEL"
+    await writeFile(
+      hostSecretPath,
+      `struct HostPrivateSentinel { int ${hostSecretMarker}; };\n`
+    )
 
-  const existing = new Set(
-    (await readdir(tmpdir())).filter((name) => name.startsWith("v5x-language-"))
-  )
-  const first = await connectLanguageSocket()
-  await startNativeSession(
-    first.socket,
-    first.inbox,
-    manifest,
-    "vexcode",
-    {
-      "src/main.cpp": "int main() { return 0; }\n",
-      "session-private.h":
-        "struct OtherSessionPrivate { int privateValue; };\n",
-    },
-    "sandbox-session-one"
-  )
-  const rootNames = (await readdir(tmpdir())).filter(
-    (name) => name.startsWith("v5x-language-") && !existing.has(name)
-  )
-  expect(rootNames).toHaveLength(1)
-  const firstSessionHeader = join(
-    tmpdir(),
-    rootNames[0],
-    "workspace/session-private.h"
-  )
+    const existing = new Set(
+      (await readdir(tmpdir())).filter((name) =>
+        name.startsWith("v5x-language-")
+      )
+    )
+    const first = await connectLanguageSocket()
+    await startNativeSession(
+      first.socket,
+      first.inbox,
+      manifest,
+      "vexcode",
+      {
+        "src/main.cpp": "int main() { return 0; }\n",
+        "session-private.h":
+          "struct OtherSessionPrivate { int privateValue; };\n",
+      },
+      "sandbox-session-one"
+    )
+    const rootNames = (await readdir(tmpdir())).filter(
+      (name) => name.startsWith("v5x-language-") && !existing.has(name)
+    )
+    expect(rootNames).toHaveLength(1)
+    const firstSessionHeader = join(
+      tmpdir(),
+      rootNames[0],
+      "workspace/session-private.h"
+    )
 
-  const hostSource = `#include "${hostSecretPath}"\nHostPrivateSentinel hostSecret;\n`
-  const otherSessionSource = `#include "${firstSessionHeader}"\nOtherSessionPrivate otherSecret;\n`
-  const secondFiles = {
-    "src/host.cpp": hostSource,
-    "src/other-session.cpp": otherSessionSource,
-  }
-  const second = await connectLanguageSocket()
-  await startNativeSession(
-    second.socket,
-    second.inbox,
-    manifest,
-    "vexcode",
-    secondFiles,
-    "sandbox-session-two"
-  )
-  await initializeLanguageSession(second.socket, second.inbox)
-  openDocument(second.socket, "src/host.cpp", hostSource)
-  openDocument(second.socket, "src/other-session.cpp", otherSessionSource)
+    const hostSource = `#include "${hostSecretPath}"\nHostPrivateSentinel hostSecret;\n`
+    const otherSessionSource = `#include "${firstSessionHeader}"\nOtherSessionPrivate otherSecret;\n`
+    const secondFiles = {
+      "src/host.cpp": hostSource,
+      "src/other-session.cpp": otherSessionSource,
+    }
+    const second = await connectLanguageSocket()
+    await startNativeSession(
+      second.socket,
+      second.inbox,
+      manifest,
+      "vexcode",
+      secondFiles,
+      "sandbox-session-two"
+    )
+    await initializeLanguageSession(second.socket, second.inbox)
+    openDocument(second.socket, "src/host.cpp", hostSource)
+    openDocument(second.socket, "src/other-session.cpp", otherSessionSource)
 
-  const hostDiagnostics = await second.inbox.next(
-    (message) =>
-      message.kind === "rpc" &&
-      message.message?.method === "textDocument/publishDiagnostics" &&
-      message.message.params?.uri === "file:///workspace/src/host.cpp"
-  )
-  const hostMessages = hostDiagnostics.message.params.diagnostics
-    .map((diagnostic: { message: string }) => diagnostic.message)
-    .join("\n")
-  expect(hostMessages).toMatch(/file not found|no such file|unknown type/i)
-  expect(hostMessages).not.toContain(hostSecretMarker)
-
-  const otherSessionDiagnostics = await second.inbox.next(
-    (message) =>
-      message.kind === "rpc" &&
-      message.message?.method === "textDocument/publishDiagnostics" &&
-      message.message.params?.uri === "file:///workspace/src/other-session.cpp"
-  )
-  const otherSessionMessages =
-    otherSessionDiagnostics.message.params.diagnostics
+    const hostDiagnostics = await second.inbox.next(
+      (message) =>
+        message.kind === "rpc" &&
+        message.message?.method === "textDocument/publishDiagnostics" &&
+        message.message.params?.uri === "file:///workspace/src/host.cpp"
+    )
+    const hostMessages = hostDiagnostics.message.params.diagnostics
       .map((diagnostic: { message: string }) => diagnostic.message)
       .join("\n")
-  expect(otherSessionMessages).toMatch(
-    /file not found|no such file|unknown type/i
-  )
+    expect(hostMessages).toMatch(/file not found|no such file|unknown type/i)
+    expect(hostMessages).not.toContain(hostSecretMarker)
 
-  second.socket.close()
-  first.socket.close()
-  await Promise.all([second.inbox.closed, first.inbox.closed])
-  await waitForSessionCleanup(existing)
-})
+    const otherSessionDiagnostics = await second.inbox.next(
+      (message) =>
+        message.kind === "rpc" &&
+        message.message?.method === "textDocument/publishDiagnostics" &&
+        message.message.params?.uri ===
+          "file:///workspace/src/other-session.cpp"
+    )
+    const otherSessionMessages =
+      otherSessionDiagnostics.message.params.diagnostics
+        .map((diagnostic: { message: string }) => diagnostic.message)
+        .join("\n")
+    expect(otherSessionMessages).toMatch(
+      /file not found|no such file|unknown type/i
+    )
+
+    second.socket.close()
+    first.socket.close()
+    await Promise.all([second.inbox.closed, first.inbox.closed])
+    await waitForSessionCleanup(existing)
+  }
+)
 
 async function request(
   inbox: SocketInbox,

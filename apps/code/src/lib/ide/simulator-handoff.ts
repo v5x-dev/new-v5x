@@ -1,5 +1,4 @@
-import type { ProjectSnapshot } from '~/components/ide/workspace-editor'
-
+import type { ProjectSnapshot } from './workspace'
 import {
   encodeProsPackage,
   simulatorTemplate,
@@ -24,6 +23,18 @@ export function simulatorBinary(
   if (!cold || !hot)
     throw new Error('Build both PROS hot and cold packages first.')
   return encodeProsPackage(cold, hot)
+}
+
+export function hasSimulatorArtifacts(
+  template: string,
+  artifacts: ReadonlyMap<string, Uint8Array>,
+) {
+  if (!simulatorTemplate(template)) return false
+  if (template === 'vexcode') return artifacts.has('build/workspace.bin')
+  return (
+    artifacts.has('bin/hot.package.bin') &&
+    artifacts.has('bin/cold.package.bin')
+  )
 }
 
 function hex(bytes: Uint8Array) {
@@ -67,4 +78,52 @@ export async function createSimulatorHandoffManifest(
       sha256: await sha256(binary.slice().buffer as ArrayBuffer),
     },
   }
+}
+
+export async function uploadSimulatorBinary(
+  uploadUrl: string,
+  binary: Uint8Array,
+) {
+  const upload = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/octet-stream' },
+    body: new Blob([binary.slice().buffer as ArrayBuffer]),
+  })
+  if (!upload.ok) throw new Error('Could not upload the simulator binary.')
+
+  const uploaded: unknown = await upload.json()
+  if (
+    !uploaded ||
+    typeof uploaded !== 'object' ||
+    !('storageId' in uploaded) ||
+    typeof uploaded.storageId !== 'string'
+  )
+    throw new Error('The artifact service returned an invalid storage ID.')
+
+  return uploaded.storageId
+}
+
+const trustedBrainOrigins = new Set([
+  'https://brain.v5x.dev',
+  'http://localhost:5173',
+  'http://localhost:3103',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:3103',
+])
+
+export function brainSimulatorUrl(token: string, endpoint: string) {
+  const defaultBrainUrl =
+    location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+      ? 'http://localhost:5173'
+      : 'https://brain.v5x.dev'
+  const url = new URL(import.meta.env.VITE_BRAIN_APP_URL || defaultBrainUrl)
+
+  if (!trustedBrainOrigins.has(url.origin))
+    throw new Error('The configured Brain simulator origin is not trusted.')
+
+  url.hash = new URLSearchParams({
+    'v5x-handoff': token,
+    site: endpoint,
+  }).toString()
+  return url.href
 }

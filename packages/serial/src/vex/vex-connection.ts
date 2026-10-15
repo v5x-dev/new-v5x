@@ -2,479 +2,78 @@ import {
   AckType,
   FileDownloadTarget,
   FileExitAction,
-  FileInitAction,
-  FileInitOption,
   FileLoadAction,
   FileVendor,
   type IFileBasicInfo,
   type IFileWriteRequest,
-  type IPacketCallback,
   type MatchMode,
   SerialDeviceType,
   type SlotNumber,
   USER_FIFO_MAX_WRITE_SIZE,
-  USER_FLASH_USR_CODE_START,
-  USER_PROG_CHUNK_SIZE,
   UserFifoChannel,
   type SelectDashScreen,
 } from "./vex"
-import { VexEventTarget } from "./vex-event"
-import { generateProsColdLibraryName } from "./pros-cold-hash"
 import { type ProgramIniConfig } from "./vex-ini-config"
-import { PendingRequestDispatcher } from "./pending-request-dispatcher"
-import { ReceiveBuffer } from "./receive-buffer"
-import { runPacketReader } from "./packet-reader"
-import { TailQueue } from "./tail-queue"
 import {
-  MatchStatusReplyD2HPacket,
-  DeviceBoundPacket,
-  GetMatchStatusH2DPacket,
-  UpdateMatchModeH2DPacket,
-  MatchModeReplyD2HPacket,
-  GetSystemStatusReplyD2HPacket,
-  GetSystemStatusH2DPacket,
-  type HostBoundPacket,
-  InitFileTransferH2DPacket,
-  InitFileTransferReplyD2HPacket,
-  LinkFileH2DPacket,
-  ExitFileTransferH2DPacket,
-  ExitFileTransferReplyD2HPacket,
-  WriteFileReplyD2HPacket,
-  WriteFileH2DPacket,
-  LinkFileReplyD2HPacket,
-  ReadFileH2DPacket,
-  ReadFileReplyD2HPacket,
-  SystemVersionH2DPacket,
-  SystemVersionReplyD2HPacket,
-  Query1H2DPacket,
-  Query1ReplyD2HPacket,
-  GetFileMetadataH2DPacket,
-  GetFileMetadataReplyD2HPacket,
-  PacketEncoder,
-  LoadFileActionH2DPacket,
-  LoadFileActionReplyD2HPacket,
-  GetSystemFlagsH2DPacket,
-  GetSystemFlagsReplyD2HPacket,
-  GetRadioStatusH2DPacket,
-  GetRadioStatusReplyD2HPacket,
-  GetDeviceStatusH2DPacket,
-  GetDeviceStatusReplyD2HPacket,
+  downloadFile,
+  uploadFile,
+  uploadProgram,
+} from "./connection/file-transfer"
+import { transferChunkSize, trimTrailingNuls } from "./connection/payload"
+import {
   EraseFileH2DPacket,
   EraseFileReplyD2HPacket,
+  ExitFileTransferH2DPacket,
+  ExitFileTransferReplyD2HPacket,
   FileClearUpH2DPacket,
   FileClearUpReplyD2HPacket,
-  SendDashTouchH2DPacket,
-  SendDashTouchReplyD2HPacket,
-  SelectDashH2DPacket,
-  SelectDashReplyD2HPacket,
+  GetDeviceStatusH2DPacket,
+  GetDeviceStatusReplyD2HPacket,
+  GetMatchStatusH2DPacket,
+  GetRadioStatusH2DPacket,
+  GetRadioStatusReplyD2HPacket,
+  GetSystemFlagsH2DPacket,
+  GetSystemFlagsReplyD2HPacket,
+  GetSystemStatusH2DPacket,
+  GetSystemStatusReplyD2HPacket,
+  type HostBoundPacket,
+  LoadFileActionH2DPacket,
+  LoadFileActionReplyD2HPacket,
+  MatchModeReplyD2HPacket,
+  MatchStatusReplyD2HPacket,
   ScreenCaptureH2DPacket,
   ScreenCaptureReplyD2HPacket,
+  SelectDashH2DPacket,
+  SelectDashReplyD2HPacket,
+  SendDashTouchH2DPacket,
+  SendDashTouchReplyD2HPacket,
+  UpdateMatchModeH2DPacket,
   UserFifoH2DPacket,
   UserFifoReplyD2HPacket,
 } from "./vex-packet"
-import { VexFirmwareVersion } from "./vex-firmware-version"
 import type {
-  AdapterSerialPort,
   SerialAdapter,
   SerialPortFilter,
 } from "../adapters/serial-adapter"
-import { portMatchesFilters } from "../adapters/serial-adapter"
 import { convertScreenCapture } from "../screen-capture"
+import {
+  DEFAULT_MAX_FILE_DOWNLOAD_BYTES,
+  DEFAULT_TRANSFER_WINDOW_SIZE,
+  DEFAULT_USER_FIFO_TIMEOUT,
+  VexSerialConnection,
+} from "./connection/session"
+import type {
+  VexSerialConnectionEvents,
+  VexSerialConnectionOptions,
+} from "./connection/session"
 
-export const DEFAULT_MAX_FILE_DOWNLOAD_BYTES = 64 * 1024 * 1024
-
-export const DEFAULT_TRANSFER_WINDOW_SIZE = 4
-
-export const DEFAULT_USER_FIFO_TIMEOUT = 500
-
-export interface VexSerialConnectionOptions {
-  maxFileDownloadBytes?: number
-  /**
-   * Retained for compatibility with the previous transport implementation.
-   * CDC2 write replies have no sequence number, so file uploads stay
-   * stop-and-wait and do not send multiple writes at once.
-   */
-  transferWindowSize?: number
+export {
+  DEFAULT_MAX_FILE_DOWNLOAD_BYTES,
+  DEFAULT_TRANSFER_WINDOW_SIZE,
+  DEFAULT_USER_FIFO_TIMEOUT,
+  VexSerialConnection,
 }
-
-export interface VexSerialConnectionEvents {
-  connected: undefined
-  disconnected: undefined
-  warning: { message: string; details?: unknown }
-}
-
-type HostBoundPacketConstructor<T extends HostBoundPacket> = {
-  new (data: Uint8Array | ArrayBuffer): T
-}
-
-/**
- * A connection to a V5 device.
- * Emit events: connected, disconnected
- */
-export class VexSerialConnection extends VexEventTarget<VexSerialConnectionEvents> {
-  filters: SerialPortFilter[] = [{ usbVendorId: 10376 }]
-
-  writer: WritableStreamDefaultWriter<Uint8Array> | undefined
-  reader: ReadableStreamDefaultReader<Uint8Array> | undefined
-  port: AdapterSerialPort | undefined
-  serial: SerialAdapter
-  #closing = false
-  #closePromise: Promise<void> | undefined
-  #openPromise: Promise<boolean | undefined> | undefined
-  #portDisconnectListener: (() => void) | undefined
-  #wasConnected = false
-  readonly maxFileDownloadBytes: number
-  readonly transferWindowSize: number
-
-  private readonly pendingRequests = new PendingRequestDispatcher()
-  protected readonly fileTransfers = new TailQueue()
-
-  /** A snapshot of outstanding requests, retained for compatibility. */
-  get callbacksQueue(): IPacketCallback[] {
-    return this.pendingRequests.callbacks
-  }
-
-  get isConnected(): boolean {
-    return (
-      this.port !== undefined &&
-      this.reader !== undefined &&
-      this.writer !== undefined
-    )
-  }
-
-  get isClosing(): boolean {
-    return this.#closing
-  }
-
-  constructor(serial: SerialAdapter, options: VexSerialConnectionOptions = {}) {
-    super()
-    this.serial = serial
-
-    const maxFileDownloadBytes =
-      options.maxFileDownloadBytes ?? DEFAULT_MAX_FILE_DOWNLOAD_BYTES
-
-    if (
-      !Number.isSafeInteger(maxFileDownloadBytes) ||
-      maxFileDownloadBytes <= 0
-    ) {
-      throw new RangeError(
-        "maxFileDownloadBytes must be a positive safe integer"
-      )
-    }
-
-    this.maxFileDownloadBytes = maxFileDownloadBytes
-
-    const transferWindowSize =
-      options.transferWindowSize ?? DEFAULT_TRANSFER_WINDOW_SIZE
-
-    if (!Number.isSafeInteger(transferWindowSize) || transferWindowSize <= 0) {
-      throw new RangeError("transferWindowSize must be a positive safe integer")
-    }
-
-    this.transferWindowSize = transferWindowSize
-  }
-
-  async close(): Promise<void> {
-    if (this.#closePromise !== undefined) return this.#closePromise
-    this.#closing = true
-
-    const closing = this.closeResources()
-    this.#closePromise = closing
-
-    try {
-      await closing
-    } finally {
-      if (this.#closePromise === closing) this.#closePromise = undefined
-      this.#closing = false
-    }
-  }
-
-  private async closeResources(): Promise<void> {
-    for (const callback of this.pendingRequests.drain()) {
-      callback.callback(AckType.NOT_CONNECTED)
-    }
-
-    const disconnectListener = this.#portDisconnectListener
-    this.#portDisconnectListener = undefined
-
-    if (disconnectListener !== undefined) {
-      try {
-        this.port?.removeEventListener?.("disconnect", disconnectListener)
-      } catch {}
-    }
-
-    const writer = this.writer
-    this.writer = undefined
-
-    if (writer !== undefined) {
-      try {
-        await writer.close()
-      } catch {}
-
-      try {
-        writer.releaseLock()
-      } catch {}
-    }
-
-    const reader = this.reader
-    this.reader = undefined
-
-    if (reader !== undefined) {
-      try {
-        await reader.cancel()
-      } catch {}
-
-      try {
-        reader.releaseLock()
-      } catch {}
-    }
-
-    const port = this.port
-    this.port = undefined
-
-    if (port !== undefined) {
-      try {
-        await port.close()
-      } catch (error) {
-        this.emitWarning("failed to close the serial port", error)
-      }
-    }
-
-    if (this.#wasConnected) {
-      this.#wasConnected = false
-      this.emitSafely("disconnected", undefined)
-    }
-  }
-
-  async open(
-    use: number | undefined = 0,
-    askUser: boolean = true
-  ): Promise<boolean | undefined> {
-    if (this.#openPromise !== undefined) return this.#openPromise
-
-    const opening = this.openPort(use, askUser)
-    this.#openPromise = opening
-
-    void opening.then(
-      () => {
-        if (this.#openPromise === opening) this.#openPromise = undefined
-      },
-      () => {
-        if (this.#openPromise === opening) this.#openPromise = undefined
-      }
-    )
-
-    return opening
-  }
-
-  private async openPort(
-    use: number | undefined,
-    askUser: boolean
-  ): Promise<boolean | undefined> {
-    if (this.#closePromise !== undefined) await this.#closePromise
-    if (this.port !== undefined) throw new Error("Already connected.")
-
-    let port: AdapterSerialPort | undefined
-
-    if (use !== undefined) {
-      let matchingPorts: AdapterSerialPort[]
-
-      try {
-        matchingPorts = (await this.serial.getPorts()).filter((candidate) =>
-          portMatchesFilters(candidate.getInfo(), this.filters)
-        )
-      } catch {
-        return false
-      }
-
-      const ports = matchingPorts.filter(
-        (candidate) => candidate.readable === null
-      )
-
-      port = ports[use]
-      if (port == null && matchingPorts[use] != null) return false
-    }
-
-    // A missing indexed port means the caller has already tried every granted
-    // port. Do not open the chooser again for each retry.
-    if (port == null && askUser && (use === undefined || use === 0)) {
-      try {
-        port = await this.serial.requestPort({ filters: this.filters })
-      } catch {}
-    }
-
-    if (port == null) return undefined
-
-    if (port.readable != null) return false
-
-    try {
-      await port.open({ baudRate: 115200 })
-
-      this.port = port
-
-      this.#portDisconnectListener = () => {
-        void this.close()
-      }
-
-      port.addEventListener("disconnect", this.#portDisconnectListener)
-
-      const writable = port.writable as WritableStream<Uint8Array> | null
-      const readable = port.readable as ReadableStream<Uint8Array> | null
-
-      if (writable == null || readable == null) {
-        await this.close()
-        return false
-      }
-
-      this.writer = writable.getWriter()
-      this.reader = readable.getReader()
-      this.#wasConnected = true
-      void this.startReader()
-      this.emitSafely("connected", undefined)
-
-      return true
-    } catch {
-      await this.close()
-      return false
-    }
-  }
-
-  writeData(
-    rawData: DeviceBoundPacket | Uint8Array,
-    resolve: (
-      data: HostBoundPacket | ArrayBuffer | Uint8Array | AckType
-    ) => void,
-    timeout: number = 1000
-  ): void {
-    void this.writeDataAsync(rawData, timeout).then(resolve)
-  }
-
-  async writeDataAsync(
-    rawData: DeviceBoundPacket | Uint8Array,
-    timeout: number = 1000,
-    pipelined = false
-  ): Promise<HostBoundPacket | ArrayBuffer | Uint8Array | AckType> {
-    if (!Number.isFinite(timeout) || timeout < 0 || timeout > 0x7fffffff) {
-      throw new RangeError("timeout must be between 0 and 2147483647 ms")
-    }
-
-    if (rawData instanceof DeviceBoundPacket && !pipelined) {
-      return this.pendingRequests.serialize(
-        rawData.commandId,
-        rawData.commandExtendedId,
-        () => this.writeDataAsyncUnserialized(rawData, timeout)
-      )
-    }
-
-    return this.writeDataAsyncUnserialized(rawData, timeout)
-  }
-
-  private async writeDataAsyncUnserialized(
-    rawData: DeviceBoundPacket | Uint8Array,
-    timeout: number
-  ): Promise<HostBoundPacket | ArrayBuffer | Uint8Array | AckType> {
-    return new Promise((resolve) => {
-      const writer = this.writer
-
-      if (writer === undefined || this.#closing) {
-        resolve(AckType.NOT_CONNECTED)
-        return
-      }
-
-      const data = rawData instanceof DeviceBoundPacket ? rawData.data : rawData
-      let removePending = (): boolean => false
-
-      const callback: IPacketCallback = {
-        callback: resolve,
-        timeout: setTimeout(() => {
-          if (!removePending()) return
-          resolve(AckType.TIMEOUT)
-        }, timeout),
-        wantedCommandId:
-          rawData instanceof DeviceBoundPacket ? rawData.commandId : undefined,
-        wantedCommandExId:
-          rawData instanceof DeviceBoundPacket
-            ? rawData.commandExtendedId
-            : undefined,
-      }
-
-      removePending = this.pendingRequests.add(callback)
-
-      try {
-        void writer.write(data).catch(() => {
-          if (!removePending()) return
-          clearTimeout(callback.timeout)
-          resolve(AckType.WRITE_ERROR)
-        })
-      } catch {
-        if (removePending()) {
-          clearTimeout(callback.timeout)
-          resolve(AckType.WRITE_ERROR)
-        }
-      }
-    })
-  }
-
-  protected async readData(
-    cache: ReceiveBuffer,
-    expectedSize: number
-  ): Promise<void> {
-    if (this.reader == null) throw new Error("No reader")
-
-    while (cache.byteLength < expectedSize) {
-      const { value: readData, done: isDone } = await this.reader.read()
-
-      if (isDone || readData === undefined) throw new Error("No data")
-
-      if (readData.byteLength === 0) continue
-      cache.append(readData)
-    }
-  }
-
-  protected async startReader(): Promise<void> {
-    await runPacketReader({
-      readData: (cache, expectedSize) => this.readData(cache, expectedSize),
-      shiftCallback: (commandId, commandExtendedId) =>
-        this.pendingRequests.shift(commandId, commandExtendedId),
-      reportWarning: (message, details) => {
-        if (!this.#closing) this.emitWarning(message, details)
-      },
-      close: () => this.close(),
-    })
-  }
-
-  protected emitWarning(message: string, details?: unknown): void {
-    this.emitSafely("warning", { message, details })
-  }
-
-  async request<T extends HostBoundPacket>(
-    packet: DeviceBoundPacket,
-    replyType: HostBoundPacketConstructor<T>,
-    timeout = 1000
-  ): Promise<T | null> {
-    const result = await this.writeDataAsync(packet, timeout)
-    return result instanceof replyType ? result : null
-  }
-
-  private emitSafely<K extends keyof VexSerialConnectionEvents>(
-    eventName: K,
-    data: VexSerialConnectionEvents[K]
-  ): void {
-    try {
-      this.emit(eventName, data)
-    } catch {}
-  }
-
-  async query1(): Promise<Query1ReplyD2HPacket | null> {
-    const result = await this.writeDataAsync(new Query1H2DPacket(), 1000)
-    return result instanceof Query1ReplyD2HPacket ? result : null
-  }
-
-  async getSystemVersion(): Promise<VexFirmwareVersion | null> {
-    const result = await this.writeDataAsync(new SystemVersionH2DPacket())
-    return result instanceof SystemVersionReplyD2HPacket ? result.version : null
-  }
-}
+export type { VexSerialConnectionEvents, VexSerialConnectionOptions }
 
 export class V5SerialConnection extends VexSerialConnection {
   filters: SerialPortFilter[] = [
@@ -525,141 +124,8 @@ export class V5SerialConnection extends VexSerialConnection {
     progressCallback: (state: string, current: number, total: number) => void
   ): Promise<boolean | undefined> {
     return this.fileTransfers.run(() =>
-      this.uploadProgramToDeviceUnlocked(
-        iniConfig,
-        binFileBuf,
-        coldFileBuf,
-        progressCallback
-      )
+      uploadProgram(this, iniConfig, binFileBuf, coldFileBuf, progressCallback)
     )
-  }
-
-  private async uploadProgramToDeviceUnlocked(
-    iniConfig: ProgramIniConfig,
-    binFileBuf: Uint8Array,
-    coldFileBuf: Uint8Array | undefined,
-    progressCallback: (state: string, current: number, total: number) => void
-  ): Promise<boolean | undefined> {
-    if ((await this.stopProgram()) === null) return false
-
-    const iniFileBuffer = new TextEncoder().encode(iniConfig.createIni())
-    // VEXos added compressed file support in 1.0.5. Raw binaries are still
-    // valid on newer versions and are the safe fallback when the version query
-    // is unavailable.
-    // System version queries identify the USB device, which may be a controller.
-    // Compression support belongs to the Brain receiving the program.
-    const systemVersion =
-      (await this.getSystemStatus(2000))?.systemVersion ?? null
-
-    const canCompress =
-      systemVersion !== null &&
-      systemVersion.compare(VexFirmwareVersion.fromString("1.0.5")) >= 0
-
-    const hotBuf = canCompress ? await gzipBytes(binFileBuf) : binFileBuf
-
-    const coldBuf =
-      coldFileBuf !== undefined && canCompress
-        ? await gzipBytes(coldFileBuf)
-        : coldFileBuf
-
-    const basename = iniConfig.baseName
-
-    const iniRequest = {
-      filename: basename + ".ini",
-      buf: iniFileBuffer,
-      downloadTarget: FileDownloadTarget.FILE_TARGET_QSPI,
-      vendor: FileVendor.USER,
-      autoRun: false,
-    }
-
-    const r1 = await this.uploadFileToDeviceUnlocked(
-      iniRequest,
-      (current, total) => {
-        progressCallback("INI", current, total)
-      }
-    )
-
-    if (!r1) return false
-
-    // let prjRequest = { filename: basename + '.prj', buf: prjfile, vid: FileVendor.USER, loadAddr: undefined, exttype: 0, linkedFile: undefined };
-    // await this.uploadFileToDeviceAsync(prjRequest, onProgress);
-
-    const coldRequest =
-      coldBuf !== undefined
-        ? {
-            filename:
-              iniConfig.libraryName ??
-              generateProsColdLibraryName(
-                iniConfig.libraryTemplates ?? ["kernel", "liblvgl"]
-              ),
-            buf: coldBuf,
-            downloadTarget: FileDownloadTarget.FILE_TARGET_QSPI,
-            vendor: FileVendor.DEV2,
-            loadAddress: iniConfig.libraryAddress,
-            autoRun: false,
-            exttype: "bin",
-          }
-        : undefined
-
-    if (coldRequest != null && coldBuf != null) {
-      const metadata = await this.writeDataAsync(
-        new GetFileMetadataH2DPacket(FileVendor.DEV2, coldRequest.filename, 0),
-        // Allow the controller radio hop to complete before declaring a cache miss.
-        2000
-      )
-
-      const coldCrc = PacketEncoder.getInstance().crcgen.crc32(coldBuf, 0)
-
-      const coldIsPresent =
-        metadata instanceof GetFileMetadataReplyD2HPacket &&
-        metadata.file?.size === coldBuf.byteLength &&
-        metadata.file.crc32 === coldCrc
-
-      if (coldIsPresent) {
-        progressCallback(
-          "COLD (cached)",
-          coldBuf.byteLength,
-          coldBuf.byteLength
-        )
-      } else {
-        const r2 = await this.uploadFileToDeviceUnlocked(
-          coldRequest,
-          (current, total) => {
-            progressCallback("COLD", current, total)
-          }
-        )
-
-        if (!r2) return false
-      }
-    }
-
-    const after =
-      iniConfig.after !== FileExitAction.EXIT_NONE || iniConfig.autorun
-        ? iniConfig.after !== FileExitAction.EXIT_NONE
-          ? iniConfig.after
-          : FileExitAction.EXIT_RUN
-        : FileExitAction.EXIT_NONE
-
-    const binRequest = {
-      filename: basename + ".bin",
-      buf: hotBuf,
-      downloadTarget: FileDownloadTarget.FILE_TARGET_QSPI,
-      vendor: FileVendor.USER,
-      loadAddress: coldBuf != null ? iniConfig.programAddress : undefined,
-      autoRun: after !== FileExitAction.EXIT_NONE,
-      exitAction: after,
-      exttype: "bin",
-      linkedFile: coldRequest,
-    }
-
-    const r3 = await this.uploadFileToDeviceUnlocked(
-      binRequest,
-      (current, total) => {
-        progressCallback("BIN", current, total)
-      }
-    )
-
-    return r3
   }
 
   async downloadFileToHost(
@@ -678,100 +144,12 @@ export class V5SerialConnection extends VexSerialConnection {
     downloadTarget = FileDownloadTarget.FILE_TARGET_QSPI,
     progressCallback?: (current: number, total: number) => void
   ): Promise<Uint8Array> {
-    if (!this.isConnected && this.writer === undefined) {
-      throw new Error("Not connected")
-    }
-
-    const { filename, vendor, loadAddress, size } = request
-
-    let nextAddress = loadAddress ?? USER_FLASH_USR_CODE_START
-
-    const p1 = await this.writeDataAsync(
-      new InitFileTransferH2DPacket(
-        FileInitAction.READ,
-        downloadTarget,
-        vendor,
-        FileInitOption.NONE,
-        new Uint8Array(),
-        nextAddress,
-        filename,
-        ""
-      )
+    return downloadFile(
+      this.transferIo(),
+      request,
+      downloadTarget,
+      progressCallback
     )
-
-    if (!(p1 instanceof InitFileTransferReplyD2HPacket))
-      throw new Error("InitFileTransferH2DPacket failed")
-
-    try {
-      const fileSize = size ?? p1.fileSize
-
-      if (!Number.isSafeInteger(fileSize) || fileSize < 0) {
-        throw new Error(`Invalid file size: ${fileSize}`)
-      }
-
-      if (fileSize > this.maxFileDownloadBytes) {
-        throw new Error(
-          `File size ${fileSize} exceeds the ${this.maxFileDownloadBytes}-byte download limit`
-        )
-      }
-
-      const bufferChunkSize = this.getFileTransferChunkSize(p1.windowSize)
-      let bufferOffset = 0
-      const fileBuf = new Uint8Array(fileSize)
-
-      progressCallback?.(0, fileSize)
-
-      while (bufferOffset < fileSize) {
-        const remaining = fileSize - bufferOffset
-
-        let requestedSize = Math.min(
-          0xffff,
-          Math.min(bufferChunkSize, (remaining + 3) & ~3)
-        )
-
-        // ACK-less USB replies have 12 framing bytes. VEXos 1.1.5 can leave
-        // exact 64-byte packet multiples buffered without a terminating packet.
-        if (requestedSize >= 121 && (requestedSize + 12) % 64 === 0)
-          requestedSize -= 4
-
-        const p2 = await this.writeDataAsync(
-          new ReadFileH2DPacket(nextAddress, requestedSize),
-          3000
-        )
-
-        if (!(p2 instanceof ReadFileReplyD2HPacket))
-          throw new Error("ReadFileReplyD2HPacket failed")
-
-        if (
-          p2.addr !== nextAddress ||
-          p2.length <= 0 ||
-          p2.length > requestedSize ||
-          p2.buf.byteLength < p2.length
-        ) {
-          throw new Error("ReadFileReplyD2HPacket returned invalid data")
-        }
-
-        const received = Math.min(p2.length, remaining)
-        fileBuf.set(new Uint8Array(p2.buf).subarray(0, received), bufferOffset)
-        bufferOffset += received
-        nextAddress += received
-        progressCallback?.(bufferOffset, fileSize)
-      }
-
-      return fileBuf
-    } finally {
-      const exit = await this.writeDataAsync(
-        new ExitFileTransferH2DPacket(FileExitAction.EXIT_HALT),
-        30000
-      )
-
-      if (!(exit instanceof ExitFileTransferReplyD2HPacket)) {
-        this.emitWarning(
-          "file download did not exit transfer mode cleanly",
-          exit
-        )
-      }
-    }
   }
 
   async uploadFileToDevice(
@@ -788,110 +166,7 @@ export class V5SerialConnection extends VexSerialConnection {
     request: IFileWriteRequest,
     progressCallback?: (current: number, total: number) => void
   ): Promise<boolean> {
-    let {
-      filename,
-      buf,
-      downloadTarget,
-      vendor,
-      loadAddress,
-      exttype,
-      autoRun,
-      exitAction,
-      linkedFile,
-    } = request
-
-    if (buf === undefined || (!this.isConnected && this.writer === undefined)) {
-      return false
-    }
-
-    downloadTarget = downloadTarget ?? FileDownloadTarget.FILE_TARGET_QSPI
-    vendor = vendor ?? FileVendor.USER
-
-    let nextAddress = loadAddress ?? USER_FLASH_USR_CODE_START
-
-    const p1 = await this.writeDataAsync(
-      new InitFileTransferH2DPacket(
-        FileInitAction.WRITE,
-        downloadTarget,
-        vendor,
-        FileInitOption.OVERWRITE,
-        buf,
-        nextAddress,
-        filename,
-        exttype
-      )
-    )
-
-    if (!(p1 instanceof InitFileTransferReplyD2HPacket))
-      throw new Error("InitFileTransferH2DPacket failed")
-
-    let exit: HostBoundPacket | ArrayBuffer | Uint8Array | AckType =
-      AckType.NOT_CONNECTED
-
-    try {
-      if (linkedFile !== undefined) {
-        const p3 = await this.writeDataAsync(
-          new LinkFileH2DPacket(
-            linkedFile.vendor ?? FileVendor.USER,
-            linkedFile.filename,
-            0
-          ),
-          10000
-        )
-
-        if (!(p3 instanceof LinkFileReplyD2HPacket))
-          throw new Error("LinkFileH2DPacket failed")
-      }
-
-      const bufferChunkSize = this.getFileTransferChunkSize(p1.windowSize)
-      let bufferOffset = 0
-      progressCallback?.(0, buf.byteLength)
-
-      while (bufferOffset < buf.byteLength) {
-        const remaining = buf.byteLength - bufferOffset
-        const chunkLength = Math.min(bufferChunkSize, remaining)
-        const paddedLength = (chunkLength + 3) & ~3
-        const tmpbuf = new Uint8Array(paddedLength)
-        tmpbuf.set(buf.subarray(bufferOffset, bufferOffset + chunkLength))
-
-        const packet = new WriteFileH2DPacket(nextAddress, tmpbuf)
-
-        if (this.port?.fileWritesWithoutReply) {
-          if (this.writer === undefined || this.isClosing)
-            throw new Error("Not connected")
-
-          await this.writer.write(packet.data)
-        } else {
-          const p2 = await this.writeDataAsync(packet, 3000)
-
-          if (!(p2 instanceof WriteFileReplyD2HPacket))
-            throw new Error("WriteFileReplyD2HPacket failed")
-        }
-
-        bufferOffset += chunkLength
-        nextAddress += chunkLength
-        progressCallback?.(bufferOffset, buf.byteLength)
-      }
-    } finally {
-      exit = await this.writeDataAsync(
-        new ExitFileTransferH2DPacket(
-          exitAction ??
-            (autoRun ? FileExitAction.EXIT_RUN : FileExitAction.EXIT_NONE)
-        ),
-        30000
-      )
-    }
-
-    if (!(exit instanceof ExitFileTransferReplyD2HPacket)) {
-      const reason =
-        typeof exit === "number"
-          ? (AckType[exit] ?? `code ${exit}`)
-          : exit.constructor.name
-
-      throw new Error(`Finishing ${filename} failed: ${reason}`)
-    }
-
-    return true
+    return uploadFile(this.transferIo(), request, progressCallback)
   }
 
   async withFileTransfer<T>(operation: () => Promise<T> | T): Promise<T> {
@@ -968,11 +243,44 @@ export class V5SerialConnection extends VexSerialConnection {
     })
   }
 
+  private transferIo() {
+    const isConnected = () => this.isConnected
+    const isClosing = () => this.isClosing
+    const writer = () => this.writer
+    const port = () => this.port
+    const maxFileDownloadBytes = () => this.maxFileDownloadBytes
+    return {
+      get isConnected() {
+        return isConnected()
+      },
+      get isClosing() {
+        return isClosing()
+      },
+      get writer() {
+        return writer()
+      },
+      get port() {
+        return port()
+      },
+      get maxFileDownloadBytes() {
+        return maxFileDownloadBytes()
+      },
+      writeDataAsync: (
+        rawData: Parameters<V5SerialConnection["writeDataAsync"]>[0],
+        timeout?: number
+      ) => this.writeDataAsync(rawData, timeout),
+      emitWarning: (message: string, details?: unknown) =>
+        this.emitWarning(message, details),
+      chunkSize: (windowSize: number) =>
+        this.getFileTransferChunkSize(windowSize),
+    }
+  }
+
   private getFileTransferChunkSize(windowSize: number): number {
     const maxPacketSize = this.port?.maxPacketSize
 
     if (maxPacketSize === undefined)
-      return Math.max(4, getTransferChunkSize(windowSize))
+      return Math.max(4, transferChunkSize(windowSize))
 
     // BLE uses half the advertised window and reserves 14 bytes for framing.
     const size =
@@ -1094,78 +402,4 @@ export class V5SerialConnection extends VexSerialConnection {
 
     return result instanceof SelectDashReplyD2HPacket ? result : null
   }
-}
-
-function trimTrailingNuls(bytes: Uint8Array): Uint8Array {
-  let end = bytes.byteLength
-  while (end > 0 && bytes[end - 1] === 0) end--
-  return end === bytes.byteLength ? bytes : bytes.slice(0, end)
-}
-
-function getTransferChunkSize(windowSize: number): number {
-  return windowSize > 0 && windowSize <= USER_PROG_CHUNK_SIZE
-    ? windowSize
-    : USER_PROG_CHUNK_SIZE
-}
-
-function gzipBytes(data: Uint8Array): Promise<Uint8Array> {
-  const bun = (
-    globalThis as {
-      Bun?: {
-        gzipSync?: (d: Uint8Array) => Uint8Array
-        spawnSync?: (opts: { cmd: string[]; stdin: Uint8Array }) => {
-          success: boolean
-          stdout: Uint8Array
-        }
-      }
-    }
-  ).Bun
-
-  // Same payload as PROS compress_file: gzip.GzipFile(..., mtime=0)
-  if (bun?.spawnSync !== undefined) {
-    const proc = bun.spawnSync({
-      cmd: [
-        "python3",
-        "-c",
-        "import sys,gzip,io\nraw=sys.stdin.buffer.read()\nbuf=io.BytesIO()\nwith gzip.GzipFile(fileobj=buf,mode='wb',mtime=0) as f:\n    f.write(raw)\nsys.stdout.buffer.write(buf.getvalue())",
-      ],
-      stdin: data,
-    })
-
-    if (proc.success && proc.stdout.byteLength > 2) {
-      return Promise.resolve(new Uint8Array(proc.stdout))
-    }
-  }
-
-  const finish = (gzipped: Uint8Array): Uint8Array => {
-    const out = new Uint8Array(gzipped)
-
-    if (out.byteLength >= 8) {
-      out[4] = 0
-      out[5] = 0
-      out[6] = 0
-      out[7] = 0
-    }
-
-    return out
-  }
-
-  if (bun?.gzipSync !== undefined) {
-    return Promise.resolve(finish(bun.gzipSync(data)))
-  }
-
-  if (typeof CompressionStream === "undefined") {
-    return Promise.resolve(data)
-  }
-
-  const copy = new Uint8Array(data.byteLength)
-  copy.set(data)
-
-  const stream = new Blob([copy])
-    .stream()
-    .pipeThrough(new CompressionStream("gzip"))
-
-  return new Response(stream)
-    .arrayBuffer()
-    .then((buffer) => finish(new Uint8Array(buffer)))
 }

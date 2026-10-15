@@ -30,3 +30,20 @@ export function importDraftRecovery(text: string): SourceFile[] {
   }
   return validateSourceFiles(files)
 }
+
+// Writes the format read by importDraftRecovery.
+export function exportDraftRecovery(files: Record<string, string>) {
+  return JSON.stringify({ version: 1, files }, null, 2)
+}
+
+export function downloadDraftRecovery(files: Record<string, string>) {
+  const blob = new Blob([exportDraftRecovery(files)], {
+    type: 'application/json',
+  })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'v5x-draft-recovery.json'
+  link.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}

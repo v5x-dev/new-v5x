@@ -1,72 +1,61 @@
 import * as React from 'react'
-import { DownloadSimpleIcon } from '@phosphor-icons/react'
-import { BrainTerminal } from './brain-terminal'
-import { WorkspaceEditorTabs } from './workspace-editor-tabs'
-import { WorkspaceFilePicker } from './workspace-file-picker'
-import { WorkspaceSearch } from './workspace-search'
-import { WorkspacePanels } from './workspace-panels'
-import { WorkspaceEditorToolbar } from './workspace-editor-toolbar'
-import { WorkspaceCompletions } from './workspace-completions'
-import { PierreDocument } from './pierre-document'
-import type { BrainTerminalProps } from './brain-terminal'
-import type { PierreEditor } from './pierre-document'
-import type {
-  CompletionItem,
-  CompletionList,
-  Diagnostic,
-  DocumentSymbol,
-  FoldingRange,
-  Location,
-  LocationLink,
-  Position,
-  SemanticTokens,
-  SymbolInformation,
-  TextEdit,
-} from 'vscode-languageserver-protocol'
+import type { Diagnostic, Position } from 'vscode-languageserver-protocol'
 import type { ProjectTemplate } from '@v5x/compiler'
-import type { Documents } from '~/lib/ide/workspace'
-import type { SemanticColor } from '~/lib/ide/semantic-tokens'
-import type { SnippetStop } from '~/lib/ide/snippets'
-import type { FileOperations } from '~/lib/ide/file-operations'
-import { Button } from '~/components/ui/button'
-import { Skeleton } from '~/components/ui/skeleton'
+import { BrainTerminal, type BrainTerminalProps } from './brain-terminal'
+import { DraftConflicts } from './draft-conflicts'
+import { DraftStatus } from './draft-status'
+import { PierreDocument, type PierreEditor } from './pierre-document'
+import { WorkspaceCompletions } from './workspace-completions'
+import { WorkspaceEditorTabs } from './workspace-editor-tabs'
+import { WorkspaceEditorToolbar } from './workspace-editor-toolbar'
+import { WorkspaceFilePicker } from './workspace-file-picker'
+import { WorkspacePanels } from './workspace-panels'
+import { WorkspaceSearch } from './workspace-search'
 import { Alert, AlertDescription } from '~/components/ui/alert'
+import { Button } from '~/components/ui/button'
 import {
-  ResizablePanelGroup,
-  ResizablePanel,
   ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
 } from '~/components/ui/resizable'
+import { Skeleton } from '~/components/ui/skeleton'
+import { useCompletions } from '~/hooks/use-completions'
+import { useDraftWriter } from '~/hooks/use-draft-writer'
+import { useLanguageClient } from '~/hooks/use-language-client'
+import { useSemanticAnalysis } from '~/hooks/use-semantic-analysis'
+import { useWorkspaceDocuments } from '~/hooks/use-workspace-documents'
+import {
+  useWorkspaceSearch,
+  type SearchResult,
+} from '~/hooks/use-workspace-search'
 import { parseBuildProblems } from '~/lib/ide/build-problems'
-import { decodeSemanticTokens } from '~/lib/ide/semantic-tokens'
-import { ClangdClient } from '~/lib/ide/clangd-client'
-import { formatWorkspace } from '~/lib/ide/format-workspace'
-import { symbolFoldingRanges } from '~/lib/ide/folding'
-import { compileCommands } from '@v5x/compiler'
-import {
-  applyTextEdits,
-  fileUri,
-  isDirty,
-  positionOffset,
-  recoverDocuments,
-  searchWorkspace,
-  uriPath,
-  workspaceDocuments,
-} from '~/lib/ide/workspace'
-import {
-  expandSnippet,
-  offsetPosition,
-  remapSnippetStops,
-} from '~/lib/ide/snippets'
 import {
   applyFileOperation,
   readFiles,
   withinPath,
+  type FileOperations,
 } from '~/lib/ide/file-operations'
-import { readWorkspace, writeWorkspace } from '~/lib/ide/persistence'
-import { DraftWriter, type DraftStatus } from '~/lib/ide/draft-writer'
+import { formatWorkspace } from '~/lib/ide/format-workspace'
+import { requestDefinition } from '~/lib/ide/language-features'
+import { loadWorkspace, restoredTabs } from '~/lib/ide/load-workspace'
+import type { SemanticColor } from '~/lib/ide/semantic-tokens'
+import { offsetPosition, remapSnippetStops } from '~/lib/ide/snippets'
+import {
+  fileUri,
+  isDirty,
+  liveDocuments,
+  liveFiles,
+  restoreBaseline,
+  workspaceDocuments,
+  type CommitChange,
+  type ProjectSnapshot,
+} from '~/lib/ide/workspace'
+import type { FoldingRange, TextEdit } from 'vscode-languageserver-protocol'
 
 const MAX_MOUNTED_EDITORS = 1
 
+// The tabs and picker show dirty markers, which change without a new
+// documents object. The revision forces those re-renders.
 const MemoWorkspaceEditorTabs = React.memo(
   ({
     dirtyRevision: _dirtyRevision,
@@ -95,18 +84,17 @@ const MemoWorkspaceSearch = React.memo(WorkspaceSearch)
 
 const MemoWorkspacePanels = React.memo(WorkspacePanels)
 
-export interface ProjectSnapshot {
-  files: Record<string, string>
-  commitSha: string
-}
+const emptyDiagnostics: Array<Diagnostic> = []
 
-export interface CommitChange {
-  path: string
-  contents: string | null
-}
+const emptyTokens: Array<SemanticColor> = []
+
+const emptyFolds: Array<FoldingRange> = []
+
+type Panel = 'problems' | 'output' | 'terminal'
 
 interface Props {
   onBuild?: () => void
+  // Opens the output panel whenever the number changes.
   outputRequest?: number
   statusBarEnd?: React.ReactNode
   brainTerminal?: BrainTerminalProps
@@ -131,173 +119,103 @@ interface Props {
   buildSnapshotRef?: { current: (() => ProjectSnapshot) | null }
 }
 
-const emptyDiagnostics: Array<Diagnostic> = []
+const isModified = (event: { ctrlKey: boolean; metaKey: boolean }) =>
+  event.ctrlKey || event.metaKey
 
-const emptyTokens: Array<SemanticColor> = []
-
-const emptyFolds: Array<FoldingRange> = []
+// Editor-wide shortcuts that also apply outside Pierre.
+const isGlobalShortcut = (event: React.KeyboardEvent) => {
+  const key = event.key.toLowerCase()
+  return (
+    isModified(event) &&
+    ((event.shiftKey && key === 'f') || key === 'j' || key === 'b')
+  )
+}
 
 export function WorkspaceEditor(props: Props) {
   const propsRef = React.useRef(props)
   propsRef.current = props
+  const selectedFileRef = React.useRef(props.selectedFile)
+  selectedFileRef.current = props.selectedFile
+
+  const store = useWorkspaceDocuments()
+  const { documents, documentsRef } = store
+  const drafts = useDraftWriter(props.workspaceId)
+  const search = useWorkspaceSearch(documents, store.documentRevision)
+
+  const [error, setError] = React.useState('')
+  const [loadAttempt, setLoadAttempt] = React.useState(0)
+  const [workspaceLoaded, setWorkspaceLoaded] = React.useState(false)
   const [tabs, setTabs] = React.useState<Array<string>>([])
   const tabsRef = React.useRef(tabs)
   tabsRef.current = tabs
-  const [loadAttempt, setLoadAttempt] = React.useState(0)
-  const [workspaceLoaded, setWorkspaceLoaded] = React.useState(false)
-  const loadedWorkspaceRef = React.useRef<string | null>(null)
-  const [documents, setDocuments] = React.useState<Documents>({})
-  const documentsRef = React.useRef(documents)
-  const [documentRevision, setDocumentRevision] = React.useState(0)
-  const editGenerationRef = React.useRef(0)
-  const [workspaceDirty, setWorkspaceDirty] = React.useState(false)
-  const [dirtyRevision, setDirtyRevision] = React.useState(0)
-  const dirtyPathsRef = React.useRef(new Set<string>())
-  const [pathsRevision, setPathsRevision] = React.useState(0)
-  const workspacePathsRef = React.useRef<Array<string>>([])
-  const pendingSyncRef = React.useRef({ full: false, paths: new Set<string>() })
-  const previousSelectedPathRef = React.useRef(props.selectedFile)
-  const previousReadyRef = React.useRef(false)
   const [recentEditorPaths, setRecentEditorPaths] = React.useState<
     Array<string>
   >([])
-  const commitRef = React.useRef('')
-  const conflictsRef = React.useRef<Array<string>>([])
-  const [draftStatus, setDraftStatus] = React.useState<DraftStatus>('saved')
-  const [draftError, setDraftError] = React.useState<string | undefined>()
-  const draftWriterRef = React.useRef<DraftWriter | null>(null)
-  const blockedDraftsRef = React.useRef(new Set<string>())
-
-  React.useEffect(() => {
-    let active = true
-    const writer = new DraftWriter(
-      async (snapshot) => {
-        if (blockedDraftsRef.current.has(props.workspaceId))
-          throw new Error(
-            'The existing local draft could not be read. Download a recovery copy of your current work before reloading to retry.',
-          )
-        await writeWorkspace(props.workspaceId, snapshot)
-      },
-      (status, error) => {
-        if (active) {
-          setDraftStatus(status)
-          setDraftError(error)
-        }
-      },
-    )
-    draftWriterRef.current = writer
-    const flush = () => void writer.flush()
-    const hidden = () => {
-      if (document.visibilityState === 'hidden') flush()
-    }
-    window.addEventListener('pagehide', flush)
-    document.addEventListener('visibilitychange', hidden)
-    return () => {
-      active = false
-      flush()
-      draftWriterRef.current = null
-      window.removeEventListener('pagehide', flush)
-      document.removeEventListener('visibilitychange', hidden)
-    }
-  }, [props.workspaceId])
-
-  React.useEffect(() => {
-    const ref = props.buildSnapshotRef
-    if (!ref) return
-    ref.current = () => ({
-      files: Object.fromEntries(
-        workspaceDocuments(documentsRef.current)
-          .filter((doc) => !doc.deleted)
-          .map((doc) => [doc.path, doc.contents]),
-      ),
-      commitSha: commitRef.current,
-    })
-    return () => {
-      ref.current = null
-    }
-  }, [props.buildSnapshotRef])
   const [conflicts, setConflicts] = React.useState<Array<string>>([])
+  const conflictsRef = React.useRef(conflicts)
+  const commitRef = React.useRef('')
+  const savingRef = React.useRef(false)
 
-  const [analysis, setAnalysis] = React.useState<{
+  const editorRef = React.useRef<PierreEditor | null>(null)
+  // Remounts every editor after its text is replaced outside Pierre.
+  const [editorRevision, setEditorRevision] = React.useState(0)
+  const [panel, setPanel] = React.useState<Panel | null>(null)
+  const [fileQuery, setFileQuery] = React.useState<string | null>(null)
+  const [position, setPosition] = React.useState<Position>({
+    line: 0,
+    character: 0,
+  })
+  const [target, setTarget] = React.useState<{
     path: string
-    version: number
-    tokens: Array<SemanticColor>
-    folds: Array<FoldingRange>
+    position: Position
+  } | null>(null)
+  // A read-only SDK or toolchain header opened through go to definition.
+  const [sdkHeader, setSdkHeader] = React.useState<{
+    path: string
+    contents: string
   } | null>(null)
 
-  const syncedPathsRef = React.useRef(new Set<string>())
-  const clientRef = React.useRef<ClangdClient | null>(null)
-  const editorRef = React.useRef<PierreEditor | null>(null)
-  const [ready, setReady] = React.useState(false)
-  const [panel, setPanel] = React.useState<
-    'problems' | 'output' | 'terminal' | null
-  >(null)
-  const [searchQuery, setSearchQuery] = React.useState('')
-  const [searchOpen, setSearchOpen] = React.useState(false)
-  const [matchCase, setMatchCase] = React.useState(false)
-  const searchInputRef = React.useRef<HTMLInputElement>(null)
+  const selected = documents[props.selectedFile]
 
-  const searchResults = React.useMemo(
-    () =>
-      searchOpen ? searchWorkspace(documents, searchQuery, matchCase) : [],
-    [
-      documents,
-      searchOpen ? documentRevision : 0,
-      searchQuery,
-      matchCase,
-      searchOpen,
-    ],
-  )
-
-  const searchGroups = React.useMemo(() => {
-    const groups = new Map<string, typeof searchResults>()
-
-    for (const result of searchResults) {
-      const group = groups.get(result.path)
-
-      if (group) group.push(result)
-      else groups.set(result.path, [result])
+  const run = async (task: () => Promise<void>) => {
+    try {
+      setError('')
+      await task()
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : String(reason))
     }
+  }
 
-    return groups
-  }, [searchResults])
+  const language = useLanguageClient({
+    store,
+    workspaceId: props.workspaceId,
+    languageServer: props.languageServer,
+    template: props.template,
+    workspaceLoaded,
+    selectedFile: props.selectedFile,
+    selectedFileRef,
+    onError: setError,
+  })
+  const { clientRef, ready, diagnostics } = language
 
-  const openSearch = React.useCallback(() => {
-    setSearchOpen(true)
+  const analysis = useSemanticAnalysis({
+    clientRef,
+    ready,
+    selected,
+    paused: !!sdkHeader,
+    documentsRef,
+  })
 
-    requestAnimationFrame(() => {
-      searchInputRef.current?.focus()
-      searchInputRef.current?.select()
-    })
-  }, [])
-
-  const [fileQuery, setFileQuery] = React.useState<string | null>(null)
-
-  React.useEffect(() => {
-    const openFile = (event: KeyboardEvent) => {
-      if (
-        (event.ctrlKey || event.metaKey) &&
-        !event.shiftKey &&
-        event.key.toLowerCase() === 'p'
-      ) {
-        event.preventDefault()
-        setCompletions([])
-        setFileQuery('')
-      }
-    }
-
-    window.addEventListener('keydown', openFile)
-    return () => window.removeEventListener('keydown', openFile)
-  }, [])
-
-  const [editorRevision, setEditorRevision] = React.useState(0)
-  const [error, setError] = React.useState('')
-
-  const [diagnostics, setDiagnostics] = React.useState<
-    Record<string, Array<Diagnostic>>
-  >({})
-  const diagnosticsRef = React.useRef(diagnostics)
-  const [diagnosticsRevision, setDiagnosticsRevision] = React.useState(0)
+  const completion = useCompletions({
+    clientRef,
+    editorRef,
+    documentsRef,
+    selectedFileRef,
+    ready,
+    selected,
+    position,
+    run,
+  })
 
   const problems = React.useMemo(
     () =>
@@ -311,218 +229,53 @@ export function WorkspaceEditor(props: Props) {
       ].sort(
         (a, b) => (a.diagnostic.severity ?? 3) - (b.diagnostic.severity ?? 3),
       ),
-    [diagnostics, diagnosticsRevision, documents, props.buildOutput],
+    [diagnostics, language.diagnosticsRevision, documents, props.buildOutput],
   )
 
-  const [position, setPosition] = React.useState<Position>({
-    line: 0,
-    character: 0,
-  })
-
-  const [target, setTarget] = React.useState<{
-    path: string
-    position: Position
-  } | null>(null)
-
-  const [sdkHeader, setSdkHeader] = React.useState<{
-    path: string
-    contents: string
-  } | null>(null)
-
-  const [completions, setCompletions] = React.useState<Array<CompletionItem>>(
-    [],
-  )
-
-  const [completionIndex, setCompletionIndex] = React.useState(0)
-
-  const context = React.useRef<{
-    path: string
-    version: number
-    position: Position
-  } | null>(null)
-
-  const getCompletionAnchor = React.useCallback(() => {
-    const current = context.current
-    return current
-      ? editorRef.current?.getPositionRect(current.position)
-      : undefined
-  }, [])
-
-  const snippet = React.useRef<{
-    path: string
-    stops: Array<SnippetStop>
-    index: number
-  } | null>(null)
-
-  const saving = React.useRef(false)
-  const suppressCompletion = React.useRef(false)
-  const completionAbort = React.useRef<AbortController | null>(null)
-  const selected = documents[props.selectedFile]
-
-  const clearDiagnostics = (path: string) => {
-    const entries = diagnosticsRef.current[path]
-    if (!entries?.length) return
-
-    delete diagnosticsRef.current[path]
-    setDiagnosticsRevision((revision) => revision + 1)
+  const setConflictList = (next: Array<string>) => {
+    conflictsRef.current = next
+    setConflicts(next)
   }
 
-  const refreshDirtyPaths = (next: Documents) => {
-    dirtyPathsRef.current = new Set(
-      workspaceDocuments(next)
-        .filter((doc) => isDirty(doc))
-        .map((doc) => doc.path),
-    )
-    setWorkspaceDirty(dirtyPathsRef.current.size > 0)
-  }
-
-  const refreshWorkspacePaths = (next: Documents) => {
-    const paths = workspaceDocuments(next)
-      .filter((doc) => !doc.deleted)
-      .map((doc) => doc.path)
-      .sort()
-
-    if (
-      paths.length === workspacePathsRef.current.length &&
-      paths.every((path, index) => path === workspacePathsRef.current[index])
-    )
-      return
-
-    workspacePathsRef.current = paths
-    setPathsRevision((revision) => revision + 1)
-  }
-
-  const publish = (
-    next: Documents,
-    options: { pathsChanged?: boolean } = {},
-  ) => {
-    pendingSyncRef.current.full = true
-    pendingSyncRef.current.paths.clear()
-
-    documentsRef.current = next
-    refreshDirtyPaths(next)
-    if (options.pathsChanged) refreshWorkspacePaths(next)
-    React.startTransition(() => {
-      setDocuments(next)
-      setDocumentRevision((revision) => revision + 1)
+  const scheduleDraft = (commitSha: string, snapshot = documentsRef.current) =>
+    drafts.writerRef.current?.schedule({
+      documents: snapshot,
+      conflicts: conflictsRef.current,
+      commitSha,
+      tabs: tabsRef.current,
+      selectedFile: propsRef.current.selectedFile,
+      template: propsRef.current.template,
     })
-  }
-
-  const publishEditedDocument = (path: string, contents: string) => {
-    const current = documentsRef.current[path]
-    if (!current || current.deleted || current.contents === contents) return
-
-    const updated = {
-      ...current,
-      contents,
-      version: current.version + 1,
-    }
-    documentsRef.current[path] = updated
-    editGenerationRef.current++
-
-    if (!pendingSyncRef.current.full) pendingSyncRef.current.paths.add(path)
-
-    const wasDirty = dirtyPathsRef.current.has(path)
-    const nowDirty = isDirty(updated)
-
-    if (nowDirty) dirtyPathsRef.current.add(path)
-    else dirtyPathsRef.current.delete(path)
-
-    if (wasDirty !== nowDirty) {
-      setDirtyRevision((revision) => revision + 1)
-      setWorkspaceDirty(dirtyPathsRef.current.size > 0)
-    }
-
-    React.startTransition(() => {
-      setDocuments(documentsRef.current)
-      setDocumentRevision((revision) => revision + 1)
-    })
-  }
-
-  const run = async (task: () => Promise<void>) => {
-    try {
-      setError('')
-      await task()
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : String(reason))
-    }
-  }
 
   React.useEffect(() => {
     let active = true
-    setReady(false)
     setWorkspaceLoaded(false)
-    loadedWorkspaceRef.current = null
     setTabs([])
-    setAnalysis(null)
-    pendingSyncRef.current = { full: false, paths: new Set() }
-    syncedPathsRef.current.clear()
-    previousReadyRef.current = false
-    const isActive = () => active
+    store.resetSync()
 
     void run(async () => {
-      const cached = await readWorkspace(props.workspaceId).catch(() => {
-        // Continue with the remote source, but preserve any unreadable local draft.
-        blockedDraftsRef.current.add(props.workspaceId)
-        if (isActive()) {
-          setDraftStatus('error')
-          setDraftError(
-            'The existing local draft could not be read. Download your current work before reloading to retry.',
-          )
-        }
-        return undefined
-      })
-
-      const loaded = await propsRef.current
-        .loadSnapshot()
-        .then((remote) => ({
-          commitSha: remote.commitSha,
-          recovered: recoverDocuments(remote.files, cached),
-        }))
-        .catch((reason) => {
-          if (!cached) throw reason
-
-          return {
-            commitSha: cached.commitSha,
-            recovered: {
-              documents: cached.documents,
-              conflicts: cached.conflicts ?? [],
-            },
-          }
-        })
-
-      if (!isActive()) return
-      const recovered = loaded.recovered
-      const next = recovered.documents
-      conflictsRef.current = recovered.conflicts
-      setConflicts(recovered.conflicts)
-      commitRef.current = loaded.commitSha
-      // Initial documents must land with the loaded flag, not in a later transition.
-      documentsRef.current = next
-      setDocuments(next)
-      setDocumentRevision((revision) => revision + 1)
-      refreshDirtyPaths(next)
-      refreshWorkspacePaths(next)
-
-      const restoredTabs = (cached?.tabs ?? []).filter(
-        (path) => next[path] && !next[path].deleted,
+      const loaded = await loadWorkspace(
+        props.workspaceId,
+        () => propsRef.current.loadSnapshot(),
+        drafts.markUnreadable,
       )
+      if (!active) return
 
-      const initialPath =
-        cached?.selectedFile &&
-        next[cached.selectedFile] &&
-        !next[cached.selectedFile]?.deleted
-          ? cached.selectedFile
-          : propsRef.current.selectedFile
+      const next = loaded.recovered.documents
+      setConflictList(loaded.recovered.conflicts)
+      commitRef.current = loaded.commitSha
+      store.load(next)
 
-      setTabs([
-        ...new Set([...restoredTabs, ...(initialPath ? [initialPath] : [])]),
-      ])
+      const restored = restoredTabs(
+        loaded.cached,
+        next,
+        propsRef.current.selectedFile,
+      )
+      setTabs(restored.tabs)
 
-      if (initialPath !== propsRef.current.selectedFile)
-        propsRef.current.onSelect(initialPath)
+      if (restored.selectedFile !== propsRef.current.selectedFile)
+        propsRef.current.onSelect(restored.selectedFile)
 
-      loadedWorkspaceRef.current = props.workspaceId
       setWorkspaceLoaded(true)
     })
 
@@ -532,268 +285,18 @@ export function WorkspaceEditor(props: Props) {
   }, [props.workspaceId, loadAttempt])
 
   React.useEffect(() => {
-    if (
-      !workspaceLoaded ||
-      loadedWorkspaceRef.current !== props.workspaceId ||
-      props.languageServer === null
-    )
-      return
-    let active = true
-    const isActive = () => active
-    setReady(false)
-    setAnalysis(null)
-    previousReadyRef.current = false
-    syncedPathsRef.current.clear()
-    const client = new ClangdClient(
-      {
-        status: () => {},
-        error: (reason) => {
-          if (active) setError(reason.message)
-        },
-        applyEdit: () =>
-          Promise.reject(
-            new Error('Server-requested workspace edits are disabled'),
-          ),
-        diagnostics: (uri, entries, version) => {
-          if (!isActive()) return
-          const path = uriPath(uri)
-
-          if (
-            version !== undefined &&
-            documentsRef.current[path]?.version !== version
-          )
-            return
-
-          setDiagnostics((old) => {
-            const slim = entries.slice(0, 64).map((entry) => ({
-              range: entry.range,
-              severity: entry.severity,
-              message: entry.message,
-              source: entry.source,
-            }))
-            const next: Record<string, Array<Diagnostic>> = {
-              ...old,
-              [path]: slim,
-            }
-            const selected = propsRef.current.selectedFile
-            for (const retained of Object.keys(next)) {
-              const doc = documentsRef.current[retained]
-              if (
-                retained !== path &&
-                retained !== selected &&
-                !(doc && isDirty(doc))
-              )
-                delete next[retained]
-            }
-            diagnosticsRef.current = next
-            return next
-          })
-        },
-      },
-      props.languageServer ?? '',
-    )
-
-    clientRef.current = client
-
-    setError('')
-    void (async () => {
-      const files = Object.fromEntries(
-        workspaceDocuments(documentsRef.current)
-          .filter((doc) => !doc.deleted)
-          .map((doc) => [doc.path, doc.contents]),
-      )
-
-      const response = await fetch('/language/sdk-manifest.json')
-      if (!response.ok) throw new Error('Language SDK manifest is missing')
-      const manifest = (await response.json()) as { gccVersion: string }
-      if (!isActive()) return
-      syncedPathsRef.current = new Set(Object.keys(files))
-
-      await client.start(
-        files,
-        props.template,
-        compileCommands(files, props.template, manifest.gccVersion),
-        props.workspaceId,
-      )
-
-      if (isActive()) {
-        pendingSyncRef.current.full = true
-        setReady(true)
-      }
-    })().catch((reason) => {
-      if (active)
-        setError(reason instanceof Error ? reason.message : String(reason))
+    const ref = props.buildSnapshotRef
+    if (!ref) return
+    ref.current = () => ({
+      files: liveFiles(documentsRef.current),
+      commitSha: commitRef.current,
     })
     return () => {
-      active = false
-      client.stop()
-      if (clientRef.current === client) clientRef.current = null
+      ref.current = null
     }
-  }, [workspaceLoaded, props.workspaceId, props.languageServer, loadAttempt])
+  }, [props.buildSnapshotRef])
 
-  React.useEffect(() => {
-    const previousSelectedPath = previousSelectedPathRef.current
-    const selectedPathChanged = previousSelectedPath !== props.selectedFile
-    const becameReady = ready && !previousReadyRef.current
-    previousSelectedPathRef.current = props.selectedFile
-    previousReadyRef.current = ready
-
-    if (!ready) return
-
-    const client = clientRef.current
-    if (!client) return
-
-    const pending = pendingSyncRef.current
-    const pendingPaths = new Set(pending.paths)
-    if (selectedPathChanged || becameReady) {
-      pendingPaths.add(props.selectedFile)
-      if (selectedPathChanged) pendingPaths.add(previousSelectedPath)
-    }
-
-    const syncDocument = (path: string) => {
-      const doc = documentsRef.current[path]
-      if (!doc || doc.deleted) {
-        if (syncedPathsRef.current.has(path)) client.remove(path)
-        syncedPathsRef.current.delete(path)
-        return
-      }
-
-      if (
-        /\.(c|cc|cpp|cxx)$/.test(doc.path) ||
-        (/\.(h|hpp|hxx)$/.test(doc.path) &&
-          (doc.path === props.selectedFile || isDirty(doc)))
-      )
-        client.sync(doc.path, doc.contents, doc.version)
-      else client.setFile(doc.path, doc.contents, doc.version)
-
-      syncedPathsRef.current.add(path)
-    }
-
-    if (pending.full) {
-      const livePaths = new Set(
-        workspaceDocuments(documentsRef.current)
-          .filter((doc) => !doc.deleted)
-          .map((doc) => doc.path),
-      )
-
-      for (const path of syncedPathsRef.current)
-        if (!livePaths.has(path)) client.remove(path)
-
-      syncedPathsRef.current = livePaths
-
-      for (const doc of workspaceDocuments(documentsRef.current))
-        syncDocument(doc.path)
-    } else {
-      for (const path of pendingPaths) syncDocument(path)
-    }
-
-    pending.full = false
-    pending.paths.clear()
-  }, [documents, documentRevision, props.selectedFile, ready])
-
-  React.useEffect(() => {
-    // Pierre remaps existing colors through edits while fresh analysis is pending.
-    const client = clientRef.current
-
-    if (
-      !ready ||
-      !client?.ready ||
-      !selected ||
-      selected.deleted ||
-      sdkHeader ||
-      !/\.(c|cc|cpp|cxx|h|hpp|hxx)$/.test(selected.path)
-    )
-      return
-
-    const controller = new AbortController()
-    const { path, version } = selected
-    const params = { textDocument: { uri: fileUri(path) } }
-
-    let timer: ReturnType<typeof setTimeout>
-    let attempts = 0
-    let colors: Array<SemanticColor> | undefined
-    let ranges: Array<FoldingRange> | undefined
-
-    const refresh = () => {
-      attempts++
-      const provider = client.capabilities.semanticTokensProvider
-
-      const tokens =
-        colors !== undefined
-          ? Promise.resolve(colors)
-          : provider && provider.full
-            ? client
-                .request<SemanticTokens | null>(
-                  'textDocument/semanticTokens/full',
-                  params,
-                  controller.signal,
-                  120_000,
-                )
-                .then((result) =>
-                  result ? decodeSemanticTokens(result, provider.legend) : [],
-                )
-            : Promise.resolve([])
-
-      const folds =
-        ranges !== undefined
-          ? Promise.resolve(ranges)
-          : client.capabilities.foldingRangeProvider
-            ? client
-                .request<Array<FoldingRange> | null>(
-                  'textDocument/foldingRange',
-                  params,
-                  controller.signal,
-                  120_000,
-                )
-                .then((result) => result ?? [])
-            : client.capabilities.documentSymbolProvider
-              ? client
-                  .request<
-                    Array<DocumentSymbol> | Array<SymbolInformation> | null
-                  >(
-                    'textDocument/documentSymbol',
-                    params,
-                    controller.signal,
-                    120_000,
-                  )
-                  .then((symbols) => symbolFoldingRanges(symbols ?? []))
-              : Promise.resolve([])
-
-      void Promise.allSettled([tokens, folds]).then(
-        ([tokenResult, foldResult]) => {
-          if (
-            controller.signal.aborted ||
-            documentsRef.current[path]?.version !== version
-          )
-            return
-
-          if (tokenResult.status === 'fulfilled') colors = tokenResult.value
-          if (foldResult.status === 'fulfilled') ranges = foldResult.value
-
-          // Background analysis is optional. Keep Pierre's existing colors and
-          // folds when clangd is busy, and retain either successful response.
-          if (colors !== undefined || ranges !== undefined)
-            setAnalysis((current) => ({
-              path,
-              version,
-              tokens: colors ?? (current?.path === path ? current.tokens : []),
-              folds: ranges ?? (current?.path === path ? current.folds : []),
-            }))
-
-          if ((colors === undefined || ranges === undefined) && attempts < 3)
-            timer = setTimeout(refresh, attempts * 2_000)
-        },
-      )
-    }
-
-    timer = setTimeout(refresh, 180)
-
-    return () => {
-      clearTimeout(timer)
-      controller.abort()
-    }
-  }, [ready, selected?.path, selected?.version, sdkHeader])
-
+  // Keep tabs for live documents and add the selected file.
   React.useEffect(() => {
     if (!workspaceLoaded) return
 
@@ -801,7 +304,6 @@ export function WorkspaceEditor(props: Props) {
       const live = current.filter(
         (path) => documents[path] && !documents[path].deleted,
       )
-
       const path = props.selectedFile
 
       if (
@@ -821,57 +323,70 @@ export function WorkspaceEditor(props: Props) {
 
   React.useEffect(() => {
     if (workspaceLoaded)
-      propsRef.current.onPathsChange([...workspacePathsRef.current])
-  }, [pathsRevision, workspaceLoaded])
+      propsRef.current.onPathsChange([...store.workspacePathsRef.current])
+  }, [store.pathsRevision, workspaceLoaded])
 
   React.useEffect(() => {
-    propsRef.current.onDirtyChange(workspaceDirty)
-  }, [workspaceDirty])
+    propsRef.current.onDirtyChange(store.workspaceDirty)
+  }, [store.workspaceDirty])
 
   React.useEffect(() => {
-    if (!commitRef.current) return
-
-    draftWriterRef.current?.schedule({
-      documents,
-      conflicts,
-      commitSha: commitRef.current,
-      tabs,
-      selectedFile: props.selectedFile,
-      template: props.template,
-    })
-  }, [documents, documentRevision, props.selectedFile, conflicts, tabs])
+    if (commitRef.current) scheduleDraft(commitRef.current, documents)
+  }, [documents, store.documentRevision, props.selectedFile, conflicts, tabs])
 
   React.useEffect(() => {
-    setSearchOpen(false)
+    search.setOpen(false)
     setSdkHeader(null)
-    setCompletions([])
-    snippet.current = null
+    completion.reset()
   }, [props.selectedFile])
 
   React.useEffect(() => {
+    const openFilePicker = (event: KeyboardEvent) => {
+      if (
+        isModified(event) &&
+        !event.shiftKey &&
+        event.key.toLowerCase() === 'p'
+      ) {
+        event.preventDefault()
+        completion.clear()
+        setFileQuery('')
+      }
+    }
+
+    window.addEventListener('keydown', openFilePicker)
+    return () => window.removeEventListener('keydown', openFilePicker)
+  }, [])
+
+  React.useEffect(() => {
+    if (props.outputRequest) setPanel('output')
+  }, [props.outputRequest])
+
+  // Formats, then commits every dirty document. Registered once because it
+  // only reads refs.
+  React.useEffect(() => {
     const save = async () => {
-      if (saving.current) return
+      if (savingRef.current) return
 
       if (conflictsRef.current.length)
         throw new Error('Review recovered drafts before committing.')
 
       if (!workspaceDocuments(documentsRef.current).some(isDirty)) return
       setError('')
-      saving.current = true
+      savingRef.current = true
       propsRef.current.onSavingChange(true)
 
       try {
         const snapshot = documentsRef.current
-        const editGeneration = editGenerationRef.current
+        const editGeneration = store.editGenerationRef.current
         const formatted = await formatWorkspace(snapshot, clientRef.current)
 
         if (
           documentsRef.current !== snapshot ||
-          editGenerationRef.current !== editGeneration
+          store.editGenerationRef.current !== editGeneration
         )
           throw new Error('The program changed while formatting. Commit again.')
 
-        publish(formatted)
+        store.publish(formatted)
         const changed = workspaceDocuments(formatted).filter(isDirty)
         if (!changed.length) return
 
@@ -892,23 +407,16 @@ export function WorkspaceEditor(props: Props) {
           else if (next[doc.path])
             next[doc.path] = { ...next[doc.path]!, baseline: doc.contents }
 
-        publish(next)
+        store.publish(next)
         // Finish the committed recovery snapshot before callers can reload.
         // pagehide cannot keep an asynchronous IndexedDB write alive.
-        draftWriterRef.current?.schedule({
-          documents: next,
-          conflicts: conflictsRef.current,
-          commitSha: sha,
-          tabs: tabsRef.current,
-          selectedFile: propsRef.current.selectedFile,
-          template: propsRef.current.template,
-        })
-        await draftWriterRef.current?.flush()
+        scheduleDraft(sha, next)
+        await drafts.writerRef.current?.flush()
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : String(reason))
         throw reason
       } finally {
-        saving.current = false
+        savingRef.current = false
         propsRef.current.onSavingChange(false)
       }
     }
@@ -927,7 +435,7 @@ export function WorkspaceEditor(props: Props) {
     ref.current = {
       read: (path) => readFiles(documentsRef.current, path.replace(/\/$/, '')),
       apply: (operation) => {
-        if (saving.current) throw new Error('Wait for the commit to finish.')
+        if (savingRef.current) throw new Error('Wait for the commit to finish.')
 
         if (!commitRef.current)
           throw new Error('Wait for the workspace to load.')
@@ -936,19 +444,18 @@ export function WorkspaceEditor(props: Props) {
           throw new Error('Resolve recovered draft conflicts first.')
 
         const next = applyFileOperation(documentsRef.current, operation)
-        publish(next, { pathsChanged: true })
+        store.publish(next, { pathsChanged: true })
         const current = propsRef.current.selectedFile
         const source = operation.path.replace(/\/$/, '')
 
+        // Follow a moved selection, or pick another file when it was deleted.
         if (operation.kind === 'move' && withinPath(current, source))
           propsRef.current.onSelect(
             operation.to.replace(/\/$/, '') + current.slice(source.length),
           )
-        else if (!next[current] || next[current].deleted) {
-          propsRef.current.onSelect(
-            workspaceDocuments(next).find((doc) => !doc.deleted)?.path ?? '',
-          )
-        } else if (operation.kind === 'create' && !operation.folder)
+        else if (!next[current] || next[current].deleted)
+          propsRef.current.onSelect(liveDocuments(next).at(0)?.path ?? '')
+        else if (operation.kind === 'create' && !operation.folder)
           propsRef.current.onSelect(operation.path)
       },
     }
@@ -958,244 +465,25 @@ export function WorkspaceEditor(props: Props) {
     }
   }, [])
 
-  const complete = async () => {
-    const client = clientRef.current,
-      doc = documentsRef.current[propsRef.current.selectedFile]
-
-    if (!client?.ready || !doc || !editorRef.current) return
-    const selection = editorRef.current.getViewState().selections?.at(-1)
-
-    const cursor = selection
-      ? selection.direction === -1
-        ? selection.start
-        : selection.end
-      : position
-
-    completionAbort.current?.abort()
-    const controller = new AbortController()
-    completionAbort.current = controller
-
-    let result: CompletionList | Array<CompletionItem> | null
-
-    try {
-      result = await client.request<
-        CompletionList | Array<CompletionItem> | null
-      >(
-        'textDocument/completion',
-        {
-          textDocument: { uri: fileUri(doc.path) },
-          position: cursor,
-          context: { triggerKind: 1 },
-        },
-        controller.signal,
-      )
-    } catch (error) {
-      if (controller.signal.aborted) return
-      throw error
-    }
-
-    if (controller.signal.aborted) return
-
-    if (
-      propsRef.current.selectedFile !== doc.path ||
-      documentsRef.current[doc.path]?.version !== doc.version
-    )
-      return
-
-    const currentSelection = editorRef.current.getViewState().selections?.at(-1)
-    const currentCursor =
-      currentSelection?.direction === -1
-        ? currentSelection.start
-        : currentSelection?.end
-
-    if (
-      !currentCursor ||
-      currentCursor.line !== cursor.line ||
-      currentCursor.character !== cursor.character
-    )
-      return
-
-    context.current = { path: doc.path, version: doc.version, position: cursor }
-
-    setCompletions(
-      (Array.isArray(result) ? result : (result?.items ?? []))
-        .sort((a, b) =>
-          (a.sortText ?? a.label).localeCompare(b.sortText ?? b.label),
-        )
-        .slice(0, 20)
-        .map((item) => {
-          if (!item.documentation) return item
-          const next = { ...item }
-          delete next.documentation
-          return next
-        }),
-    )
-
-    setCompletionIndex(0)
-  }
-
-  React.useEffect(() => {
-    if (!ready || !selected || suppressCompletion.current) {
-      suppressCompletion.current = false
-      return
-    }
-
-    const timer = setTimeout(() => {
-      const doc = documentsRef.current[propsRef.current.selectedFile]
-      const selection = editorRef.current?.getViewState().selections?.at(-1)
-      if (!doc || !selection) return
-
-      const cursor =
-        selection.direction === -1 ? selection.start : selection.end
-
-      const offset = positionOffset(doc.contents, cursor)
-      const prefix = doc.contents.slice(Math.max(0, offset - 128), offset)
-      if (/(?:[A-Za-z_]\w{1,}|\.|->|::)$/.test(prefix)) void run(complete)
-    }, 180)
-
-    return () => {
-      clearTimeout(timer)
-      completionAbort.current?.abort()
-    }
-  }, [selected?.version, ready])
-
-  const selectStop = (index: number) => {
-    const session = snippet.current,
-      stop = session?.stops[index],
-      editor = editorRef.current
-
-    if (!session || !stop || !editor) {
-      snippet.current = null
-      return
-    }
-
-    session.index = index
-    const text = documentsRef.current[session.path]?.contents ?? ''
-
-    editor.setSelections(
-      session.stops
-        .filter((entry) => entry.index === stop.index)
-        .map((entry) => ({
-          start: offsetPosition(text, entry.start),
-          end: offsetPosition(text, entry.end),
-          direction: 'forward',
-        })),
-    )
-
-    editor.focus()
-    if (!stop.index) snippet.current = null
-  }
-
-  const accept = async (item: CompletionItem) => {
-    const at = context.current,
-      client = clientRef.current,
-      editor = editorRef.current
-
-    if (!at || !client || !editor || at.path !== propsRef.current.selectedFile)
-      return
-
-    let resolved = item
-
-    if (client.capabilities.completionProvider?.resolveProvider)
-      resolved = await client.request<CompletionItem>(
-        'completionItem/resolve',
-        item,
-      )
-
-    const doc = documentsRef.current[at.path]
-
-    if (!doc || doc.version !== at.version) {
-      setCompletions([])
-      return
-    }
-
-    const edit = resolved.textEdit
-
-    const primary: TextEdit = edit
-      ? 'range' in edit
-        ? edit
-        : { range: edit.replace, newText: edit.newText }
-      : {
-          range: { start: at.position, end: at.position },
-          newText: resolved.insertText ?? resolved.label,
-        }
-
-    const expanded =
-      resolved.insertTextFormat === 2
-        ? expandSnippet(primary.newText, at.path)
-        : null
-
-    if (expanded) primary.newText = expanded.text
-    const edits = [primary, ...(resolved.additionalTextEdits ?? [])]
-    applyTextEdits(doc.contents, edits)
-    let start = positionOffset(doc.contents, primary.range.start)
-
-    for (const additional of resolved.additionalTextEdits ?? [])
-      if (positionOffset(doc.contents, additional.range.end) <= start)
-        start +=
-          additional.newText.length -
-          (positionOffset(doc.contents, additional.range.end) -
-            positionOffset(doc.contents, additional.range.start))
-
-    suppressCompletion.current = true
-    editor.applyEdits(edits)
-    setCompletions([])
-
-    if (expanded?.stops.length) {
-      snippet.current = {
-        path: at.path,
-        stops: expanded.stops.map((stop) => ({
-          ...stop,
-          start: stop.start + start,
-          end: stop.end + start,
-        })),
-        index: 0,
-      }
-
-      selectStop(0)
-    } else editor.focus()
-  }
-
   const navigate = async (cursor: Position) => {
     const client = clientRef.current
     if (!client?.ready) return
     const path = propsRef.current.selectedFile
 
-    const result = await client.request<
-      Location | Array<Location> | Array<LocationLink> | null
-    >('textDocument/definition', {
-      textDocument: { uri: fileUri(path) },
-      position: cursor,
-    })
+    const definition = await requestDefinition(client, path, cursor)
+    if (propsRef.current.selectedFile !== path || !definition) return
 
-    if (propsRef.current.selectedFile !== path || !result) return
-    const first = Array.isArray(result) ? result.at(0) : result
-    if (!first) return
-    const uri = 'targetUri' in first ? first.targetUri : first.uri
-
-    const at =
-      'targetUri' in first
-        ? first.targetSelectionRange.start
-        : first.range.start
-
-    if (new URL(uri).pathname.startsWith('/workspace/')) {
-      const nextPath = uriPath(uri)
-      if (!documentsRef.current[nextPath]) return
-      propsRef.current.onSelect(nextPath)
-      setTarget({ path: nextPath, position: at })
+    if (definition.kind === 'workspace') {
+      if (!documentsRef.current[definition.path]) return
+      propsRef.current.onSelect(definition.path)
     } else {
-      const nextPath = decodeURIComponent(new URL(uri).pathname)
-
-      if (!nextPath.startsWith('/sdk/') && !nextPath.startsWith('/toolchain/'))
-        return
-
       setSdkHeader({
-        path: nextPath,
-        contents: await client.readFile(nextPath),
+        path: definition.path,
+        contents: await client.readFile(definition.path),
       })
-
-      setTarget({ path: nextPath, position: at })
     }
+
+    setTarget({ path: definition.path, position: definition.position })
   }
 
   const formatDocument = async () => {
@@ -1225,81 +513,54 @@ export function WorkspaceEditor(props: Props) {
     editor.focus()
   }
 
+  const handled = (event: React.KeyboardEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+
   const keyboard = (event: React.KeyboardEvent) => {
-    const mod = event.ctrlKey || event.metaKey
+    const mod = isModified(event)
+    const key = event.key.toLowerCase()
+    const { completions, completionIndex } = completion
 
-    if (
-      mod &&
-      !event.shiftKey &&
-      !event.altKey &&
-      event.key.toLowerCase() === 'b'
-    ) {
-      event.preventDefault()
-      event.stopPropagation()
+    if (mod && !event.shiftKey && !event.altKey && key === 'b') {
+      handled(event)
       propsRef.current.onBuild?.()
-      return
-    }
-
-    if (mod && event.shiftKey && event.key.toLowerCase() === 'f') {
-      event.preventDefault()
-      event.stopPropagation()
-      openSearch()
-      return
-    }
-
-    if (mod && event.key.toLowerCase() === 'j') {
-      event.preventDefault()
-      event.stopPropagation()
+    } else if (mod && event.shiftKey && key === 'f') {
+      handled(event)
+      search.openSearch()
+    } else if (mod && key === 'j') {
+      handled(event)
       setPanel(panel ? null : 'problems')
-      return
-    }
-
-    if (event.shiftKey && event.altKey && event.key.toLowerCase() === 'f') {
-      event.preventDefault()
-      event.stopPropagation()
+    } else if (event.shiftKey && event.altKey && key === 'f') {
+      handled(event)
       void run(formatDocument)
-      return
-    }
-
-    if (event.key === 'F12') {
-      event.preventDefault()
-      event.stopPropagation()
+    } else if (event.key === 'F12') {
+      handled(event)
       void run(() => navigate(position))
-      return
-    }
-
-    if (event.key === 'Escape') {
-      setCompletions([])
+    } else if (event.key === 'Escape') {
+      completion.clear()
       setSdkHeader(null)
-      return
-    }
-
-    if (
+    } else if (
       completions.length &&
       ['ArrowDown', 'ArrowUp', 'Enter', 'Tab'].includes(event.key)
     ) {
-      event.preventDefault()
-      event.stopPropagation()
+      handled(event)
 
       if (event.key.startsWith('Arrow'))
-        setCompletionIndex(
+        completion.setCompletionIndex(
           (index) =>
             (index + (event.key === 'ArrowDown' ? 1 : completions.length - 1)) %
             completions.length,
         )
-      else void run(() => accept(completions[completionIndex]))
-    } else if (event.key === 'Tab' && snippet.current) {
-      event.preventDefault()
-      event.stopPropagation()
-      selectStop(snippet.current.index + (event.shiftKey ? -1 : 1))
+      else void run(() => completion.accept(completions[completionIndex]))
+    } else if (event.key === 'Tab' && completion.nextStop(event.shiftKey)) {
+      handled(event)
     } else if (mod && event.code === 'Space') {
-      event.preventDefault()
-      event.stopPropagation()
-      void run(complete)
-    } else if (mod && event.key.toLowerCase() === 's') {
-      event.preventDefault()
-      event.stopPropagation()
-
+      handled(event)
+      void run(completion.complete)
+    } else if (mod && key === 's') {
+      handled(event)
       void run(async () => {
         await propsRef.current.saveHandlerRef.current?.()
       })
@@ -1329,9 +590,9 @@ export function WorkspaceEditor(props: Props) {
     ...(activeEditorPath ? [activeEditorPath] : []),
   ]
 
-  const selectTabPath = React.useCallback((path: string) => {
+  const selectPath = React.useCallback((path: string) => {
     setSdkHeader(null)
-    setSearchOpen(false)
+    search.setOpen(false)
     propsRef.current.onSelect(path)
   }, [])
 
@@ -1353,26 +614,25 @@ export function WorkspaceEditor(props: Props) {
     [tabs],
   )
 
-  const selectPickerPath = React.useCallback((path: string) => {
-    setSdkHeader(null)
-    setSearchOpen(false)
-    propsRef.current.onSelect(path)
-    setFileQuery(null)
-  }, [])
+  const selectPickerPath = React.useCallback(
+    (path: string) => {
+      selectPath(path)
+      setFileQuery(null)
+    },
+    [selectPath],
+  )
 
   const backToSource = React.useCallback(() => setSdkHeader(null), [])
 
   const selectSearchResult = React.useCallback(
-    (result: ReturnType<typeof searchWorkspace>[number]) => {
-      setSearchOpen(false)
-      setSdkHeader(null)
-      propsRef.current.onSelect(result.path)
+    (result: SearchResult) => {
+      selectPath(result.path)
       setTarget({
         path: result.path,
         position: { line: result.line, character: result.character },
       })
     },
-    [],
+    [selectPath],
   )
 
   const selectProblem = React.useCallback(
@@ -1385,37 +645,68 @@ export function WorkspaceEditor(props: Props) {
     [],
   )
 
-  React.useEffect(() => {
-    if (props.outputRequest) setPanel('output')
-  }, [props.outputRequest])
+  const resolveConflict = (path: string) =>
+    setConflictList(conflictsRef.current.filter((entry) => entry !== path))
+
+  const takeIncoming = (path: string) => {
+    const { next, baseline, pathsChanged } = restoreBaseline(
+      documentsRef.current,
+      path,
+    )
+    const editor = editorRef.current
+
+    // Replace the open editor's text so its undo history keeps the draft.
+    if (
+      props.selectedFile === path &&
+      editor &&
+      !sdkHeader &&
+      baseline !== null
+    ) {
+      const text = editor.getText()
+      editor.applyEdits([
+        {
+          range: {
+            start: { line: 0, character: 0 },
+            end: offsetPosition(text, text.length),
+          },
+          newText: baseline,
+        },
+      ])
+    }
+
+    store.publish(next, { pathsChanged })
+    setEditorRevision((revision) => revision + 1)
+    resolveConflict(path)
+  }
+
+  const editorDocuments = [
+    ...mountedEditorPaths.flatMap((path) => {
+      const doc = documents[path]
+      return doc && !doc.deleted ? [doc] : []
+    }),
+    ...(sdkHeader ? [sdkHeader] : []),
+  ]
 
   return (
     <div
       className="relative flex h-full min-h-0 flex-col overflow-hidden"
       onKeyDown={(event) => {
-        if (
-          !event.defaultPrevented &&
-          (event.ctrlKey || event.metaKey) &&
-          ((event.shiftKey && event.key.toLowerCase() === 'f') ||
-            event.key.toLowerCase() === 'j' ||
-            event.key.toLowerCase() === 'b')
-        )
-          keyboard(event)
+        if (!event.defaultPrevented && isGlobalShortcut(event)) keyboard(event)
       }}
     >
       <MemoWorkspaceEditorTabs
         tabs={tabs}
         documents={documents}
-        dirtyRevision={dirtyRevision}
+        dirtyRevision={store.dirtyRevision}
         selectedFile={props.selectedFile}
         showingHeader={!!sdkHeader}
-        onSelect={selectTabPath}
+        onSelect={selectPath}
         onClose={closeTab}
         onBack={backToSource}
       />
       <MemoWorkspaceFilePicker
         documents={documents}
-        dirtyRevision={dirtyRevision}
+        dirtyRevision={store.dirtyRevision}
         fileQuery={fileQuery}
         setFileQuery={setFileQuery}
         onSelect={selectPickerPath}
@@ -1436,96 +727,25 @@ export function WorkspaceEditor(props: Props) {
           )}
         </Alert>
       )}
-      {conflicts.map((path) => (
-        <div
-          key={path}
-          role="alert"
-          className="flex flex-wrap items-center gap-2 px-3 py-2 text-xs"
-        >
-          <span>
-            {path} changed remotely. Your draft is preserved. Review it before
-            committing.
-          </span>
-          <Button
-            variant="ghost"
-            size="sm"
-
-            onClick={() => props.onSelect(path)}
-          >
-            Review draft
-          </Button>
-          {['Keep draft', 'Use incoming'].map((label) => (
-            <Button
-              variant="ghost"
-              size="sm"
-              key={label}
-
-              onClick={() => {
-                if (label === 'Use incoming') {
-                  const next = { ...documentsRef.current }
-                  const doc = next[path]!
-
-                  if (doc.baseline === null) delete next[path]
-                  else
-                    next[path] = {
-                      ...doc,
-                      contents: doc.baseline,
-                      deleted: false,
-                      version: doc.version + 1,
-                    }
-
-                  const editor = editorRef.current
-
-                  if (
-                    props.selectedFile === path &&
-                    editor &&
-                    !sdkHeader &&
-                    doc.baseline !== null
-                  ) {
-                    const text = editor.getText()
-
-                    editor.applyEdits([
-                      {
-                        range: {
-                          start: { line: 0, character: 0 },
-                          end: offsetPosition(text, text.length),
-                        },
-                        newText: doc.baseline,
-                      },
-                    ])
-                  }
-
-                  publish(next, {
-                    pathsChanged: doc.baseline === null || doc.deleted,
-                  })
-                  setEditorRevision((revision) => revision + 1)
-                }
-
-                conflictsRef.current = conflictsRef.current.filter(
-                  (entry) => entry !== path,
-                )
-
-                setConflicts(conflictsRef.current)
-              }}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
-      ))}
+      <DraftConflicts
+        conflicts={conflicts}
+        onReview={props.onSelect}
+        onKeepDraft={resolveConflict}
+        onUseIncoming={takeIncoming}
+      />
       <ResizablePanelGroup orientation="vertical" className="min-h-0 flex-1">
         <ResizablePanel defaultSize="70%" minSize="20%">
           <div className="relative flex h-full min-h-0 flex-col">
             <MemoWorkspaceSearch
-              searchOpen={searchOpen}
-              setSearchOpen={setSearchOpen}
-              searchInputRef={searchInputRef}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              matchCase={matchCase}
-              setMatchCase={setMatchCase}
-              searchResults={searchResults}
-              searchGroups={searchGroups}
+              searchOpen={search.open}
+              setSearchOpen={search.setOpen}
+              searchInputRef={search.inputRef}
+              searchQuery={search.query}
+              setSearchQuery={search.setQuery}
+              matchCase={search.matchCase}
+              setMatchCase={search.setMatchCase}
+              searchResults={search.results}
+              searchGroups={search.groups}
               onSelect={selectSearchResult}
             />
             <div className="relative flex min-h-0 flex-1 flex-col">
@@ -1542,7 +762,6 @@ export function WorkspaceEditor(props: Props) {
                   <Button
                     variant="ghost"
                     size="sm"
-
                     onClick={() => setFileQuery('')}
                   >
                     Open a file to start editing
@@ -1550,15 +769,10 @@ export function WorkspaceEditor(props: Props) {
                 </div>
               )}
               {workspaceLoaded &&
-                [
-                  ...mountedEditorPaths.flatMap((path) => {
-                    const doc = documents[path]
-                    return doc && !doc.deleted ? [doc] : []
-                  }),
-                  ...(sdkHeader ? [sdkHeader] : []),
-                ].map((doc) => {
+                editorDocuments.map((doc) => {
                   const active = doc.path === shown?.path
                   const readOnly = doc === sdkHeader
+                  const analysed = analysis?.path === doc.path && !readOnly
 
                   return (
                     <div
@@ -1584,19 +798,16 @@ export function WorkspaceEditor(props: Props) {
                             : (diagnostics[doc.path] ?? emptyDiagnostics)
                         }
                         semanticTokens={
-                          analysis?.path === doc.path && !readOnly
-                            ? analysis.tokens
-                            : emptyTokens
+                          analysed ? analysis.tokens : emptyTokens
                         }
                         foldingRanges={
-                          analysis?.path === doc.path &&
+                          analysed &&
                           'version' in doc &&
-                          analysis.version === doc.version &&
-                          !readOnly
+                          analysis.version === doc.version
                             ? analysis.folds
                             : emptyFolds
                         }
-                        readOnly={!!readOnly}
+                        readOnly={readOnly}
                         focusPosition={
                           active && target?.path === doc.path
                             ? target.position
@@ -1606,44 +817,41 @@ export function WorkspaceEditor(props: Props) {
                           editorRef.current = editor
                         }}
                         onPosition={(at) => {
-                          const completionCursor = context.current?.position
+                          if (!active) return
+
+                          // Moving away from where completions were requested
+                          // closes them.
+                          const requestedAt =
+                            completion.contextRef.current?.position
                           if (
-                            active &&
-                            completionCursor &&
-                            (completionCursor.line !== at.line ||
-                              completionCursor.character !== at.character)
-                          ) {
-                            setCompletions((current) =>
-                              current.length ? [] : current,
-                            )
-                          }
-                          if (active)
-                            setPosition((previous) =>
-                              previous.line === at.line &&
-                              previous.character === at.character
-                                ? previous
-                                : at,
-                            )
+                            requestedAt &&
+                            (requestedAt.line !== at.line ||
+                              requestedAt.character !== at.character)
+                          )
+                            completion.clear()
+
+                          setPosition((previous) =>
+                            previous.line === at.line &&
+                            previous.character === at.character
+                              ? previous
+                              : at,
+                          )
                         }}
                         onCommand={keyboard}
                         onNavigate={(at) => void run(() => navigate(at))}
                         onChange={(contents, changes) => {
                           if (readOnly) return
 
-                          if (active && snippet.current && changes)
-                            snippet.current.stops = remapSnippetStops(
-                              snippet.current.stops,
-                              changes,
-                            )
+                          if (active) {
+                            if (changes)
+                              completion.remapSnippet((stops) =>
+                                remapSnippetStops(stops, changes),
+                              )
+                            completion.clear()
+                          }
 
-                          if (active)
-                            setCompletions((current) =>
-                              current.length ? [] : current,
-                            )
-
-                          publishEditedDocument(doc.path, contents)
-
-                          clearDiagnostics(doc.path)
+                          store.publishEdit(doc.path, contents)
+                          language.clearDiagnostics(doc.path)
                         }}
                       />
                     </div>
@@ -1681,64 +889,26 @@ export function WorkspaceEditor(props: Props) {
         problems={problems}
         panel={panel}
         setPanel={setPanel}
-        searchOpen={searchOpen}
-        openSearch={openSearch}
+        searchOpen={search.open}
+        openSearch={search.openSearch}
         showingHeader={!!sdkHeader}
         ready={ready}
         hasSelectedFile={!!selected}
         onFormat={() => void run(formatDocument)}
       >
-        <span className="sr-only" role="status" title={draftError}>
-          {draftStatus === 'error'
-            ? 'Draft not saved locally'
-            : draftStatus === 'saving'
-              ? 'Saving draft…'
-              : workspaceDirty
-                ? 'Draft saved locally · Not committed'
-                : 'Committed'}
-        </span>
-        {draftStatus === 'error' && (
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            aria-label="Download recovery copy"
-            title="Download recovery copy"
-            onClick={() => {
-              const blob = new Blob(
-                [
-                  JSON.stringify(
-                    {
-                      version: 1,
-                      files: Object.fromEntries(
-                        workspaceDocuments(documentsRef.current)
-                          .filter((doc) => !doc.deleted)
-                          .map((doc) => [doc.path, doc.contents]),
-                      ),
-                    },
-                    null,
-                    2,
-                  ),
-                ],
-                { type: 'application/json' },
-              )
-              const url = URL.createObjectURL(blob)
-              const link = document.createElement('a')
-              link.href = url
-              link.download = 'v5x-draft-recovery.json'
-              link.click()
-              setTimeout(() => URL.revokeObjectURL(url), 1000)
-            }}
-          >
-            <DownloadSimpleIcon />
-          </Button>
-        )}
+        <DraftStatus
+          status={drafts.status}
+          error={drafts.error}
+          dirty={store.workspaceDirty}
+          files={() => liveFiles(documentsRef.current)}
+        />
         {props.statusBarEnd}
       </WorkspaceEditorToolbar>
       <WorkspaceCompletions
-        completions={completions}
-        completionIndex={completionIndex}
-        getAnchor={getCompletionAnchor}
-        onAccept={(item) => void run(() => accept(item))}
+        completions={completion.completions}
+        completionIndex={completion.completionIndex}
+        getAnchor={completion.getAnchor}
+        onAccept={(item) => void run(() => completion.accept(item))}
       />
     </div>
   )

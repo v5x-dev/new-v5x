@@ -46,6 +46,14 @@ export function uriPath(uri: string) {
 }
 
 export function positionOffset(text: string, position: Position) {
+  return resolveTextPosition(text, position)
+}
+
+function resolveTextPosition(
+  text: string,
+  position: Position,
+  lineStarts?: Array<number>,
+) {
   if (
     !Number.isInteger(position.line) ||
     !Number.isInteger(position.character) ||
@@ -54,12 +62,16 @@ export function positionOffset(text: string, position: Position) {
   )
     throw new Error('Invalid text position')
 
-  let offset = 0
-
-  for (let line = 0; line < position.line; line++) {
-    const next = text.indexOf('\n', offset)
-    if (next < 0) throw new Error('Text position is outside the document')
-    offset = next + 1
+  let offset = lineStarts?.[position.line] ?? 0
+  if (lineStarts) {
+    if (position.line >= lineStarts.length)
+      throw new Error('Text position is outside the document')
+  } else {
+    for (let line = 0; line < position.line; line++) {
+      const next = text.indexOf('\n', offset)
+      if (next < 0) throw new Error('Text position is outside the document')
+      offset = next + 1
+    }
   }
 
   const end = text.indexOf('\n', offset)
@@ -73,10 +85,18 @@ export function positionOffset(text: string, position: Position) {
 }
 
 export function applyTextEdits(text: string, edits: Array<TextEdit>) {
+  if (!edits.length) return text
+
+  const lineStarts = [0]
+  for (let offset = text.indexOf('\n'); offset >= 0;) {
+    lineStarts.push(offset + 1)
+    offset = text.indexOf('\n', offset + 1)
+  }
+
   const resolved = edits
     .map((edit, index) => ({
-      start: positionOffset(text, edit.range.start),
-      end: positionOffset(text, edit.range.end),
+      start: resolveTextPosition(text, edit.range.start, lineStarts),
+      end: resolveTextPosition(text, edit.range.end, lineStarts),
       text: edit.newText,
       index,
     }))
@@ -90,10 +110,15 @@ export function applyTextEdits(text: string, edits: Array<TextEdit>) {
       throw new Error('Overlapping or reversed text edits')
   }
 
-  for (const edit of resolved.reverse())
-    text = text.slice(0, edit.start) + edit.text + text.slice(edit.end)
+  const parts: Array<string> = []
+  let offset = 0
+  for (const edit of resolved) {
+    parts.push(text.slice(offset, edit.start), edit.text)
+    offset = edit.end
+  }
+  parts.push(text.slice(offset))
 
-  return text
+  return parts.join('')
 }
 
 export function isDirty(doc: WorkspaceDocument) {

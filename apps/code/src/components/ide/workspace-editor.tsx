@@ -49,7 +49,6 @@ import {
   positionOffset,
   recoverDocuments,
   searchWorkspace,
-  updateDocument,
   uriPath,
   workspaceDocuments,
 } from '~/lib/ide/workspace'
@@ -65,6 +64,36 @@ import {
 } from '~/lib/ide/file-operations'
 import { readWorkspace, writeWorkspace } from '~/lib/ide/persistence'
 import { DraftWriter, type DraftStatus } from '~/lib/ide/draft-writer'
+
+const MAX_MOUNTED_EDITORS = 1
+
+const MemoWorkspaceEditorTabs = React.memo(
+  ({
+    dirtyRevision: _dirtyRevision,
+    ...props
+  }: React.ComponentProps<typeof WorkspaceEditorTabs> & {
+    dirtyRevision: number
+  }) => {
+    void _dirtyRevision
+    return <WorkspaceEditorTabs {...props} />
+  },
+)
+
+const MemoWorkspaceFilePicker = React.memo(
+  ({
+    dirtyRevision: _dirtyRevision,
+    ...props
+  }: React.ComponentProps<typeof WorkspaceFilePicker> & {
+    dirtyRevision: number
+  }) => {
+    void _dirtyRevision
+    return <WorkspaceFilePicker {...props} />
+  },
+)
+
+const MemoWorkspaceSearch = React.memo(WorkspaceSearch)
+
+const MemoWorkspacePanels = React.memo(WorkspacePanels)
 
 export interface ProjectSnapshot {
   files: Record<string, string>
@@ -82,6 +111,7 @@ interface Props {
   statusBarEnd?: React.ReactNode
   brainTerminal?: BrainTerminalProps
   workspaceId: string
+  languageServer?: string | null
   template: ProjectTemplate
   selectedFile: string
   commitSha?: string
@@ -111,10 +141,26 @@ export function WorkspaceEditor(props: Props) {
   const propsRef = React.useRef(props)
   propsRef.current = props
   const [tabs, setTabs] = React.useState<Array<string>>([])
+  const tabsRef = React.useRef(tabs)
+  tabsRef.current = tabs
   const [loadAttempt, setLoadAttempt] = React.useState(0)
   const [workspaceLoaded, setWorkspaceLoaded] = React.useState(false)
+  const loadedWorkspaceRef = React.useRef<string | null>(null)
   const [documents, setDocuments] = React.useState<Documents>({})
   const documentsRef = React.useRef(documents)
+  const [documentRevision, setDocumentRevision] = React.useState(0)
+  const editGenerationRef = React.useRef(0)
+  const [workspaceDirty, setWorkspaceDirty] = React.useState(false)
+  const [dirtyRevision, setDirtyRevision] = React.useState(0)
+  const dirtyPathsRef = React.useRef(new Set<string>())
+  const [pathsRevision, setPathsRevision] = React.useState(0)
+  const workspacePathsRef = React.useRef<Array<string>>([])
+  const pendingSyncRef = React.useRef({ full: false, paths: new Set<string>() })
+  const previousSelectedPathRef = React.useRef(props.selectedFile)
+  const previousReadyRef = React.useRef(false)
+  const [recentEditorPaths, setRecentEditorPaths] = React.useState<
+    Array<string>
+  >([])
   const commitRef = React.useRef('')
   const conflictsRef = React.useRef<Array<string>>([])
   const [draftStatus, setDraftStatus] = React.useState<DraftStatus>('saved')
@@ -194,7 +240,13 @@ export function WorkspaceEditor(props: Props) {
   const searchResults = React.useMemo(
     () =>
       searchOpen ? searchWorkspace(documents, searchQuery, matchCase) : [],
-    [documents, searchQuery, matchCase, searchOpen],
+    [
+      documents,
+      searchOpen ? documentRevision : 0,
+      searchQuery,
+      matchCase,
+      searchOpen,
+    ],
   )
 
   const searchGroups = React.useMemo(() => {
@@ -210,14 +262,14 @@ export function WorkspaceEditor(props: Props) {
     return groups
   }, [searchResults])
 
-  const openSearch = () => {
+  const openSearch = React.useCallback(() => {
     setSearchOpen(true)
 
     requestAnimationFrame(() => {
       searchInputRef.current?.focus()
       searchInputRef.current?.select()
     })
-  }
+  }, [])
 
   const [fileQuery, setFileQuery] = React.useState<string | null>(null)
 
@@ -244,15 +296,23 @@ export function WorkspaceEditor(props: Props) {
   const [diagnostics, setDiagnostics] = React.useState<
     Record<string, Array<Diagnostic>>
   >({})
+  const diagnosticsRef = React.useRef(diagnostics)
+  const [diagnosticsRevision, setDiagnosticsRevision] = React.useState(0)
 
-  const problems = [
-    ...parseBuildProblems(props.buildOutput ?? ''),
-    ...Object.entries(diagnostics)
-      .filter(([path]) => documents[path] && !documents[path].deleted)
-      .flatMap(([path, entries]) =>
-        entries.map((diagnostic) => ({ path, diagnostic })),
+  const problems = React.useMemo(
+    () =>
+      [
+        ...parseBuildProblems(props.buildOutput ?? ''),
+        ...Object.entries(diagnostics)
+          .filter(([path]) => documents[path] && !documents[path].deleted)
+          .flatMap(([path, entries]) =>
+            entries.map((diagnostic) => ({ path, diagnostic })),
+          ),
+      ].sort(
+        (a, b) => (a.diagnostic.severity ?? 3) - (b.diagnostic.severity ?? 3),
       ),
-  ].sort((a, b) => (a.diagnostic.severity ?? 3) - (b.diagnostic.severity ?? 3))
+    [diagnostics, diagnosticsRevision, documents, props.buildOutput],
+  )
 
   const [position, setPosition] = React.useState<Position>({
     line: 0,
@@ -299,14 +359,84 @@ export function WorkspaceEditor(props: Props) {
   const completionAbort = React.useRef<AbortController | null>(null)
   const selected = documents[props.selectedFile]
 
-  const publish = (next: Documents) => {
-    for (const doc of workspaceDocuments(documentsRef.current)) {
-      if (!doc.deleted && (!next[doc.path] || next[doc.path]?.deleted))
-        clientRef.current?.remove(doc.path)
-    }
+  const clearDiagnostics = (path: string) => {
+    const entries = diagnosticsRef.current[path]
+    if (!entries?.length) return
+
+    delete diagnosticsRef.current[path]
+    setDiagnosticsRevision((revision) => revision + 1)
+  }
+
+  const refreshDirtyPaths = (next: Documents) => {
+    dirtyPathsRef.current = new Set(
+      workspaceDocuments(next)
+        .filter((doc) => isDirty(doc))
+        .map((doc) => doc.path),
+    )
+    setWorkspaceDirty(dirtyPathsRef.current.size > 0)
+  }
+
+  const refreshWorkspacePaths = (next: Documents) => {
+    const paths = workspaceDocuments(next)
+      .filter((doc) => !doc.deleted)
+      .map((doc) => doc.path)
+      .sort()
+
+    if (
+      paths.length === workspacePathsRef.current.length &&
+      paths.every((path, index) => path === workspacePathsRef.current[index])
+    )
+      return
+
+    workspacePathsRef.current = paths
+    setPathsRevision((revision) => revision + 1)
+  }
+
+  const publish = (
+    next: Documents,
+    options: { pathsChanged?: boolean } = {},
+  ) => {
+    pendingSyncRef.current.full = true
+    pendingSyncRef.current.paths.clear()
 
     documentsRef.current = next
-    React.startTransition(() => setDocuments(next))
+    refreshDirtyPaths(next)
+    if (options.pathsChanged) refreshWorkspacePaths(next)
+    React.startTransition(() => {
+      setDocuments(next)
+      setDocumentRevision((revision) => revision + 1)
+    })
+  }
+
+  const publishEditedDocument = (path: string, contents: string) => {
+    const current = documentsRef.current[path]
+    if (!current || current.deleted || current.contents === contents) return
+
+    const updated = {
+      ...current,
+      contents,
+      version: current.version + 1,
+    }
+    documentsRef.current[path] = updated
+    editGenerationRef.current++
+
+    if (!pendingSyncRef.current.full) pendingSyncRef.current.paths.add(path)
+
+    const wasDirty = dirtyPathsRef.current.has(path)
+    const nowDirty = isDirty(updated)
+
+    if (nowDirty) dirtyPathsRef.current.add(path)
+    else dirtyPathsRef.current.delete(path)
+
+    if (wasDirty !== nowDirty) {
+      setDirtyRevision((revision) => revision + 1)
+      setWorkspaceDirty(dirtyPathsRef.current.size > 0)
+    }
+
+    React.startTransition(() => {
+      setDocuments(documentsRef.current)
+      setDocumentRevision((revision) => revision + 1)
+    })
   }
 
   const run = async (task: () => Promise<void>) => {
@@ -322,34 +452,13 @@ export function WorkspaceEditor(props: Props) {
     let active = true
     setReady(false)
     setWorkspaceLoaded(false)
+    loadedWorkspaceRef.current = null
     setTabs([])
     setAnalysis(null)
+    pendingSyncRef.current = { full: false, paths: new Set() }
+    syncedPathsRef.current.clear()
+    previousReadyRef.current = false
     const isActive = () => active
-
-    const client = new ClangdClient({
-      status: () => {},
-      error: (reason) => {
-        if (active) setError(reason.message)
-      },
-      applyEdit: () =>
-        Promise.reject(
-          new Error('Server-requested workspace edits are disabled'),
-        ),
-      diagnostics: (uri, entries, version) => {
-        if (!isActive()) return
-        const path = uriPath(uri)
-
-        if (
-          version !== undefined &&
-          documentsRef.current[path]?.version !== version
-        )
-          return
-
-        setDiagnostics((old) => ({ ...old, [path]: entries }))
-      },
-    })
-
-    clientRef.current = client
 
     void run(async () => {
       const cached = await readWorkspace(props.workspaceId).catch(() => {
@@ -391,6 +500,9 @@ export function WorkspaceEditor(props: Props) {
       // Initial documents must land with the loaded flag, not in a later transition.
       documentsRef.current = next
       setDocuments(next)
+      setDocumentRevision((revision) => revision + 1)
+      refreshDirtyPaths(next)
+      refreshWorkspacePaths(next)
 
       const restoredTabs = (cached?.tabs ?? []).filter(
         (path) => next[path] && !next[path].deleted,
@@ -410,10 +522,83 @@ export function WorkspaceEditor(props: Props) {
       if (initialPath !== propsRef.current.selectedFile)
         propsRef.current.onSelect(initialPath)
 
+      loadedWorkspaceRef.current = props.workspaceId
       setWorkspaceLoaded(true)
+    })
 
+    return () => {
+      active = false
+    }
+  }, [props.workspaceId, loadAttempt])
+
+  React.useEffect(() => {
+    if (
+      !workspaceLoaded ||
+      loadedWorkspaceRef.current !== props.workspaceId ||
+      props.languageServer === null
+    )
+      return
+    let active = true
+    const isActive = () => active
+    setReady(false)
+    setAnalysis(null)
+    previousReadyRef.current = false
+    syncedPathsRef.current.clear()
+    const client = new ClangdClient(
+      {
+        status: () => {},
+        error: (reason) => {
+          if (active) setError(reason.message)
+        },
+        applyEdit: () =>
+          Promise.reject(
+            new Error('Server-requested workspace edits are disabled'),
+          ),
+        diagnostics: (uri, entries, version) => {
+          if (!isActive()) return
+          const path = uriPath(uri)
+
+          if (
+            version !== undefined &&
+            documentsRef.current[path]?.version !== version
+          )
+            return
+
+          setDiagnostics((old) => {
+            const slim = entries.slice(0, 64).map((entry) => ({
+              range: entry.range,
+              severity: entry.severity,
+              message: entry.message,
+              source: entry.source,
+            }))
+            const next: Record<string, Array<Diagnostic>> = {
+              ...old,
+              [path]: slim,
+            }
+            const selected = propsRef.current.selectedFile
+            for (const retained of Object.keys(next)) {
+              const doc = documentsRef.current[retained]
+              if (
+                retained !== path &&
+                retained !== selected &&
+                !(doc && isDirty(doc))
+              )
+                delete next[retained]
+            }
+            diagnosticsRef.current = next
+            return next
+          })
+        },
+      },
+      props.languageServer ?? '',
+    )
+
+    clientRef.current = client
+
+    setError('')
+    void (async () => {
       const files = Object.fromEntries(
-        workspaceDocuments(next)
+        workspaceDocuments(documentsRef.current)
           .filter((doc) => !doc.deleted)
           .map((doc) => [doc.path, doc.contents]),
       )
@@ -431,33 +616,46 @@ export function WorkspaceEditor(props: Props) {
         props.workspaceId,
       )
 
-      if (isActive()) setReady(true)
+      if (isActive()) {
+        pendingSyncRef.current.full = true
+        setReady(true)
+      }
+    })().catch((reason) => {
+      if (active)
+        setError(reason instanceof Error ? reason.message : String(reason))
     })
-
     return () => {
       active = false
       client.stop()
+      if (clientRef.current === client) clientRef.current = null
     }
-  }, [props.workspaceId, loadAttempt])
+  }, [workspaceLoaded, props.workspaceId, props.languageServer, loadAttempt])
 
   React.useEffect(() => {
+    const previousSelectedPath = previousSelectedPathRef.current
+    const selectedPathChanged = previousSelectedPath !== props.selectedFile
+    const becameReady = ready && !previousReadyRef.current
+    previousSelectedPathRef.current = props.selectedFile
+    previousReadyRef.current = ready
+
     if (!ready) return
 
-    const livePaths = new Set(
-      workspaceDocuments(documents)
-        .filter((doc) => !doc.deleted)
-        .map((doc) => doc.path),
-    )
+    const client = clientRef.current
+    if (!client) return
 
-    for (const path of syncedPathsRef.current)
-      if (!livePaths.has(path)) clientRef.current?.remove(path)
+    const pending = pendingSyncRef.current
+    const pendingPaths = new Set(pending.paths)
+    if (selectedPathChanged || becameReady) {
+      pendingPaths.add(props.selectedFile)
+      if (selectedPathChanged) pendingPaths.add(previousSelectedPath)
+    }
 
-    syncedPathsRef.current = livePaths
-
-    for (const doc of workspaceDocuments(documents)) {
-      if (doc.deleted) {
-        clientRef.current?.remove(doc.path)
-        continue
+    const syncDocument = (path: string) => {
+      const doc = documentsRef.current[path]
+      if (!doc || doc.deleted) {
+        if (syncedPathsRef.current.has(path)) client.remove(path)
+        syncedPathsRef.current.delete(path)
+        return
       }
 
       if (
@@ -465,10 +663,33 @@ export function WorkspaceEditor(props: Props) {
         (/\.(h|hpp|hxx)$/.test(doc.path) &&
           (doc.path === props.selectedFile || isDirty(doc)))
       )
-        clientRef.current?.sync(doc.path, doc.contents, doc.version)
-      else clientRef.current?.setFile(doc.path, doc.contents, doc.version)
+        client.sync(doc.path, doc.contents, doc.version)
+      else client.setFile(doc.path, doc.contents, doc.version)
+
+      syncedPathsRef.current.add(path)
     }
-  }, [documents, props.selectedFile, ready])
+
+    if (pending.full) {
+      const livePaths = new Set(
+        workspaceDocuments(documentsRef.current)
+          .filter((doc) => !doc.deleted)
+          .map((doc) => doc.path),
+      )
+
+      for (const path of syncedPathsRef.current)
+        if (!livePaths.has(path)) client.remove(path)
+
+      syncedPathsRef.current = livePaths
+
+      for (const doc of workspaceDocuments(documentsRef.current))
+        syncDocument(doc.path)
+    } else {
+      for (const path of pendingPaths) syncDocument(path)
+    }
+
+    pending.full = false
+    pending.paths.clear()
+  }, [documents, documentRevision, props.selectedFile, ready])
 
   React.useEffect(() => {
     // Pierre remaps existing colors through edits while fresh analysis is pending.
@@ -598,19 +819,16 @@ export function WorkspaceEditor(props: Props) {
     })
   }, [documents, props.selectedFile, workspaceLoaded])
 
-  const pathsKey = JSON.stringify(
-    workspaceDocuments(documents)
-      .filter((doc) => !doc.deleted)
-      .map((doc) => doc.path)
-      .sort(),
-  )
+  React.useEffect(() => {
+    if (workspaceLoaded)
+      propsRef.current.onPathsChange([...workspacePathsRef.current])
+  }, [pathsRevision, workspaceLoaded])
 
   React.useEffect(() => {
-    if (workspaceLoaded) propsRef.current.onPathsChange(JSON.parse(pathsKey))
-  }, [pathsKey, workspaceLoaded])
+    propsRef.current.onDirtyChange(workspaceDirty)
+  }, [workspaceDirty])
 
   React.useEffect(() => {
-    props.onDirtyChange(workspaceDocuments(documents).some(isDirty))
     if (!commitRef.current) return
 
     draftWriterRef.current?.schedule({
@@ -621,7 +839,7 @@ export function WorkspaceEditor(props: Props) {
       selectedFile: props.selectedFile,
       template: props.template,
     })
-  }, [documents, props.selectedFile, conflicts, tabs])
+  }, [documents, documentRevision, props.selectedFile, conflicts, tabs])
 
   React.useEffect(() => {
     setSearchOpen(false)
@@ -638,14 +856,19 @@ export function WorkspaceEditor(props: Props) {
         throw new Error('Review recovered drafts before committing.')
 
       if (!workspaceDocuments(documentsRef.current).some(isDirty)) return
+      setError('')
       saving.current = true
       propsRef.current.onSavingChange(true)
 
       try {
         const snapshot = documentsRef.current
+        const editGeneration = editGenerationRef.current
         const formatted = await formatWorkspace(snapshot, clientRef.current)
 
-        if (documentsRef.current !== snapshot)
+        if (
+          documentsRef.current !== snapshot ||
+          editGenerationRef.current !== editGeneration
+        )
           throw new Error('The program changed while formatting. Commit again.')
 
         publish(formatted)
@@ -670,6 +893,20 @@ export function WorkspaceEditor(props: Props) {
             next[doc.path] = { ...next[doc.path]!, baseline: doc.contents }
 
         publish(next)
+        // Finish the committed recovery snapshot before callers can reload.
+        // pagehide cannot keep an asynchronous IndexedDB write alive.
+        draftWriterRef.current?.schedule({
+          documents: next,
+          conflicts: conflictsRef.current,
+          commitSha: sha,
+          tabs: tabsRef.current,
+          selectedFile: propsRef.current.selectedFile,
+          template: propsRef.current.template,
+        })
+        await draftWriterRef.current?.flush()
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : String(reason))
+        throw reason
       } finally {
         saving.current = false
         propsRef.current.onSavingChange(false)
@@ -699,7 +936,7 @@ export function WorkspaceEditor(props: Props) {
           throw new Error('Resolve recovered draft conflicts first.')
 
         const next = applyFileOperation(documentsRef.current, operation)
-        publish(next)
+        publish(next, { pathsChanged: true })
         const current = propsRef.current.selectedFile
         const source = operation.path.replace(/\/$/, '')
 
@@ -1070,6 +1307,83 @@ export function WorkspaceEditor(props: Props) {
   }
 
   const shown = sdkHeader ?? selected
+  const activeEditorPath = shown?.path
+
+  React.useEffect(() => {
+    if (!activeEditorPath) return
+
+    setRecentEditorPaths((current) => {
+      if (current.at(-1) === activeEditorPath) return current
+
+      return [
+        ...current.filter((path) => path !== activeEditorPath),
+        activeEditorPath,
+      ].slice(-MAX_MOUNTED_EDITORS)
+    })
+  }, [activeEditorPath])
+
+  const mountedEditorPaths = [
+    ...recentEditorPaths
+      .filter((path) => path !== activeEditorPath)
+      .slice(-(MAX_MOUNTED_EDITORS - 1)),
+    ...(activeEditorPath ? [activeEditorPath] : []),
+  ]
+
+  const selectTabPath = React.useCallback((path: string) => {
+    setSdkHeader(null)
+    setSearchOpen(false)
+    propsRef.current.onSelect(path)
+  }, [])
+
+  const closeTab = React.useCallback(
+    (path: string) => {
+      const remaining = tabs.filter((entry) => entry !== path)
+      setTabs(remaining)
+      setRecentEditorPaths((current) =>
+        current.filter((entry) => entry !== path),
+      )
+
+      if (propsRef.current.selectedFile === path) {
+        setSdkHeader(null)
+        propsRef.current.onSelect(
+          remaining[Math.min(tabs.indexOf(path), remaining.length - 1)] ?? '',
+        )
+      }
+    },
+    [tabs],
+  )
+
+  const selectPickerPath = React.useCallback((path: string) => {
+    setSdkHeader(null)
+    setSearchOpen(false)
+    propsRef.current.onSelect(path)
+    setFileQuery(null)
+  }, [])
+
+  const backToSource = React.useCallback(() => setSdkHeader(null), [])
+
+  const selectSearchResult = React.useCallback(
+    (result: ReturnType<typeof searchWorkspace>[number]) => {
+      setSearchOpen(false)
+      setSdkHeader(null)
+      propsRef.current.onSelect(result.path)
+      setTarget({
+        path: result.path,
+        position: { line: result.line, character: result.character },
+      })
+    },
+    [],
+  )
+
+  const selectProblem = React.useCallback(
+    ({ path, diagnostic }: { path: string; diagnostic: Diagnostic }) => {
+      setPanel(null)
+      setSdkHeader(null)
+      propsRef.current.onSelect(path)
+      setTarget({ path, position: diagnostic.range.start })
+    },
+    [],
+  )
 
   React.useEffect(() => {
     if (props.outputRequest) setPanel('output')
@@ -1089,41 +1403,22 @@ export function WorkspaceEditor(props: Props) {
           keyboard(event)
       }}
     >
-      <WorkspaceEditorTabs
+      <MemoWorkspaceEditorTabs
         tabs={tabs}
         documents={documents}
+        dirtyRevision={dirtyRevision}
         selectedFile={props.selectedFile}
         showingHeader={!!sdkHeader}
-        onSelect={(path) => {
-          setSdkHeader(null)
-          setSearchOpen(false)
-          props.onSelect(path)
-        }}
-        onClose={(path) => {
-          const remaining = tabs.filter((entry) => entry !== path)
-          setTabs(remaining)
-
-          if (props.selectedFile === path) {
-            setSdkHeader(null)
-
-            props.onSelect(
-              remaining[Math.min(tabs.indexOf(path), remaining.length - 1)] ??
-                '',
-            )
-          }
-        }}
-        onBack={() => setSdkHeader(null)}
+        onSelect={selectTabPath}
+        onClose={closeTab}
+        onBack={backToSource}
       />
-      <WorkspaceFilePicker
+      <MemoWorkspaceFilePicker
         documents={documents}
+        dirtyRevision={dirtyRevision}
         fileQuery={fileQuery}
         setFileQuery={setFileQuery}
-        onSelect={(path) => {
-          setSdkHeader(null)
-          setSearchOpen(false)
-          props.onSelect(path)
-          setFileQuery(null)
-        }}
+        onSelect={selectPickerPath}
       />
       {error && (
         <Alert>
@@ -1200,7 +1495,9 @@ export function WorkspaceEditor(props: Props) {
                     ])
                   }
 
-                  publish(next)
+                  publish(next, {
+                    pathsChanged: doc.baseline === null || doc.deleted,
+                  })
                   setEditorRevision((revision) => revision + 1)
                 }
 
@@ -1219,7 +1516,7 @@ export function WorkspaceEditor(props: Props) {
       <ResizablePanelGroup orientation="vertical" className="min-h-0 flex-1">
         <ResizablePanel defaultSize="70%" minSize="20%">
           <div className="relative flex h-full min-h-0 flex-col">
-            <WorkspaceSearch
+            <MemoWorkspaceSearch
               searchOpen={searchOpen}
               setSearchOpen={setSearchOpen}
               searchInputRef={searchInputRef}
@@ -1229,16 +1526,7 @@ export function WorkspaceEditor(props: Props) {
               setMatchCase={setMatchCase}
               searchResults={searchResults}
               searchGroups={searchGroups}
-              onSelect={(result) => {
-                setSearchOpen(false)
-                setSdkHeader(null)
-                props.onSelect(result.path)
-
-                setTarget({
-                  path: result.path,
-                  position: { line: result.line, character: result.character },
-                })
-              }}
+              onSelect={selectSearchResult}
             />
             <div className="relative flex min-h-0 flex-1 flex-col">
               {!workspaceLoaded && !error && (
@@ -1263,7 +1551,7 @@ export function WorkspaceEditor(props: Props) {
               )}
               {workspaceLoaded &&
                 [
-                  ...tabs.flatMap((path) => {
+                  ...mountedEditorPaths.flatMap((path) => {
                     const doc = documents[path]
                     return doc && !doc.deleted ? [doc] : []
                   }),
@@ -1353,19 +1641,9 @@ export function WorkspaceEditor(props: Props) {
                               current.length ? [] : current,
                             )
 
-                          publish(
-                            updateDocument(
-                              documentsRef.current,
-                              doc.path,
-                              contents,
-                            ),
-                          )
+                          publishEditedDocument(doc.path, contents)
 
-                          setDiagnostics((old) =>
-                            Object.hasOwn(old, doc.path) && old[doc.path].length
-                              ? { ...old, [doc.path]: emptyDiagnostics }
-                              : old,
-                          )
+                          clearDiagnostics(doc.path)
                         }}
                       />
                     </div>
@@ -1388,18 +1666,13 @@ export function WorkspaceEditor(props: Props) {
               }}
             />
           )}
-          <WorkspacePanels
+          <MemoWorkspacePanels
             panel={panel}
             setPanel={setPanel}
             problems={problems}
             buildOutput={props.buildOutput}
             ready={ready}
-            onSelect={({ path, diagnostic }) => {
-              setPanel(null)
-              setSdkHeader(null)
-              props.onSelect(path)
-              setTarget({ path, position: diagnostic.range.start })
-            }}
+            onSelect={selectProblem}
           />
         </ResizablePanel>
       </ResizablePanelGroup>
@@ -1420,7 +1693,7 @@ export function WorkspaceEditor(props: Props) {
             ? 'Draft not saved locally'
             : draftStatus === 'saving'
               ? 'Saving draft…'
-              : workspaceDocuments(documents).some(isDirty)
+              : workspaceDirty
                 ? 'Draft saved locally · Not committed'
                 : 'Committed'}
         </span>

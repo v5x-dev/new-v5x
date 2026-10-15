@@ -30,6 +30,8 @@ const colors: Record<string, string> = {
   comment: '#6B4E32',
 }
 
+const maximumSemanticTokens = 2048
+
 export function decodeSemanticTokens(
   result: SemanticTokens,
   legend: SemanticTokensLegend,
@@ -41,11 +43,15 @@ export function decodeSemanticTokens(
 
   const tokens: Array<SemanticColor> = []
 
-  for (let index = 0; index < result.data.length; index += 5) {
-    const [deltaLine, deltaChar, length, type] = result.data.slice(
-      index,
-      index + 5,
-    )
+  for (
+    let index = 0;
+    index < result.data.length && tokens.length < maximumSemanticTokens;
+    index += 5
+  ) {
+    const deltaLine = result.data[index]
+    const deltaChar = result.data[index + 1]
+    const length = result.data[index + 2]
+    const type = result.data[index + 3]
 
     if (
       [deltaLine, deltaChar, length, type].some(

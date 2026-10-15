@@ -52,7 +52,7 @@
       "name": "code",
       "dependencies": {
         "@base-ui/react": "^1.8.0",
-        "@clangd-wasm/core": "15.0.7",
+        "@clangd-wasm/core": "npm:@clangd-wasm/core-small@15.0.7",
         "@convex-dev/better-auth": "^0.12.5",
         "@convex-dev/rate-limiter": "^0.4.2",
         "@convex-dev/react-query": "^0.1.0",
@@ -203,6 +203,7 @@
       "name": "@v5x/compiler",
       "version": "0.1.0",
       "dependencies": {
+        "@noble/hashes": "2.4.0",
         "microbit-clang-wasm": "21.11.0-alpha.1",
       },
       "devDependencies": {
@@ -389,7 +390,7 @@
 
     "@clack/prompts": ["@clack/prompts@1.8.1", "", { "dependencies": { "@clack/core": "1.5.1", "fast-string-width": "^3.0.2", "fast-wrap-ansi": "^0.2.0", "sisteransi": "^1.0.5" } }, "sha512-dlT1m5e/0yUL0kRNcQn7yGLVThkgbB0Ga/1AmfDDC/8ik6AIiSf2QLQO2zPYvefsHP0aFgxO93cVLCCfDp7kzQ=="],
 
-    "@clangd-wasm/core": ["@clangd-wasm/core@15.0.7", "", {}, "sha512-3RKw1febfsEVnCUgEEkdOYAruKJJvEn+O0AE8moW/ohDxd2kI61K2PiEyx0Pq6YvUKlF41xd9C+btvbjk+jkbQ=="],
+    "@clangd-wasm/core": ["@clangd-wasm/core-small@15.0.7", "", {}, "sha512-do3hAw68PCXK5NiqxJOa+IVAwf0A39Ae5/us6FGdawGEN2dciihAWceBdTtxHsa5dj9L1lyhCRiwTp1EDx9Gqw=="],
 
     "@cloudflare/kv-asset-handler": ["@cloudflare/kv-asset-handler@0.5.0", "", {}, "sha512-jxQYkj8dSIzc0cD6cMMNdOc1UVjqSqu8BZdor5s8cGjW2I8BjODt/kWPVdY+u9zj3ms75Q5qaZgnxUad83+eAg=="],
 

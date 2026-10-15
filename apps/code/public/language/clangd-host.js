@@ -1,4 +1,4 @@
-/* Local-only classic worker bridge for @clangd-wasm/core 15.0.7. */
+/* Local-only classic worker bridge for @clangd-wasm/core-small 15.0.7. */
 // JAR's umbrella headers depend on include order. User style files take precedence.
 const defaultFormatStyle = 'BasedOnStyle: LLVM\nSortIncludes: Never\n'
 const projectFormatFiles = new Set()
@@ -10,6 +10,8 @@ let starting = false
 let indexPrefix = null
 
 let persistingIndex = false
+
+const maxCachedIndexBytes = 8 * 1024 * 1024
 
 // Keep clangd's stdout in one capped buffer. A completion reply used to be
 // stored as one JavaScript number per byte, and a failed parse left that
@@ -154,7 +156,7 @@ self.onmessage = async ({ data }) => {
         throw new Error(
           'Local clangd requires cross-origin isolation. Reload after enabling COOP/COEP headers.',
         )
-      const base = new URL('/language/clangd-15.0.7/', self.location.origin)
+      const base = new URL('/language/clangd-15.0.7-small/', self.location.origin)
         .href
       self.postMessage({ kind: 'status', status: 'Downloading clangd' })
       const manifestResponse = await fetch(base + 'manifest.json', {
@@ -191,13 +193,26 @@ self.onmessage = async ({ data }) => {
       )
         .join('')
         .slice(0, 16)
+      const fileHashes = []
+      for (const path of Object.keys(data.files).sort()) {
+        const digest = await crypto.subtle.digest(
+          'SHA-256',
+          new TextEncoder().encode(data.files[path]),
+        )
+        fileHashes.push([
+          path,
+          Array.from(new Uint8Array(digest), (b) =>
+            b.toString(16).padStart(2, '0'),
+          ).join(''),
+        ])
+      }
       const fingerprint = Array.from(
         new Uint8Array(
           await crypto.subtle.digest(
             'SHA-256',
             new TextEncoder().encode(
               JSON.stringify({
-                files: data.files,
+                files: fileHashes,
                 commands: data.commands,
                 sdk,
               }),
@@ -211,16 +226,22 @@ self.onmessage = async ({ data }) => {
         self.location.origin,
       ).href
       const indexCache = await caches.open('v5x-clangd-index-v1')
-      const cachedIndex = {}
+      let cachedIndex = {}
       const keys = await indexCache.keys()
+      let cachedIndexBytes = 0
 
       for (const key of keys.filter((key) => key.url.startsWith(indexPrefix))) {
         const response = await indexCache.match(key)
-        if (response)
-          cachedIndex[
-            '/workspace/.cache/clangd/index/' +
-              decodeURIComponent(key.url.slice(indexPrefix.length))
-          ] = new Uint8Array(await response.arrayBuffer())
+        if (!response) continue
+
+        const bytes = await response.arrayBuffer()
+        if (bytes.byteLength > maxCachedIndexBytes - cachedIndexBytes) continue
+
+        cachedIndexBytes += bytes.byteLength
+        cachedIndex[
+          '/workspace/.cache/clangd/index/' +
+            decodeURIComponent(key.url.slice(indexPrefix.length))
+        ] = new Uint8Array(bytes)
       }
 
       // Keep at most two older snapshots for each workspace.
@@ -234,7 +255,7 @@ self.onmessage = async ({ data }) => {
       for (const prefix of prefixes.slice(0, Math.max(0, prefixes.length - 2)))
         for (const key of keys.filter((key) => key.url.startsWith(prefix)))
           await indexCache.delete(key)
-      const files = {}
+      let files = {}
 
       for (const bundle of bundles) {
         const bytes = await cachedBytes(
@@ -249,8 +270,10 @@ self.onmessage = async ({ data }) => {
         Object.assign(files, json.files)
       }
 
-      for (const [path, contents] of Object.entries(data.files)) {
+      for (const path of Object.keys(data.files)) {
+        const contents = data.files[path]
         files['/workspace/' + path] = contents
+        delete data.files[path]
         if (path === '.clang-format' || path === '_clang-format')
           projectFormatFiles.add(path)
       }
@@ -289,10 +312,18 @@ self.onmessage = async ({ data }) => {
               stdout,
               () => {},
             )
-            for (const [path, contents] of Object.entries(files))
+            for (const path of Object.keys(files)) {
+              const contents = files[path]
               writeFile(path, contents)
-            for (const [path, contents] of Object.entries(cachedIndex))
+              delete files[path]
+            }
+            for (const path of Object.keys(cachedIndex)) {
+              const contents = cachedIndex[path]
               writeFile(path, contents)
+              delete cachedIndex[path]
+            }
+            files = {}
+            cachedIndex = {}
             module.FS.chdir('/workspace')
           },
         ],
@@ -329,6 +360,14 @@ self.onmessage = async ({ data }) => {
           } catch {}
         }
       }
+    } else if (data.kind === 'document') {
+      if (!runtime) throw new Error('clangd has not started')
+      const contents =
+        data.message.method === 'textDocument/didOpen'
+          ? data.message.params.textDocument.text
+          : data.message.params.contentChanges[0].text
+      writeFile('/workspace/' + data.path, contents)
+      runtime.messageBuf.push(data.message)
     } else if (data.kind === 'read') {
       try {
         self.postMessage({
@@ -370,16 +409,22 @@ async function persistIndex() {
 
   try {
     const cache = await caches.open('v5x-clangd-index-v1')
+    const prefixKeys = await cache.keys()
+    for (const key of prefixKeys)
+      if (key.url.startsWith(indexPrefix)) await cache.delete(key)
+
     let bytes = 0
 
     for (const name of entries) {
-      const data = runtime.FS.readFile(directory + '/' + name)
-      bytes += data.byteLength
-      if (bytes > 16 * 1024 * 1024) break
+      const path = directory + '/' + name
+      const size = runtime.FS.stat(path).size
+      if (size > maxCachedIndexBytes - bytes) continue
+      const data = runtime.FS.readFile(path)
       await cache.put(
         indexPrefix + encodeURIComponent(name),
         new Response(data),
       )
+      bytes += data.byteLength
     }
   } finally {
     persistingIndex = false

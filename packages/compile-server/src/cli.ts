@@ -17,6 +17,8 @@ const { values } = parseArgs({
       type: "string",
       default: join(homedir(), ".cache", "v5x-compile-server"),
     },
+    "native-toolchain": { type: "string" },
+    "native-command-timeout": { type: "string" },
     cert: { type: "string" },
     key: { type: "string" },
     help: { type: "boolean", short: "h" },
@@ -31,6 +33,8 @@ if (values.help) {
   --origin <url>        Allow another app origin. Repeat for multiple origins.
   --assets-url <url>    Compiler/SDK host, default https://code.v5x.dev
   --cache-dir <path>    Verified compiler and SDK download cache
+  --native-toolchain <path>  Use the pinned native ARM toolchain instead of WASM
+  --native-command-timeout <ms>  Native command timeout, default 120000 ms
   --token <token>       Reuse a token of at least 16 characters
   --cert <path>         TLS certificate for wss:// connections
   --key <path>          TLS private key, required with --cert
@@ -47,6 +51,24 @@ if (Boolean(values.cert) !== Boolean(values.key))
 const assetsUrl = new URL(values["assets-url"]!)
 if (!["http:", "https:"].includes(assetsUrl.protocol))
   throw new Error("Invalid asset server URL")
+const nativeToolchainDirectory =
+  values["native-toolchain"] ?? process.env.V5X_NATIVE_TOOLCHAIN
+if (
+  values["native-toolchain"] !== undefined &&
+  !values["native-toolchain"].trim()
+)
+  throw new Error("Native toolchain path must not be empty")
+const nativeCommandTimeoutMs =
+  values["native-command-timeout"] === undefined
+    ? undefined
+    : Number(values["native-command-timeout"])
+if (
+  nativeCommandTimeoutMs !== undefined &&
+  (!Number.isFinite(nativeCommandTimeoutMs) ||
+    nativeCommandTimeoutMs <= 0 ||
+    nativeCommandTimeoutMs > 120_000)
+)
+  throw new Error("Native command timeout must be between 1 and 120000 ms")
 const origins = ["https://code.v5x.dev", ...(values.origin ?? [])].map(
   (value) => new URL(value).origin
 )
@@ -68,6 +90,8 @@ const running = createCompileServer({
   origins,
   assetsUrl: assetsUrl.href,
   cacheDirectory: values["cache-dir"]!,
+  nativeToolchainDirectory,
+  nativeCommandTimeoutMs,
   tls,
 })
 const host =
@@ -83,8 +107,10 @@ console.log(
 console.log(
   "The first build downloads and caches the compiler and SDK. Ctrl+C to stop."
 )
+let stopping = false
 for (const signal of ["SIGINT", "SIGTERM"] as const)
-  process.on(signal, () => {
-    running.stop()
-    process.exit(0)
+  process.once(signal, () => {
+    if (stopping) return
+    stopping = true
+    void running.stop().finally(() => process.exit(0))
   })

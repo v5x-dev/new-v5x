@@ -83,6 +83,23 @@ it('disposal rejects both active and queued builds and flushes pending logs', as
   expect(worker.terminated).toBe(true)
 })
 
+it('releases the old compiler before switching SDK templates', async () => {
+  globalThis.Worker = CompilerWorker as unknown as typeof Worker
+  const first = buildInBrowser(input(), () => {})
+  await Bun.sleep(0)
+  const previous = CompilerWorker.current
+  previous.result()
+  await first
+
+  const next = buildInBrowser({ ...input(), template: 'ez-template' }, () => {})
+  await Bun.sleep(0)
+  const current = CompilerWorker.current
+  expect(previous.terminated).toBe(true)
+  expect(current).not.toBe(previous)
+  current.result()
+  await next
+})
+
 it('acknowledges owned cold bytes and materializes references after consumers mutate old results', async () => {
   const { buildCacheKey } = await import('./build-cache')
   globalThis.Worker = CompilerWorker as unknown as typeof Worker

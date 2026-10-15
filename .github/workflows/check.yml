@@ -22,6 +22,11 @@ jobs:
         with:
           bun-version: 1.4.2
       - run: bun install --frozen-lockfile
+      # The native language service tests run clangd inside bubblewrap.
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap clangd
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: bun run check
 
   builds:

@@ -2,7 +2,8 @@ import * as React from 'react'
 import { V5SerialConnection, V5SerialDevice } from '@v5x/serial'
 import { createBrowserAdapter } from '@v5x/serial/browser'
 import type { ProjectTemplate } from '@v5x/compiler'
-import { createProgramIni, type UploadArtifacts } from '~/lib/ide/brain-upload'
+import { createProgramIni } from '~/lib/ide/brain-ini'
+import type { UploadArtifacts } from '~/lib/ide/brain-upload'
 
 const VEX_USB_VENDOR_ID = 10376
 

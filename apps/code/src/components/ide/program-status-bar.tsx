@@ -83,7 +83,8 @@ export function BuildButton({
 
   return (
     <Button
-      size="sm"
+      size="xs"
+      variant="ghost"
       aria-label={label}
       title={label}
       onClick={onBuild}
@@ -108,8 +109,8 @@ export function SimulatorButton({
 }) {
   return (
     <Button
-      size="sm"
-      variant="outline"
+      size="xs"
+      variant="ghost"
       aria-label="Run in simulator"
       title={
         supported

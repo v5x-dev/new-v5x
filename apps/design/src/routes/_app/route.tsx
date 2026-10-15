@@ -11,14 +11,14 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarRail,
-} from "@v5x/ui/components/sidebar"
+} from "@v5x/ui/design/sidebar"
 import { createFileRoute, Outlet } from "@tanstack/react-router"
 import { useState } from "react"
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-} from "@v5x/ui/components/input-group"
+} from "@v5x/ui/design/input-group"
 import { BoxIcon, SearchIcon } from "lucide-react"
 import { modelPaths, partName, PART_DRAG_TYPE } from "#/lib/parts"
 
@@ -103,7 +103,7 @@ function RouteComponent() {
                   {parts.map((part) => (
                     <SidebarMenuItem key={part.path}>
                       <SidebarMenuButton
-                        render={<div title={part.name} />}
+                        asChild
                         draggable
                         onDragStart={(event) => {
                           event.dataTransfer.effectAllowed = "copy"
@@ -111,8 +111,10 @@ function RouteComponent() {
                         }}
                         tooltip={part.name}
                       >
-                        <BoxIcon />
-                        <span>{part.name}</span>
+                        <div title={part.name}>
+                          <BoxIcon />
+                          <span>{part.name}</span>
+                        </div>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}

@@ -7,9 +7,9 @@ import type { AssemblyHistory, AssemblyPart } from "#/lib/assembly"
 import type { AssemblyCommand } from "#/lib/assembly"
 import { AssemblyPanel } from "#/components/assembly-panel"
 import type { TransformMode } from "#/hooks/use-assembly-document"
-import { Toggle } from "@v5x/ui/components/toggle"
+import { Toggle } from "@v5x/ui/design/toggle"
 import { Move, Rotate3D, ScanLine } from "lucide-react"
-import { ToggleGroup, ToggleGroupItem } from "@v5x/ui/components/toggle-group"
+import { ToggleGroup, ToggleGroupItem } from "@v5x/ui/design/toggle-group"
 import { CameraLight, Part } from "#/components/assembly-part"
 
 export function AssemblyScene({
@@ -72,8 +72,9 @@ export function AssemblyScene({
       />
       <div className="absolute bottom-4 left-4 z-10 flex items-center gap-1 rounded-lg border bg-card p-1">
         <ToggleGroup
-          value={[mode]}
-          onValueChange={([value]) => {
+          type="single"
+          value={mode}
+          onValueChange={(value) => {
             if (value === "translate" || value === "rotate") onMode(value)
           }}
           size="icon"

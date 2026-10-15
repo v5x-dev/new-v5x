@@ -1,8 +1,8 @@
 import { useRef, type Dispatch } from "react"
 import { FileDown, ListOrdered, Redo2, Undo2, Upload } from "lucide-react"
 import { AccountLink } from "#/components/account-link"
-import { Button } from "@v5x/ui/components/button"
-import { Input } from "@v5x/ui/components/input"
+import { Button } from "@v5x/ui/design/button"
+import { Input } from "@v5x/ui/design/input"
 import { modelPathSet } from "#/lib/parts"
 import {
   parseAssembly,

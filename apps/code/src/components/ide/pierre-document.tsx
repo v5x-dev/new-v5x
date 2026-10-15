@@ -17,7 +17,9 @@ const MemoFile = React.memo(File<undefined, undefined>)
 
 EditStateManager.setCapacity(1)
 
-const editorVirtualizerConfig = { overscrollSize: 96 }
+// Pierre renders files in 50-line chunks. A short buffer can leave the
+// viewport outside the rendered range.
+const editorVirtualizerConfig = { overscrollSize: 512 }
 
 const emptySemanticTokens: Array<SemanticColor> = []
 

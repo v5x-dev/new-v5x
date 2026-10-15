@@ -442,112 +442,119 @@ test("rejects queued language requests after session close", async () => {
   }
 })
 
-nativeClangd("native clangd loads all four real SDK templates", async () => {
-  const manifest = await startNativeTestServer()
-  const existing = new Set(
-    (await readdir(tmpdir())).filter((name) => name.startsWith("v5x-language-"))
-  )
-
-  for (const template of [
-    "vexcode",
-    "pros",
-    "ez-template",
-    "jar-template",
-  ] as const) {
-    const vexSdk = template === "vexcode" || template === "jar-template"
-    const main = vexSdk
-      ? "#include <vex_motor.h>\nint main() { vex::motor motor{1}; return 0; }\n"
-      : "#include <main.h>\nint main() { return 0; }\n"
-    const files = { "src/main.cpp": main }
-    const { socket, inbox } = await connectLanguageSocket()
-
-    await startNativeSession(
-      socket,
-      inbox,
-      manifest,
-      template,
-      files,
-      `real-sdk-${template}`
+nativeClangd(
+  "native clangd loads all four real SDK templates",
+  async () => {
+    const manifest = await startNativeTestServer()
+    const existing = new Set(
+      (await readdir(tmpdir())).filter((name) =>
+        name.startsWith("v5x-language-")
+      )
     )
-    await initializeLanguageSession(socket, inbox)
-    openDocument(socket, "src/main.cpp", main)
 
-    if (vexSdk) {
-      const definition = await request(
-        inbox,
+    for (const template of [
+      "vexcode",
+      "pros",
+      "ez-template",
+      "jar-template",
+    ] as const) {
+      const vexSdk = template === "vexcode" || template === "jar-template"
+      const main = vexSdk
+        ? "#include <vex_motor.h>\nint main() { vex::motor motor{1}; return 0; }\n"
+        : "#include <main.h>\nint main() { return 0; }\n"
+      const files = { "src/main.cpp": main }
+      const { socket, inbox } = await connectLanguageSocket()
+
+      await startNativeSession(
         socket,
-        2,
-        "textDocument/definition",
-        {
-          textDocument: { uri: "file:///workspace/src/main.cpp" },
-          position: { line: 1, character: 22 },
-        }
+        inbox,
+        manifest,
+        template,
+        files,
+        `real-sdk-${template}`
       )
-      const locations: Array<any> = Array.isArray(definition.result)
-        ? definition.result
-        : [definition.result]
-      expect(
-        locations.some((location) =>
-          location?.uri?.startsWith("file:///sdk/vexv5/include/vex_motor.h")
+      await initializeLanguageSession(socket, inbox)
+      openDocument(socket, "src/main.cpp", main)
+
+      if (vexSdk) {
+        const definition = await request(
+          inbox,
+          socket,
+          2,
+          "textDocument/definition",
+          {
+            textDocument: { uri: "file:///workspace/src/main.cpp" },
+            position: { line: 1, character: 22 },
+          }
         )
-      ).toBe(true)
+        const locations: Array<any> = Array.isArray(definition.result)
+          ? definition.result
+          : [definition.result]
+        expect(
+          locations.some((location) =>
+            location?.uri?.startsWith("file:///sdk/vexv5/include/vex_motor.h")
+          )
+        ).toBe(true)
+
+        socket.send(
+          JSON.stringify({
+            kind: "read",
+            id: 3,
+            path: "/sdk/vexv5/include/vex_motor.h",
+          })
+        )
+        const header = await inbox.next(
+          (message) => message.kind === "read" && message.id === 3
+        )
+        expect(header.contents).toContain("class motor")
+      } else {
+        socket.send(
+          JSON.stringify({
+            kind: "read",
+            id: 3,
+            path: "/workspace/include/main.h",
+          })
+        )
+        const header = await inbox.next(
+          (message) => message.kind === "read" && message.id === 3
+        )
+        expect(header.contents).toContain("common definitions")
+        expect(header.contents).toContain("PROS")
+      }
 
       socket.send(
         JSON.stringify({
-          kind: "read",
-          id: 3,
-          path: "/sdk/vexv5/include/vex_motor.h",
-        })
-      )
-      const header = await inbox.next(
-        (message) => message.kind === "read" && message.id === 3
-      )
-      expect(header.contents).toContain("class motor")
-    } else {
-      socket.send(
-        JSON.stringify({
-          kind: "read",
-          id: 3,
-          path: "/workspace/include/main.h",
-        })
-      )
-      const header = await inbox.next(
-        (message) => message.kind === "read" && message.id === 3
-      )
-      expect(header.contents).toContain("common definitions")
-      expect(header.contents).toContain("PROS")
-    }
-
-    socket.send(
-      JSON.stringify({
-        kind: "document",
-        path: "compile_commands.json",
-        message: {
-          jsonrpc: "2.0",
-          method: "textDocument/didOpen",
-          params: {
-            textDocument: {
-              uri: "file:///workspace/compile_commands.json",
-              languageId: "json",
-              version: 1,
-              text: "[]",
+          kind: "document",
+          path: "compile_commands.json",
+          message: {
+            jsonrpc: "2.0",
+            method: "textDocument/didOpen",
+            params: {
+              textDocument: {
+                uri: "file:///workspace/compile_commands.json",
+                languageId: "json",
+                version: 1,
+                text: "[]",
+              },
             },
           },
-        },
-      })
-    )
-    const rejectedDatabaseWrite = await inbox.next(
-      (message) => message.kind === "error"
-    )
-    expect(rejectedDatabaseWrite.message).toContain(
-      "managed by the language service"
-    )
+        })
+      )
+      const rejectedDatabaseWrite = await inbox.next(
+        (message) => message.kind === "error"
+      )
+      expect(rejectedDatabaseWrite.message).toContain(
+        "managed by the language service"
+      )
 
-    socket.close()
-    await inbox.closed
-    await waitForSessionCleanup(existing)
-  }
-})
+      socket.close()
+      await inbox.closed
+      await waitForSessionCleanup(existing)
+    }
+    // Each template starts a cold clangd session, which is slow on CI runners.
+  },
+  60_000
+)
 
 nativeClangd(
   "clangd cannot read host files or another session's workspace",

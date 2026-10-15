@@ -881,7 +881,7 @@ function isVirtualRootOrPath(value: string) {
 function isSdkVirtualPath(value: string) {
   return (
     (/^\/(sdk|toolchain)\//.test(value) ||
-      /^\/workspace\/include\//.test(value)) &&
+      value.startsWith("/workspace/include/")) &&
     isVirtualPath(value)
   )
 }

@@ -30,6 +30,7 @@ collision detection, or bolt clearance.
 ## Development
 
 From this directory, run `bun run dev`, `bun run typecheck`, or `bun run build`.
+Dev uses port 3001 so it can run beside the code app on port 3000 and share its session.
 The application uses TanStack Start, Three.js, and installed shadcn components.
 Run `bun run format` and `bun run lint` after changes. Generated routes, model
 assets, and build output are excluded from formatting.

@@ -1,5 +1,6 @@
 import { useRef, type Dispatch } from "react"
 import { FileDown, ListOrdered, Redo2, Undo2, Upload } from "lucide-react"
+import { AccountLink } from "#/components/account-link"
 import { Button } from "#/components/ui/button"
 import { Input } from "#/components/ui/input"
 import { modelPathSet } from "#/lib/parts"
@@ -119,6 +120,7 @@ export function AssemblyToolbar({
         >
           <ListOrdered />
         </Button>
+        <AccountLink />
       </div>
       <input
         hidden

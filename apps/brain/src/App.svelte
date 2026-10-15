@@ -46,6 +46,7 @@
   import { Button as IconButton } from "~/lib/components/ui/button"
   import { Sun, Moon, Map } from "@lucide/svelte"
   import { Toolbar, Sidebar, Flow, Terminal } from "~/lib/layout"
+  import AccountLink from "~/lib/layout/AccountLink.svelte"
   import {
     BrainNode,
     AdiNode,
@@ -240,6 +241,7 @@
             >
               <Map size="16" />
             </IconButton>
+            <AccountLink />
             <IconButton
               variant="ghost"
               size="icon"

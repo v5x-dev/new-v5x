@@ -3,7 +3,7 @@ import { useMutation } from 'convex/react'
 import { ConvexError } from 'convex/values'
 import { BugIcon, ChatCircleIcon, LightbulbIcon } from '@phosphor-icons/react'
 import { api } from '../../convex/_generated/api'
-import { Button } from '~/components/ui/button'
+import { Button } from '@v5x/ui/components/button'
 import {
   Dialog,
   DialogClose,
@@ -13,11 +13,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '~/components/ui/dialog'
-import { Input } from '~/components/ui/input'
-import { Spinner } from '~/components/ui/spinner'
-import { Tabs, TabsList, TabsTrigger } from '~/components/ui/tabs'
-import { Textarea } from '~/components/ui/textarea'
+} from '@v5x/ui/components/dialog'
+import { Input } from '@v5x/ui/components/input'
+import { Spinner } from '@v5x/ui/components/spinner'
+import { Tabs, TabsList, TabsTrigger } from '@v5x/ui/components/tabs'
+import { Textarea } from '@v5x/ui/components/textarea'
 
 export function FeedbackDialog({
   open: controlledOpen,

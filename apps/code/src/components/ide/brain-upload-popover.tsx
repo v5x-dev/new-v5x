@@ -1,15 +1,15 @@
 import { PlugsIcon, UploadSimpleIcon } from '@phosphor-icons/react'
-import { Alert, AlertDescription } from '~/components/ui/alert'
-import { Button } from '~/components/ui/button'
+import { Alert, AlertDescription } from '@v5x/ui/components/alert'
+import { Button } from '@v5x/ui/components/button'
 import {
   Popover,
   PopoverContent,
   PopoverHeader,
   PopoverTitle,
   PopoverTrigger,
-} from '~/components/ui/popover'
-import { Separator } from '~/components/ui/separator'
-import { Spinner } from '~/components/ui/spinner'
+} from '@v5x/ui/components/popover'
+import { Separator } from '@v5x/ui/components/separator'
+import { Spinner } from '@v5x/ui/components/spinner'
 import { BRAIN_SLOTS } from '~/lib/ide/brain-upload'
 
 export function BrainUploadPopover({

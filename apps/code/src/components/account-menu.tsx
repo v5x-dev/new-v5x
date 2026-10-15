@@ -5,16 +5,16 @@ import {
 } from '@phosphor-icons/react'
 import * as React from 'react'
 import { FeedbackDialog } from '~/components/feedback-dialog'
-import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
-import { Button } from '~/components/ui/button'
+import { Avatar, AvatarFallback, AvatarImage } from '@v5x/ui/components/avatar'
+import { Button } from '@v5x/ui/components/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '~/components/ui/dropdown-menu'
-import { Skeleton } from '~/components/ui/skeleton'
+} from '@v5x/ui/components/dropdown-menu'
+import { Skeleton } from '@v5x/ui/components/skeleton'
 import { authClient } from '~/lib/auth-client'
 
 export function AccountMenu({

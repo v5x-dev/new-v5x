@@ -4,7 +4,7 @@ import { templateFiles } from '../../convex/template'
 import type { Diagnostic } from 'vscode-languageserver-protocol'
 import type { ProgramTemplate } from '../../convex/template'
 import type { BrowserBuildResult } from '@v5x/compiler'
-import { Button } from '~/components/ui/button'
+import { Button } from '@v5x/ui/components/button'
 import { PierreDocument } from '~/components/ide/pierre-document'
 import { buildInBrowser, releaseBrowserCompiler } from '@v5x/compiler'
 

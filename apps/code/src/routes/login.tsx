@@ -3,9 +3,14 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useEffect, useState } from 'react'
 import { safeReturnUrl } from '@v5x/auth'
-import { Button } from '~/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
-import { Separator } from '~/components/ui/separator'
+import { Button } from '@v5x/ui/components/button'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@v5x/ui/components/card'
+import { Separator } from '@v5x/ui/components/separator'
 import { authClient } from '~/lib/auth-client'
 
 const isProductionCodeHost = createServerFn({ method: 'GET' }).handler(

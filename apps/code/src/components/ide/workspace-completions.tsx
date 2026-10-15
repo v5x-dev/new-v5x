@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { createPortal } from 'react-dom'
 import type { CompletionItem } from 'vscode-languageserver-protocol'
-import { Button } from '~/components/ui/button'
+import { Button } from '@v5x/ui/components/button'
 import { completionPosition } from '~/lib/ide/completion-position'
 
 interface Props {

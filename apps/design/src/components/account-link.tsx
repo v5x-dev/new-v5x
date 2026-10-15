@@ -5,7 +5,7 @@ import {
   signOutShared,
   type SharedUser,
 } from "@v5x/auth/browser"
-import { Button } from "#/components/ui/button"
+import { Button, buttonVariants } from "@v5x/ui/components/button"
 
 export function AccountLink() {
   const [user, setUser] = useState<SharedUser | null>(null)
@@ -61,8 +61,11 @@ export function AccountLink() {
   }
 
   return (
-    <Button variant="outline" size="sm" asChild>
-      <a href={href}>Sign in</a>
-    </Button>
+    <a
+      href={href}
+      className={buttonVariants({ variant: "outline", size: "sm" })}
+    >
+      Sign in
+    </a>
   )
 }

@@ -1,0 +1,286 @@
+@reference "./shadcn.css";
+
+/*
+ * Flow canvas theme. React Flow reads its colors from --xy-* variables, so map
+ * them onto the shadcn tokens once for every element that declares them.
+ */
+.split-view {
+  :is(.react-flow, .react-flow__edge, .react-flow__handle, .react-flow__node) {
+    --xy-background-color: var(--background) !important;
+    --xy-background-pattern-color: var(--border) !important;
+    --xy-connectionline-stroke: var(--primary) !important;
+    --xy-controls-box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.08) !important;
+    --xy-controls-button-background-color-hover: var(--accent) !important;
+    --xy-controls-button-background-color: var(--secondary) !important;
+    --xy-controls-button-border-color: var(--accent) !important;
+    --xy-controls-button-color-hover: var(--foreground) !important;
+    --xy-controls-button-color: var(--foreground) !important;
+    --xy-edge-label-background-color: #ffffff !important;
+    --xy-edge-label-color: inherit !important;
+    --xy-edge-stroke-selected: var(--primary) !important;
+    --xy-edge-stroke-width: 3px !important;
+    --xy-edge-stroke: color-mix(
+      in oklch,
+      var(--primary),
+      transparent 50%
+    ) !important;
+    --xy-handle-background-color: var(--muted) !important;
+    --xy-handle-border-color: color-mix(
+      in oklch,
+      var(--primary),
+      transparent 50%
+    ) !important;
+    --xy-minimap-background-color: var(--card) !important;
+    --xy-minimap-mask-background-color: var(--muted) !important;
+    --xy-minimap-node-background-color: var(--secondary) !important;
+    --xy-node-background-color: var(--muted) !important;
+    --xy-node-border-radius: 4px !important;
+    --xy-node-border: none !important;
+    --xy-node-boxshadow-hover: 0 1px 4px 1px rgba(0, 0, 0, 0.08) !important;
+    --xy-node-boxshadow-selected: 0 0 0 2px
+      color-mix(in oklch, var(--primary), transparent 50%) !important;
+    --xy-node-color: var(--foreground) !important;
+    --xy-node-group-background-color: rgba(240, 240, 240, 0.25) !important;
+    --xy-resize-background-color: var(--primary) !important;
+    --xy-selection-background-color: oklch(
+      from var(--primary) l c h / 0.15
+    ) !important;
+    --xy-selection-border: 1px solid
+      color-mix(in oklch, var(--primary), transparent 50%) !important;
+  }
+
+  .ports-bottom {
+    @apply bottom-1;
+
+    .smart-port-label {
+      @apply -top-9;
+    }
+  }
+
+  .ports-top {
+    @apply top-1;
+
+    .smart-port-label {
+      @apply -bottom-9;
+    }
+  }
+
+  .react-flow__attribution {
+    @apply bg-card! text-foreground!;
+  }
+
+  .react-flow__background rect {
+    @apply opacity-40!;
+  }
+
+  .react-flow__edge:has(.adi-edge) {
+    --ui-hue: var(--adi-hue) !important;
+  }
+
+  .react-flow__edge:has(.data-edge) {
+    --ui-hue: var(--data-hue) !important;
+  }
+
+  .react-flow__handle {
+    @apply h-2.5! w-2.5! rounded-full! transition-[border-color]! duration-150! ease-[ease]!;
+
+    &.adi-port-handle {
+      --ui-hue: var(--adi-hue) !important;
+    }
+
+    &.data-handle {
+      --ui-hue: var(--data-hue) !important;
+    }
+  }
+
+  .react-flow__minimap {
+    @apply overflow-hidden! rounded! opacity-80! transition-all! duration-150! ease-[ease]!;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+
+    &:hover {
+      @apply opacity-100!;
+    }
+  }
+
+  .react-flow__node {
+    @apply flex! flex-col! items-center! justify-center! rounded-xl! border! border-secondary! bg-muted! text-sm! font-semibold! text-foreground! transition-[border-color,box-shadow]! duration-150! ease-[ease]!;
+
+    &:hover {
+      @apply border-accent!;
+    }
+
+    &.selected,
+    &:focus-visible {
+      box-shadow: var(--xy-node-boxshadow-selected) !important;
+      --xy-handle-border-color: color-mix(
+        in oklch,
+        var(--primary),
+        transparent 50%
+      ) !important;
+    }
+
+    &.react-flow__node-brain {
+      @apply h-112.5! w-164.5! rounded-[60px]! border! border-border! bg-card!;
+    }
+  }
+
+  .react-flow__node-brain {
+    .battery-port {
+      @apply -z-1 h-6! w-1.5! transform-[translateX(100%)]! rounded-l-none! rounded-r! border-l-0! border-inherit! bg-card! transition-all! duration-150! ease-[ease]!;
+    }
+
+    .display {
+      @apply rounded! border! border-secondary!;
+    }
+
+    &.selected .battery-port,
+    &:focus-visible .battery-port {
+      box-shadow:
+        0 0 0 2px color-mix(in oklch, var(--primary), transparent 50%),
+        0 0 0 2px var(--card) !important;
+    }
+  }
+
+  .react-flow__node-light_sensor {
+    --ui-hue: var(--adi-hue) !important;
+  }
+
+  .react-flow__node-math,
+  .react-flow__node-time,
+  .react-flow__node-value {
+    --ui-hue: var(--data-hue) !important;
+  }
+
+  .react-flow__node-motor {
+    @apply rounded-none! border-0! bg-transparent! p-0! shadow-none!;
+
+    &:hover {
+      @apply border-0!;
+    }
+  }
+
+  .react-flow__selection {
+    @apply rounded-[8px]!;
+  }
+
+  summary::-webkit-details-marker {
+    @apply hidden;
+  }
+
+  &:has(.drag-item) * {
+    @apply cursor-grabbing!;
+  }
+}
+
+/* xyflow sets pointer-events: all on .react-flow__node, which puts the
+   preview under the cursor and makes the grid miss the drop. */
+.drag-overlay,
+.drag-overlay * {
+  pointer-events: none !important;
+}
+
+.terminal-container .xterm-viewport {
+  scrollbar-color: var(--border) var(--card);
+  scrollbar-width: thin;
+}
+
+.terminal-container .xterm-viewport::-webkit-scrollbar {
+  width: 10px;
+}
+
+.terminal-container .xterm-viewport::-webkit-scrollbar-track {
+  background: var(--card);
+}
+
+.terminal-container .xterm-viewport::-webkit-scrollbar-thumb {
+  border: 2px solid var(--card);
+  border-radius: 9999px;
+  background-color: var(--border);
+}
+
+.motor {
+  position: relative;
+  width: 172px;
+  height: 188px;
+
+  .housing {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    width: 164px;
+    height: 164px;
+    border: 1px solid var(--secondary);
+    border-radius: 18px;
+    background: var(--muted);
+  }
+
+  .fins {
+    position: absolute;
+    top: 34px;
+    left: 14px;
+    display: flex;
+    justify-content: space-between;
+    width: 76px;
+    height: 92px;
+
+    span {
+      width: 2px;
+      border-radius: 999px;
+      background: var(--border);
+    }
+  }
+
+  .posts {
+    position: absolute;
+    top: 156px;
+    left: 36px;
+    display: flex;
+    gap: 10px;
+
+    span {
+      width: 22px;
+      height: 24px;
+      box-sizing: border-box;
+      border: 1px solid var(--secondary);
+      border-top: 0;
+      border-radius: 0;
+      background: var(--muted);
+    }
+  }
+
+  .port {
+    position: absolute;
+    top: 76px;
+    left: 158px;
+    z-index: 2;
+    width: 12px;
+    height: 12px;
+
+    .smart-port-handle {
+      top: 0 !important;
+      left: 0 !important;
+      width: 12px !important;
+      height: 12px !important;
+      min-width: 0 !important;
+      min-height: 0 !important;
+      transform: none !important;
+      border-radius: 50% !important;
+      opacity: 0 !important;
+    }
+  }
+
+  .dot {
+    display: block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: color-mix(in oklch, var(--foreground) 55%, var(--muted));
+
+    &.on {
+      background: #ff3030;
+    }
+  }
+}

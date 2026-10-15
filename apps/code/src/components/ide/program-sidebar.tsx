@@ -2,13 +2,13 @@ import * as React from 'react'
 import { ArrowLeftIcon } from '@phosphor-icons/react'
 import { AccountMenu } from '~/components/account-menu'
 import { ProgramFileTree } from '~/components/ide/program-file-tree'
-import { Button } from '~/components/ui/button'
+import { Button } from '@v5x/ui/components/button'
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-} from '~/components/ui/sidebar'
+} from '@v5x/ui/components/sidebar'
 import type { FileOperations } from '~/lib/ide/file-operations'
 
 export function ProgramSidebar({

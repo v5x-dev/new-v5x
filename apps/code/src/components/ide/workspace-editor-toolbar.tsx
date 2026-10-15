@@ -7,8 +7,8 @@ import {
   WarningCircleIcon,
 } from '@phosphor-icons/react'
 import type { WorkspacePanel, WorkspaceProblem } from './workspace-panels'
-import { Button } from '~/components/ui/button'
-import { Spinner } from '~/components/ui/spinner'
+import { Button } from '@v5x/ui/components/button'
+import { Spinner } from '@v5x/ui/components/spinner'
 
 interface Props {
   hasBrainTerminal: boolean

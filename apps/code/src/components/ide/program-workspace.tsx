@@ -19,16 +19,16 @@ import {
   describeBuildElapsed,
 } from '~/components/ide/program-status-bar'
 import { WorkspaceEditor } from '~/components/ide/workspace-editor'
-import { Alert, AlertDescription } from '~/components/ui/alert'
-import { Button } from '~/components/ui/button'
+import { Alert, AlertDescription } from '@v5x/ui/components/alert'
+import { Button } from '@v5x/ui/components/button'
 import {
   Empty,
   EmptyDescription,
   EmptyHeader,
   EmptyTitle,
-} from '~/components/ui/empty'
-import { SidebarInset, SidebarProvider } from '~/components/ui/sidebar'
-import { Skeleton } from '~/components/ui/skeleton'
+} from '@v5x/ui/components/empty'
+import { SidebarInset, SidebarProvider } from '@v5x/ui/components/sidebar'
+import { Skeleton } from '@v5x/ui/components/skeleton'
 import { useBrain } from '~/hooks/use-brain'
 import { useBrainSlot } from '~/hooks/use-brain-slot'
 import { useCompilationServer } from '~/hooks/use-compilation-server'

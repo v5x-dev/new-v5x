@@ -14,6 +14,7 @@ const commands = Bun.argv.includes("--build")
       ["bun", "run", "--cwd", "packages/serial", "build:dts"],
       ["bun", "run", "--cwd", "packages/compiler", "typecheck"],
       ["bun", "run", "--cwd", "packages/compile-server", "typecheck"],
+      ["bun", "run", "--cwd", "packages/ui", "typecheck"],
       ["bun", "run", "--cwd", "apps/code", "typecheck"],
       ["bun", "run", "--cwd", "apps/brain", "check"],
       ["bun", "run", "--cwd", "apps/design", "typecheck"],

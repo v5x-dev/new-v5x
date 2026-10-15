@@ -9,8 +9,8 @@ import {
 } from '@phosphor-icons/react'
 import * as React from 'react'
 import type { V5SerialDevice, V5UserProgramTerminal } from '@v5x/serial'
-import { Button } from '~/components/ui/button'
-import { Input } from '~/components/ui/input'
+import { Button } from '@v5x/ui/components/button'
+import { Input } from '@v5x/ui/components/input'
 
 export interface BrainTerminalProps {
   brainDevice: V5SerialDevice | null

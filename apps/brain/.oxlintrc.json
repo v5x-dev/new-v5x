@@ -6,17 +6,8 @@
   },
   "env": {
     "browser": true,
-    "node": true,
-    "svelte": true
+    "node": true
   },
-  "overrides": [
-    {
-      "files": ["**/*.svelte"],
-      "rules": {
-        "no-unused-expressions": "off"
-      }
-    }
-  ],
   "ignorePatterns": [
     "public/**",
     "node_modules/**",

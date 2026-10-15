@@ -6,13 +6,11 @@ import {
 } from "./configuration"
 import type { Terminal } from "@xterm/xterm"
 import type Session from "~/lib/session"
-import type { Edge, Node } from "@xyflow/svelte"
+import type { Edge, Node } from "@xyflow/react"
 
-import { derived, writable, type Writable } from "svelte/store"
+import { create } from "zustand"
+import { useShallow } from "zustand/react/shallow"
 
-export const session: Writable<Session | null> = writable(null)
-export const terminal: Writable<Terminal | null> = writable(null)
-export const display: Writable<CanvasRenderingContext2D | null> = writable(null)
 const defaultNodes: Node[] = [
   {
     id: "brain",
@@ -64,29 +62,95 @@ const defaultEdges: Edge[] = [
   },
 ]
 
-export const configurationError = writable("")
 let restored = simulationConfiguration(defaultNodes, defaultEdges)
 let restoreFailed = false
+let restoreError = ""
 try {
   const text = localStorage.getItem(configurationKey)
   if (text) restored = parseConfiguration(text)
 } catch (reason) {
   restoreFailed = true
-  configurationError.set(
-    `Unable to restore wiring: ${String(reason)}. Export your configuration before replacing it.`,
+  restoreError = `Unable to restore wiring: ${String(reason)}. Export your configuration before replacing it.`
+}
+
+interface AppState {
+  session: Session | null
+  terminal: Terminal | null
+  nodes: Node[]
+  edges: Edge[]
+  configurationError: string
+  configurationRevision: number
+}
+
+export const useApp = create<AppState>(() => ({
+  session: null,
+  terminal: null,
+  nodes: restored.nodes,
+  edges: restored.edges,
+  configurationError: restoreError,
+  configurationRevision: 0,
+}))
+
+// Sessions mutate in place, so publishing the same instance still notifies
+// subscribers of the primitives they select from it.
+export function setSession(session: Session | null) {
+  useApp.setState({ session })
+}
+
+export function setTerminal(terminal: Terminal | null) {
+  useApp.setState({ terminal })
+}
+
+export function setConfigurationError(configurationError: string) {
+  useApp.setState({ configurationError })
+}
+
+export function setNodes(nodes: Node[] | ((current: Node[]) => Node[])) {
+  useApp.setState((state) => ({
+    nodes: typeof nodes === "function" ? nodes(state.nodes) : nodes,
+  }))
+}
+
+export function setEdges(edges: Edge[] | ((current: Edge[]) => Edge[])) {
+  useApp.setState((state) => ({
+    edges: typeof edges === "function" ? edges(state.edges) : edges,
+  }))
+}
+
+export function updateNodeData(id: string, data: Record<string, unknown>) {
+  setNodes((current) => {
+    const index = current.findIndex((node) => node.id === id)
+    const node = current[index]
+    if (!node) return current
+    const changed = Object.entries(data).some(
+      ([key, value]) => !Object.is(node.data[key], value),
+    )
+    if (!changed) return current
+    const next = current.slice()
+    next[index] = { ...node, data: { ...node.data, ...data } }
+    return next
+  })
+}
+
+export function useSession() {
+  return useApp(
+    useShallow((state) => ({
+      session: state.session,
+      running: state.session?.running ?? false,
+      paused: state.session?.paused ?? false,
+    })),
   )
 }
-export const nodes = writable<Node[]>(restored.nodes)
-export const edges = writable<Edge[]>(restored.edges)
-export const configurationRevision = writable(0)
 
 export function installConfiguration(configuration: SimulationConfiguration) {
   localStorage.setItem(configurationKey, JSON.stringify(configuration))
   restoreFailed = false
-  nodes.set(configuration.nodes)
-  edges.set(configuration.edges)
-  configurationRevision.update((revision) => revision + 1)
-  configurationError.set("")
+  useApp.setState((state) => ({
+    nodes: configuration.nodes,
+    edges: configuration.edges,
+    configurationRevision: state.configurationRevision + 1,
+    configurationError: "",
+  }))
 }
 
 export function persistConfiguration() {
@@ -99,21 +163,28 @@ export function persistConfiguration() {
     try {
       localStorage.setItem(configurationKey, pending)
       last = pending
-      configurationError.set("")
+      setConfigurationError("")
     } catch (reason) {
-      configurationError.set(
+      setConfigurationError(
         `Wiring not saved: ${String(reason)}. Export a recovery copy.`,
       )
     }
   }
-  const unsubscribe = derived([nodes, edges], ([$nodes, $edges]) =>
-    JSON.stringify(simulationConfiguration($nodes, $edges)),
-  ).subscribe((text) => {
+  let previous: Pick<AppState, "nodes" | "edges"> | undefined
+  const track = (state: AppState) => {
+    if (previous?.nodes === state.nodes && previous.edges === state.edges)
+      return
+    previous = state
+    const text = JSON.stringify(
+      simulationConfiguration(state.nodes, state.edges),
+    )
     if (text === pending) return
     pending = text
     clearTimeout(timer)
     timer = setTimeout(flush, 150)
-  })
+  }
+  track(useApp.getState())
+  const unsubscribe = useApp.subscribe(track)
   window.addEventListener("pagehide", flush)
   return () => {
     flush()

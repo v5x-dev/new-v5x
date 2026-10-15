@@ -10,7 +10,7 @@ import type {
   InlayHint,
 } from 'vscode-languageserver-protocol'
 import type { SemanticColor } from '~/lib/ide/semantic-tokens'
-import { Spinner } from '~/components/ui/spinner'
+import { Spinner } from '@v5x/ui/components/spinner'
 import { birdsOfParadiseTheme } from '~/lib/birds-of-paradise-theme'
 
 const MemoFile = React.memo(File<undefined, undefined>)

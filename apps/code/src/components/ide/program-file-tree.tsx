@@ -8,7 +8,7 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
-} from '~/components/ui/context-menu'
+} from '@v5x/ui/components/context-menu'
 
 export function ProgramFileTree({
   paths,

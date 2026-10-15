@@ -13,14 +13,14 @@ import { useState } from 'react'
 import { ConvexError } from 'convex/values'
 import { api } from '../../../convex/_generated/api'
 import type { Doc } from '../../../convex/_generated/dataModel'
-import { Button } from '~/components/ui/button'
+import { Button } from '@v5x/ui/components/button'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '~/components/ui/dialog'
+} from '@v5x/ui/components/dialog'
 import {
   AlertDialog,
   AlertDialogContent,
@@ -28,17 +28,17 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '~/components/ui/alert-dialog'
+} from '@v5x/ui/components/alert-dialog'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-} from '~/components/ui/dropdown-menu'
+} from '@v5x/ui/components/dropdown-menu'
 import { exportSourceZip } from '~/lib/source-zip'
 import { ProjectHistory } from './project-history'
-import { Input } from '~/components/ui/input'
+import { Input } from '@v5x/ui/components/input'
 
 export function ProgramActions({
   program,

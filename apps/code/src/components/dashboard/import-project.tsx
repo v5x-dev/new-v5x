@@ -2,8 +2,8 @@ import { useAction } from 'convex/react'
 import { CaretUpDownIcon, UploadSimpleIcon } from '@phosphor-icons/react'
 import { useRef, useState } from 'react'
 import { api } from '../../../convex/_generated/api'
-import { Button } from '~/components/ui/button'
-import { Input } from '~/components/ui/input'
+import { Button } from '@v5x/ui/components/button'
+import { Input } from '@v5x/ui/components/input'
 import {
   Dialog,
   DialogContent,
@@ -12,14 +12,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '~/components/ui/dialog'
+} from '@v5x/ui/components/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
-} from '~/components/ui/dropdown-menu'
+} from '@v5x/ui/components/dropdown-menu'
 import { importDraftRecovery } from '~/lib/draft-recovery'
 import { importSourceZip } from '~/lib/source-zip'
 import type { SourceFile } from '~/lib/source-files'

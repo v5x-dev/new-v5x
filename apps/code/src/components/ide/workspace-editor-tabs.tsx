@@ -1,8 +1,12 @@
 import { XIcon } from '@phosphor-icons/react'
 import type { Documents } from '~/lib/ide/workspace'
 import { isDirty } from '~/lib/ide/workspace'
-import { Button } from '~/components/ui/button'
-import { Tabs as EditorTabs, TabsList, TabsTrigger } from '~/components/ui/tabs'
+import { Button } from '@v5x/ui/components/button'
+import {
+  Tabs as EditorTabs,
+  TabsList,
+  TabsTrigger,
+} from '@v5x/ui/components/tabs'
 
 interface Props {
   tabs: Array<string>

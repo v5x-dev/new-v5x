@@ -117,16 +117,49 @@ export function authServiceOrigin(pageUrl: string) {
   return page.origin
 }
 
-export function loginUrl(pageUrl: string) {
-  const service = authServiceOrigin(pageUrl)
-  const url = new URL("/login", service)
-  const page = new URL(pageUrl)
+// Production sign-in lives on the apex site. Local and preview apps keep
+// their own login route, next to the auth API they talk to.
+export function loginPageOrigin(pageUrl: string) {
+  const hostname = new URL(pageUrl).hostname.toLowerCase()
+  if (hostname === "v5x.dev" || hostname.endsWith(".v5x.dev")) {
+    return "https://v5x.dev"
+  }
+  return authServiceOrigin(pageUrl)
+}
 
-  if (page.origin !== new URL(service).origin) {
+export function loginUrl(pageUrl: string) {
+  const page = new URL(pageUrl)
+  const origin = loginPageOrigin(pageUrl)
+  const url = new URL("/login", origin)
+
+  if (page.origin !== origin && page.pathname !== "/login") {
     url.searchParams.set("returnTo", page.href)
   }
 
   return url.toString()
+}
+
+export type LoginTheme = "site" | "code" | "brain" | "design"
+
+export function loginTheme(returnUrl: string | undefined): LoginTheme {
+  if (!returnUrl) return "site"
+
+  let hostname = ""
+  try {
+    hostname = new URL(returnUrl).hostname.toLowerCase()
+  } catch {
+    return "site"
+  }
+
+  if (
+    hostname === "code.v5x.dev" ||
+    /^v5x-code-[a-z0-9-]+-qainguins-projects\.vercel\.app$/.test(hostname)
+  ) {
+    return "code"
+  }
+  if (hostname === "brain.v5x.dev") return "brain"
+  if (hostname === "design.v5x.dev") return "design"
+  return "site"
 }
 
 export function safeReturnUrl(value: string | undefined, fallback: string) {
@@ -148,9 +181,7 @@ export function safeReturnUrl(value: string | undefined, fallback: string) {
     if (isLocalOrigin(url.origin) && !isLocalOrigin(fallbackUrl.origin)) {
       return fallback
     }
-    if (url.origin === fallbackUrl.origin && url.pathname === "/login") {
-      return fallback
-    }
+    if (url.pathname === "/login") return fallback
     return url.toString()
   } catch {
     return fallback

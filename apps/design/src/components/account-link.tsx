@@ -12,7 +12,7 @@ export function AccountLink() {
   const [ready, setReady] = useState(false)
   const href =
     typeof window === "undefined"
-      ? "https://code.v5x.dev/login"
+      ? "https://v5x.dev/login"
       : loginUrl(window.location.href)
 
   useEffect(() => {

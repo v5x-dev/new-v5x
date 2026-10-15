@@ -1,5 +1,6 @@
 import { DetectiveIcon, GoogleLogoIcon } from '@phosphor-icons/react'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createServerFn } from '@tanstack/react-start'
 import { useEffect, useState } from 'react'
 import { safeReturnUrl } from '@v5x/auth'
 import { Button } from '~/components/ui/button'
@@ -7,9 +8,33 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
 import { Separator } from '~/components/ui/separator'
 import { authClient } from '~/lib/auth-client'
 
+const isProductionCodeHost = createServerFn({ method: 'GET' }).handler(
+  async () => {
+    const { getRequestHeaders } = await import('@tanstack/react-start/server')
+    const headers = getRequestHeaders()
+    const host = (headers.get('x-forwarded-host') ?? headers.get('host') ?? '')
+      .split(',')[0]
+      ?.trim()
+      .toLowerCase()
+    return host === 'code.v5x.dev'
+  },
+)
+
 export const Route = createFileRoute('/login')({
   validateSearch: (search: Record<string, unknown>): { returnTo?: string } =>
     typeof search.returnTo === 'string' ? { returnTo: search.returnTo } : {},
+  beforeLoad: async ({ search }) => {
+    const onProductionCode =
+      typeof window !== 'undefined'
+        ? window.location.hostname === 'code.v5x.dev'
+        : await isProductionCodeHost()
+
+    if (!onProductionCode) return
+
+    const url = new URL('https://v5x.dev/login')
+    url.searchParams.set('returnTo', search.returnTo ?? 'https://code.v5x.dev/')
+    throw redirect({ href: url.toString() })
+  },
   component: RouteComponent,
 })
 

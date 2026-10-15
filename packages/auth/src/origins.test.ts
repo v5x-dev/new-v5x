@@ -4,6 +4,7 @@ import {
   authPublicProtocol,
   authServiceOrigin,
   isTrustedOrigin,
+  loginTheme,
   loginUrl,
   rewriteSetCookie,
   safeReturnUrl,
@@ -64,11 +65,24 @@ describe("shared auth origins", () => {
 
   test("login links carry a trusted return target", () => {
     expect(loginUrl("https://brain.v5x.dev/sim")).toBe(
-      "https://code.v5x.dev/login?returnTo=https%3A%2F%2Fbrain.v5x.dev%2Fsim"
+      "https://v5x.dev/login?returnTo=https%3A%2F%2Fbrain.v5x.dev%2Fsim"
     )
     expect(loginUrl("https://code.v5x.dev/projects")).toBe(
-      "https://code.v5x.dev/login"
+      "https://v5x.dev/login?returnTo=https%3A%2F%2Fcode.v5x.dev%2Fprojects"
     )
+    expect(loginUrl("https://v5x.dev/")).toBe("https://v5x.dev/login")
+    expect(loginUrl("http://localhost:5173/workspace")).toBe(
+      "http://localhost:3000/login?returnTo=http%3A%2F%2Flocalhost%3A5173%2Fworkspace"
+    )
+  })
+
+  test("login colors follow the site being returned to", () => {
+    expect(loginTheme(undefined)).toBe("site")
+    expect(loginTheme("https://v5x.dev/")).toBe("site")
+    expect(loginTheme("https://code.v5x.dev/projects")).toBe("code")
+    expect(loginTheme("https://brain.v5x.dev/sim")).toBe("brain")
+    expect(loginTheme("https://design.v5x.dev/workspace")).toBe("design")
+    expect(loginTheme("https://evil.example/")).toBe("site")
   })
 
   test("rejects return targets outside the product origins", () => {
@@ -85,8 +99,8 @@ describe("shared auth origins", () => {
       "https://code.v5x.dev/"
     )
     expect(
-      safeReturnUrl("https://code.v5x.dev/login", "https://code.v5x.dev/")
-    ).toBe("https://code.v5x.dev/")
+      safeReturnUrl("https://code.v5x.dev/login", "https://v5x.dev/")
+    ).toBe("https://v5x.dev/")
     expect(
       safeReturnUrl("http://localhost:3001/", "https://code.v5x.dev/")
     ).toBe("https://code.v5x.dev/")

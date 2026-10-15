@@ -1,7 +1,7 @@
 ---
 import { Icon } from "astro-icon/components"
 import Base from "../layouts/Base.astro"
-import Mark from "../components/Mark.astro"
+import "@fontsource-variable/roboto-slab"
 ---
 
 <Base title="Sign in | v5x" description="Sign in to v5x.">
@@ -21,30 +21,24 @@ import Mark from "../components/Mark.astro"
     document.documentElement.dataset.login = theme
   </script>
 
-  <div class="su grid min-h-[100dvh] place-items-center bg-background px-4 text-foreground">
-    <div class="w-full max-w-sm">
-      <a href="/" class="mb-8 flex items-center justify-center gap-2.5 text-lg font-semibold text-primary dark:text-chart-1">
-        <Mark class="size-6" />
-        v5x
-      </a>
-      <div class="rounded-2xl border border-border bg-card p-6">
-        <h1 class="text-center text-2xl font-semibold tracking-[-0.03em]">Sign in</h1>
-        <div class="mt-6 flex flex-col gap-2">
-          <button id="google" type="button" class="press inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/80">
-            <Icon name="ph:google-logo" class="size-4" />
-            Sign in with Google
-          </button>
-          <span class="text-center text-sm text-muted-foreground">or</span>
-          <button id="anonymous" type="button" class="press inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-medium hover:bg-muted">
-            <Icon name="ph:detective" class="size-4" />
-            Sign in anonymously
-          </button>
-          <p id="error" hidden role="alert" class="text-center text-sm text-destructive"></p>
-        </div>
+  <div class="login-page grid h-screen w-screen place-items-center bg-background text-foreground">
+    <div data-slot="card" data-size="default" class="group/card flex min-w-2xs flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-sm text-card-foreground ring-1 ring-foreground/10 [--card-spacing:--spacing(4)]">
+      <div data-slot="card-header" class="group/card-header grid auto-rows-min items-start gap-1 rounded-t-xl px-(--card-spacing)">
+        <div data-slot="card-title" class="text-center text-base leading-snug font-medium">v5x</div>
       </div>
-      <a id="return" href="/" class="mt-6 block text-center text-sm text-muted-foreground hover:text-foreground">
-        Return to site
-      </a>
+      <div role="separator" aria-orientation="horizontal" data-slot="separator" class="h-px w-full shrink-0 bg-border"></div>
+      <div data-slot="card-content" class="flex flex-col gap-1 px-(--card-spacing)">
+        <button id="google" type="button" data-slot="button" class="group/button inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-transparent bg-primary bg-clip-padding px-2.5 text-sm font-medium whitespace-nowrap text-primary-foreground transition-all outline-none select-none hover:bg-primary/80 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:size-4">
+          <Icon name="ph:google-logo" />
+          Sign in with Google
+        </button>
+        <span class="text-center text-muted-foreground">or</span>
+        <button id="anonymous" type="button" data-slot="button" class="group/button inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border bg-background bg-clip-padding px-2.5 text-sm font-medium whitespace-nowrap transition-all outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 dark:border-input dark:bg-input/30 dark:hover:bg-input/50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:size-4">
+          <Icon name="ph:detective" />
+          Sign in anonymously
+        </button>
+        <p id="error" hidden role="alert" class="text-center text-sm text-destructive"></p>
+      </div>
     </div>
   </div>
 </Base>
@@ -60,9 +54,6 @@ import Mark from "../components/Mark.astro"
   )
 
   document.documentElement.dataset.login = loginTheme(destination)
-
-  const returnLink = document.querySelector<HTMLAnchorElement>("#return")
-  if (returnLink) returnLink.href = destination
 
   const error = document.querySelector<HTMLElement>("#error")
   const buttons = [
@@ -141,6 +132,9 @@ import Mark from "../components/Mark.astro"
 
 <style is:global>
   html[data-login="code"] {
+    --ring: oklch(0.714 0.014 41.2);
+    --accent: oklch(0.96 0.002 17.2);
+    --input: oklch(0.922 0.005 34.3);
     --background: oklch(1 0 0);
     --foreground: oklch(0.147 0.004 49.3);
     --card: oklch(1 0 0);
@@ -157,6 +151,9 @@ import Mark from "../components/Mark.astro"
   }
 
   html.dark[data-login="code"] {
+    --ring: oklch(0.547 0.021 43.1);
+    --accent: oklch(0.268 0.011 36.5);
+    --input: oklch(1 0 0 / 15%);
     --background: oklch(0.147 0.004 49.3);
     --foreground: oklch(0.986 0.002 67.8);
     --card: oklch(0.214 0.009 43.1);
@@ -173,6 +170,9 @@ import Mark from "../components/Mark.astro"
   }
 
   html[data-login="brain"] {
+    --ring: oklch(0.711 0.019 323.02);
+    --accent: oklch(0.96 0.003 325.6);
+    --input: oklch(0.922 0.005 325.62);
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0.008 326);
     --card: oklch(1 0 0);
@@ -189,6 +189,9 @@ import Mark from "../components/Mark.astro"
   }
 
   html.dark[data-login="brain"] {
+    --ring: oklch(0.542 0.034 322.5);
+    --accent: oklch(0.263 0.024 320.12);
+    --input: oklch(1 0 0 / 15%);
     --background: oklch(0.145 0.008 326);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.212 0.019 322.12);
@@ -205,6 +208,9 @@ import Mark from "../components/Mark.astro"
   }
 
   html[data-login="design"] {
+    --ring: oklch(0.708 0 0);
+    --accent: oklch(0.97 0 0);
+    --input: oklch(0.922 0 0);
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -221,6 +227,9 @@ import Mark from "../components/Mark.astro"
   }
 
   html.dark[data-login="design"] {
+    --ring: oklch(0.556 0 0);
+    --accent: oklch(0.269 0 0);
+    --input: oklch(1 0 0 / 15%);
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);
@@ -234,6 +243,10 @@ import Mark from "../components/Mark.astro"
     --border: oklch(1 0 0 / 10%);
     --destructive: oklch(0.704 0.191 22.216);
     --chart-1: oklch(0.808 0.114 19.571);
+  }
+
+  .login-page {
+    font-family: "Roboto Slab Variable", serif;
   }
 
   button:disabled {

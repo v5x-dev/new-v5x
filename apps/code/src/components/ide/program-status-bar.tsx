@@ -3,6 +3,7 @@ import {
   GearIcon,
   GitCommitIcon,
   HammerIcon,
+  InfoIcon,
   PlayIcon,
 } from '@phosphor-icons/react'
 import { Button } from '~/components/ui/button'
@@ -15,6 +16,11 @@ import {
 } from '~/components/ui/dropdown-menu'
 import { Kbd } from '~/components/ui/kbd'
 import { Spinner } from '~/components/ui/spinner'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '~/components/ui/tooltip'
 
 export function describeBuildElapsed(seconds: number) {
   const minutes = Math.floor(seconds / 60)
@@ -37,16 +43,22 @@ export function CommitButton({
   onCommit: () => void
 }) {
   return (
-    <Button
-      size="icon-xs"
-      variant="ghost"
-      aria-label="Commit changes"
-      title="Commit changes"
-      onClick={onCommit}
-      disabled={disabled}
-    >
-      <GitCommitIcon />
-    </Button>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            size="icon-xs"
+            variant="ghost"
+            aria-label="Commit changes"
+            onClick={onCommit}
+            disabled={disabled}
+          />
+        }
+      >
+        <GitCommitIcon />
+      </TooltipTrigger>
+      <TooltipContent>Commit changes</TooltipContent>
+    </Tooltip>
   )
 }
 
@@ -67,31 +79,44 @@ export function BuildButton({
 }) {
   if (isBuilding)
     return (
-      <Button
-        size="xs"
-        variant="ghost"
-        aria-label={`Cancel build, ${describeBuildElapsed(elapsedSeconds)} elapsed`}
-        title={`Cancel build, ${elapsedSeconds}s elapsed`}
-        onClick={onCancel}
-      >
-        <Spinner data-icon="inline-start" aria-hidden="true" />
-        <span className="min-w-[3ch] text-center font-mono tabular-nums">
-          {elapsedSeconds}s
-        </span>
-      </Button>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              size="icon-xs"
+              variant="ghost"
+              aria-label={`Cancel build, ${describeBuildElapsed(elapsedSeconds)} elapsed`}
+              onClick={onCancel}
+            />
+          }
+        >
+          <Spinner aria-hidden="true" />
+        </TooltipTrigger>
+        <TooltipContent>
+          Cancel build · {describeBuildElapsed(elapsedSeconds)} elapsed
+        </TooltipContent>
+      </Tooltip>
     )
 
   return (
-    <Button
-      size="sm"
-      aria-label={label}
-      title={label}
-      onClick={onBuild}
-      disabled={disabled}
-    >
-      <HammerIcon data-icon="inline-start" />
-      Build <Kbd>⌘/Ctrl B</Kbd>
-    </Button>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            size="icon-xs"
+            variant="ghost"
+            aria-label={label}
+            onClick={onBuild}
+            disabled={disabled}
+          />
+        }
+      >
+        <HammerIcon />
+      </TooltipTrigger>
+      <TooltipContent>
+        {label} <Kbd>⌘/Ctrl B</Kbd>
+      </TooltipContent>
+    </Tooltip>
   )
 }
 
@@ -107,25 +132,26 @@ export function SimulatorButton({
   onRun: () => void
 }) {
   return (
-    <Button
-      size="sm"
-      variant="outline"
-      aria-label="Run in simulator"
-      title={
-        supported
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            size="icon-xs"
+            variant="ghost"
+            aria-label="Run in simulator"
+            onClick={onRun}
+            disabled={disabled}
+          />
+        }
+      >
+        {busy ? <Spinner /> : <PlayIcon />}
+      </TooltipTrigger>
+      <TooltipContent>
+        {supported
           ? 'Run in simulator'
-          : 'This template cannot run in the simulator.'
-      }
-      onClick={onRun}
-      disabled={disabled}
-    >
-      {busy ? (
-        <Spinner data-icon="inline-start" />
-      ) : (
-        <PlayIcon data-icon="inline-start" />
-      )}
-      Run
-    </Button>
+          : 'This template cannot run in the simulator.'}
+      </TooltipContent>
+    </Tooltip>
   )
 }
 
@@ -142,18 +168,24 @@ export function BuildSettingsMenu({
 }) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button
-            size="icon-xs"
-            variant="ghost"
-            aria-label="More actions"
-            title="More actions"
-          />
-        }
-      >
-        <DotsThreeIcon />
-      </DropdownMenuTrigger>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  size="icon-xs"
+                  variant="ghost"
+                  aria-label="More actions"
+                />
+              }
+            />
+          }
+        >
+          <DotsThreeIcon />
+        </TooltipTrigger>
+        <TooltipContent>More actions</TooltipContent>
+      </Tooltip>
       <DropdownMenuContent align="end" className="min-w-48">
         <DropdownMenuGroup>
           <DropdownMenuItem
@@ -178,9 +210,36 @@ export function BuildSettingsMenu({
 }
 
 export function StatusMessages({ messages }: { messages: Array<string> }) {
+  const visibleMessages = messages.filter(Boolean)
+  const statusText = visibleMessages.join('. ')
+
+  if (!statusText) return null
+
   return (
-    <span className="truncate text-xs" role="status" aria-live="polite">
-      {messages.filter(Boolean).join('. ')}
-    </span>
+    <>
+      <span className="sr-only" role="status" aria-live="polite">
+        {statusText}
+      </span>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <span
+              className="inline-flex size-6 shrink-0 items-center justify-center text-muted-foreground"
+              aria-label="Build and connection status"
+              tabIndex={0}
+            />
+          }
+        >
+          <InfoIcon aria-hidden="true" />
+        </TooltipTrigger>
+        <TooltipContent className="max-w-sm">
+          <span className="flex flex-col gap-1">
+            {visibleMessages.map((message, index) => (
+              <span key={`${index}-${message}`}>{message}</span>
+            ))}
+          </span>
+        </TooltipContent>
+      </Tooltip>
+    </>
   )
 }

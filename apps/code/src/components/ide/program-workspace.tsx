@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { TerminalIcon } from '@phosphor-icons/react'
 import { convexQuery } from '@convex-dev/react-query'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -29,6 +30,11 @@ import {
 } from '~/components/ui/empty'
 import { SidebarInset, SidebarProvider } from '~/components/ui/sidebar'
 import { Skeleton } from '~/components/ui/skeleton'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '~/components/ui/tooltip'
 import { useBrain } from '~/hooks/use-brain'
 import { useBrainSlot } from '~/hooks/use-brain-slot'
 import { useCompilationServer } from '~/hooks/use-compilation-server'
@@ -235,13 +241,21 @@ export function ProgramWorkspace({ programId }: { programId: Id<'program'> }) {
         onResetBrowserCompiler={releaseBrowserCompiler}
       />
       {programBuild.message.startsWith('Build failed') && (
-        <Button
-          size="xs"
-          variant="outline"
-          onClick={() => setOutputRequest((request) => request + 1)}
-        >
-          View output
-        </Button>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                size="icon-xs"
+                variant="ghost"
+                aria-label="View build output"
+                onClick={() => setOutputRequest((request) => request + 1)}
+              />
+            }
+          >
+            <TerminalIcon />
+          </TooltipTrigger>
+          <TooltipContent>View build output</TooltipContent>
+        </Tooltip>
       )}
       <StatusMessages
         messages={[

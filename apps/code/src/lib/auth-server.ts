@@ -1,7 +1,8 @@
 import { convexBetterAuthReactStart } from '@convex-dev/better-auth/react-start'
 import { getToken as fetchToken } from '@convex-dev/better-auth/utils'
 import { getRequestHeaders } from '@tanstack/react-start/server'
-import { isAppHost } from '../../auth-origins'
+import { finishSharedAuthResponse, sharedAuthPreflight } from '@v5x/auth/http'
+import { authPublicProtocol, isAppHost } from '../../auth-origins'
 
 const convexSiteUrl = process.env.VITE_CONVEX_SITE_URL!
 
@@ -34,7 +35,10 @@ function authHeaders(incoming: Headers) {
   return headers
 }
 
-export function handler(request: Request) {
+export async function handler(request: Request) {
+  const preflight = sharedAuthPreflight(request)
+  if (preflight) return preflight
+
   const headers = authHeaders(request.headers)
   const url = new URL(request.url)
   const forwardedHost = headers.get('x-forwarded-host')
@@ -42,14 +46,14 @@ export function handler(request: Request) {
   const publicHost =
     forwardedHost && isAppHost(forwardedHost) ? forwardedHost : url.host
 
-  const protocol = publicHost === 'localhost:3000' ? 'http' : 'https'
+  const protocol = authPublicProtocol(publicHost)
   headers.set('host', new URL(convexSiteUrl).host)
   headers.set('x-forwarded-host', publicHost)
   headers.set('x-forwarded-proto', protocol)
   headers.set('x-better-auth-forwarded-host', publicHost)
   headers.set('x-better-auth-forwarded-proto', protocol)
 
-  return fetch(`${convexSiteUrl}${url.pathname}${url.search}`, {
+  const response = await fetch(`${convexSiteUrl}${url.pathname}${url.search}`, {
     method: request.method,
     headers,
     redirect: 'manual',
@@ -58,6 +62,8 @@ export function handler(request: Request) {
     // @ts-expect-error duplex is not included in the DOM RequestInit type.
     duplex: 'half',
   })
+
+  return finishSharedAuthResponse(request, response, publicHost)
 }
 
 export async function getToken() {

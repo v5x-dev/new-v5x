@@ -1,5 +1,5 @@
-import { cn } from "~/lib/utils"
-import { templateInfo, type Template } from "./templates"
+import { cn } from '~/lib/utils'
+import { templateInfo, type Template } from './templates'
 
 export function TemplateIcon({
   template,
@@ -12,14 +12,14 @@ export function TemplateIcon({
 }) {
   const info = template
     ? templateInfo[template]
-    : { icon: "/favicon.svg", label: "Unknown template" }
+    : { icon: '/favicon.svg', label: 'Unknown template' }
 
   return (
     <img
       src={info.icon}
-      alt={decorative ? "" : info.label}
+      alt={decorative ? '' : info.label}
       title={decorative ? undefined : info.label}
-      className={cn("size-5 shrink-0 object-contain", className)}
+      className={cn('size-5 shrink-0 object-contain', className)}
     />
   )
 }

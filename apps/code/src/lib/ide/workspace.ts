@@ -18,11 +18,31 @@ export interface WorkspaceDocument {
 
 export type Documents = Partial<Record<string, WorkspaceDocument>>
 
+export interface ProjectSnapshot {
+  files: Record<string, string>
+  commitSha: string
+}
+
+export interface CommitChange {
+  path: string
+  contents: string | null
+}
+
 export function workspaceDocuments(
   documents: Documents,
 ): Array<WorkspaceDocument> {
   return Object.values(documents).filter(
     (doc): doc is WorkspaceDocument => doc !== undefined,
+  )
+}
+
+export function liveDocuments(documents: Documents) {
+  return workspaceDocuments(documents).filter((doc) => !doc.deleted)
+}
+
+export function liveFiles(documents: Documents): Record<string, string> {
+  return Object.fromEntries(
+    liveDocuments(documents).map((doc) => [doc.path, doc.contents]),
   )
 }
 
@@ -123,6 +143,29 @@ export function applyTextEdits(text: string, edits: Array<TextEdit>) {
 
 export function isDirty(doc: WorkspaceDocument) {
   return doc.deleted ? doc.baseline !== null : doc.contents !== doc.baseline
+}
+
+// Discards a draft in favour of the committed text. A document without a
+// committed baseline is removed.
+export function restoreBaseline(documents: Documents, path: string) {
+  const next = { ...documents }
+  const doc = next[path]
+  if (!doc) throw new Error(`${path} is not in the workspace`)
+
+  if (doc.baseline === null) delete next[path]
+  else
+    next[path] = {
+      ...doc,
+      contents: doc.baseline,
+      deleted: false,
+      version: doc.version + 1,
+    }
+
+  return {
+    next,
+    baseline: doc.baseline,
+    pathsChanged: doc.baseline === null || !!doc.deleted,
+  }
 }
 
 export function updateDocument(
